@@ -1,0 +1,135 @@
+{
+  "id": "migraties-rapportage-na-migratie",
+  "title": "Rapportage na de migratie",
+  "topic": "migraties",
+  "level": "expert",
+  "tag": "PnP.PowerShell · Compare-Object · alleen lezen",
+  "summary": "Vergelijkt per bestand een fileshare met een SharePoint-bibliotheek en schrijft een rapport met de bestanden die aan een van beide kanten ontbreken.",
+  "risk": "read",
+  "modules": [
+    "PnP.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. Controleer in de PnP.PowerShell-documentatie de parameters van Connect-PnPOnline (vooral -ClientId bij interactief inloggen) en Get-PnPListItem (-PageSize), en de eigenschappen FileSystemObjectType en FileRef, voordat je dit gebruikt. De vergelijking is getest met nagebootste cmdlets; bij grote bibliotheken kan Compare-Object traag zijn.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        5
+      ],
+      "prompt": "Waarvoor dient $Voorvoegsel met de waarde '/sites/afdeling/Shared Documents/'?",
+      "options": [
+        "Het is het adres van de site waarmee Connect-PnPOnline verbinding maakt, inclusief de bibliotheek waarin gezocht wordt",
+        "Het is de naam van de bibliotheek waarin het script zoekt naar bestanden en waarin het rapport wordt bewaard",
+        "Het deel van het pad in SharePoint dat wordt weggehaald, zodat de paden net zo beginnen als op de share",
+        "Het is de map op de share waar het rapport na afloop wordt opgeslagen"
+      ],
+      "answer": 2,
+      "explanation": "`FileRef` van een bestand is het volledige pad vanaf de root van de server, inclusief site en bibliotheek. Op de share begint een pad gewoon bij de bronmap. Door het voorvoegsel er op regel 16 af te halen, worden beide kanten vergelijkbaar. Is het voorvoegsel verkeerd, dan klopt de hele vergelijking niet (zie de bugvraag)."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        11,
+        12
+      ],
+      "prompt": "Wat bevat $bron na regel 11 en 12?",
+      "options": [
+        "Per bestand op de share het pad ten opzichte van de bronmap, met slashes zoals in een webadres",
+        "De volledige paden van de bestanden op de share, met de servernaam vooraan en backslashes zoals in Windows",
+        "Alleen de namen van de bestanden, zonder de mappen waarin ze staan, in alfabetische volgorde",
+        "De inhoud van de bestanden, als tekst, zodat die later vergeleken kan worden"
+      ],
+      "answer": 0,
+      "explanation": "`Substring($Share.Length)` knipt het begin van het pad weg, `TrimStart('\\')` haalt de eerste backslash weg en `Replace('\\', '/')` zet de backslashes om in slashes. Zo ziet een bestand eruit als `map/bestand.txt`, precies zoals aan de SharePoint-kant, en kan `Compare-Object` ze vergelijken. Dankzij `TrimStart` maakt een backslash aan het eind van `-Share` hier niet uit, anders dan in de pre-scan voor padlengte, waar die regel ontbreekt."
+    },
+    {
+      "id": "q3",
+      "type": "bug",
+      "step": "bron",
+      "lines": [
+        5,
+        16
+      ],
+      "prompt": "Je migreerde naar de submap Archief, maar liet $Voorvoegsel staan op '/sites/afdeling/Shared Documents/'. Wat staat er in verschillen.csv?",
+      "options": [
+        "Alleen de bestanden die echt ontbreken, want de rest wordt toch als gelijk gezien",
+        "Een foutmelding op regel 16, omdat het voorvoegsel niet meer past bij de paden in SharePoint",
+        "Geen enkel verschil, want Compare-Object negeert het begin van een pad bij de vergelijking",
+        "Elk bestand twee keer: in SharePoint begint het pad met Archief/, op de share niet"
+      ],
+      "answer": 3,
+      "explanation": "De paden aan SharePoint-kant beginnen dan met `Archief/` en die op de share niet. `Compare-Object` vergelijkt de tekst letterlijk en ziet geen enkel pad als gelijk. Elk bestand komt als \"Alleen op de share\" en als \"Alleen in SharePoint\" in het rapport. Dat is een signaal dat de configuratie niet klopt, geen echte verschillen. Zet het voorvoegsel dus op `/sites/afdeling/Shared Documents/Archief/` als de migratie in die submap staat."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        18,
+        23
+      ],
+      "prompt": "Wat betekent SideIndicator '<=' bij Compare-Object, en worden bestanden die aan beide kanten staan getoond?",
+      "options": [
+        "'<=' betekent dat het bestand aan beide kanten staat; gelijke bestanden worden altijd getoond",
+        "'<=' betekent alleen in het referentiedeel (de share); gelijke items worden standaard niet getoond",
+        "'<=' betekent dat het bestand kleiner is aan de kant van de share; gelijke bestanden worden wel getoond",
+        "'<=' betekent alleen in het verschildeel (SharePoint); gelijke items worden standaard niet getoond"
+      ],
+      "answer": 1,
+      "explanation": "`-ReferenceObject` is hier de share en `-DifferenceObject` is SharePoint. `<=` zegt dat het item alleen in de referentie staat, `=>` alleen in het verschil. Items die aan beide kanten staan, laat `Compare-Object` standaard weg. Ook is de vergelijking van tekst standaard niet hoofdlettergevoelig: `Hoofd.txt` en `HOOFD.txt` gelden als gelijk, wat bij SharePoint past."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "prompt": "Een bestand b.txt is bij de migratie hernoemd naar b_.txt, omdat een ongeldig teken werd vervangen. Wat staat er in het rapport?",
+      "options": [
+        "Geen regel, want het script herkent een hernoemd bestand aan de inhoud en rekent het als gelijk",
+        "Een regel met alleen b_.txt, omdat SharePoint leidend is bij een verschil in naam",
+        "Twee regels: b.txt als \"Alleen op de share\" en b_.txt als \"Alleen in SharePoint\"",
+        "Een regel met b.txt en een opmerking dat het bestand is hernoemd naar b_.txt"
+      ],
+      "answer": 2,
+      "explanation": "Het script vergelijkt alleen paden als tekst. Een hernoemd bestand ziet het als twee verschillende bestanden: de ene kant mist `b.txt` en de andere mist `b_.txt`. Dat is een normale uitkomst na een migratie met `-ReplacementOfInvalidChar`. Je herkent het patroon aan de bijna gelijke namen. Een betere vergelijking zou ook grootte of wijzigingsdatum meenemen."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        27
+      ],
+      "prompt": "Wat wijzigt dit script?",
+      "options": [
+        "Het kopieert de ontbrekende bestanden van de share naar SharePoint en meldt wat het gedaan heeft",
+        "Het schrijft alleen verschillen.csv in de huidige map; share en SharePoint blijven ongewijzigd",
+        "Het verwijdert de bestanden die alleen in SharePoint staan, zodat het doel gelijk wordt aan de bron",
+        "Het hernoemt de bestanden die aan beide kanten verschillen, zodat de namen weer kloppen"
+      ],
+      "answer": 1,
+      "explanation": "`Get-ChildItem`, `Get-PnPListItem` en `Compare-Object` lezen of vergelijken alleen, en `Connect-PnPOnline` maakt een verbinding. Alleen `Export-Csv` schrijft, en alleen lokaal. Een bestaande `verschillen.csv` wordt overschreven."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "bewerking",
+      "prompt": "Na een mislukte migratie staat er niets in de bibliotheek en geeft het script een foutmelding op regel 18. Waarom, en hoe maak je het script robuuster?",
+      "explanation": "Als de bibliotheek leeg is, levert regel 14 tot 16 niets op en is `$doel` leeg (`$null`). `Compare-Object` accepteert geen `$null` bij `-DifferenceObject` en geeft de fout \"Cannot bind argument to parameter 'DifferenceObject' because it is null\". Dat geldt ook voor een lege bron. Oplossing: zet `@()` om beide lijsten, bijvoorbeeld `-DifferenceObject @($doel)`, en meld het apart als een kant leeg is, want dat is zelf al een belangrijk resultaat. Verder: (1) `Compare-Object` kan bij tienduizenden bestanden traag zijn; een `HashSet` of een hashtable met paden is sneller; (2) vergelijk ook grootte en wijzigingsdatum, niet alleen het pad; (3) schrijf het rapport met een datum in de naam, zodat je runs kunt vergelijken; (4) zonder verschillen is `$rapport` leeg en schrijft `Export-Csv` een leeg bestand zonder kopregel: meld dat apart; (5) `-ErrorAction SilentlyContinue` op regel 11 kan onleesbare mappen stil overslaan, waardoor bestanden ten onrechte als \"Alleen in SharePoint\" verschijnen."
+    }
+  ]
+}
