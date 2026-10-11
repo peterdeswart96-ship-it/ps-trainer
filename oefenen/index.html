@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Oefen met het lezen van PowerShell-scripts: het script links, de vragen rechts die de bijbehorende regels laten oplichten.">
+<title>Oefenscripts – PowerShell Leestrainer</title>
+<script src="/assets/js/theme-init.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+<a class="skip" href="#inhoud">Naar de inhoud</a>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Oefenscripts</h1>
+      <p class="sub">Kies een script en beantwoord de vragen. Een vraag laat de bijbehorende regels oplichten. Probeer eerst zelf, kijk daarna pas naar het antwoord.</p>
+    </div>
+    <div class="kopacties">
+      <nav class="nav" aria-label="Hoofdmenu">
+        <a href="/">Start</a>
+        <a href="/oefenen/" aria-current="page">Oefenscripts</a>
+        <a href="/woordenboek/">Woordenboek</a>
+      </nav>
+      <button type="button" class="themaknop" id="thema-knop">Donker thema</button>
+    </div>
+  </header>
+
+  <main id="inhoud" class="werkbank" tabindex="-1">
+    <section class="filterblok" aria-label="Filters">
+      <div id="filters" class="filters"></div>
+    </section>
+    <section aria-label="Scriptkeuze">
+      <div id="scriptkeuze"></div>
+    </section>
+    <div id="melding"></div>
+    <div id="score" aria-live="polite"></div>
+
+    <div class="bench">
+      <section class="codepane" aria-label="Script">
+        <div class="codehead" id="codekop"></div>
+        <div class="code" id="codetabel" role="region" aria-label="Scriptcode" tabindex="0"></div>
+      </section>
+      <section class="qs" id="vragen" aria-label="Vragen"><noscript><p class="fout">Voor deze pagina is JavaScript nodig.</p></noscript></section>
+    </div>
+  </main>
+
+  <footer>Scripts worden nooit uitgevoerd: je leest ze alleen. De voorbeelden gebruiken <code class="i">contoso</code> en bevatten geen echte tenantgegevens. Controleer cmdlets en parameters altijd met <code class="i">Get-Help &lt;cmdlet&gt; -Examples</code> of de documentatie voordat je iets in productie draait.</footer>
+</div>
+<script type="module" src="/assets/js/oefenen.js"></script>
+</body>
+</html>

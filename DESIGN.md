@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.7 (11 oktober 2026), definitief. Wijziging t.o.v. 1.6: de onderwerpkaart op de startpagina is uitgewerkt (paragraaf 5): een kaart opent het eerste script van het onderwerp in de werkbank (met `&topic=`) en toont het aantal scripts per niveau, hoeveel scripts nog te controleren zijn en de voortgang; lege onderwerpen zijn een niet-klikbare kaart. Geen open vragen.
+Status: versie 1.8 (11 oktober 2026), definitief. Wijziging t.o.v. 1.7: de werkbank (paragraaf 5) is uitgewerkt: gedrag van de filters, de score met "opnieuw", antwoorden met tekst naast kleur, en de volgorde "eerst v1 overnemen, dan pas voortgang bewaren". Geen open vragen.
 
 ## 1. Besluiten
 
@@ -162,7 +162,7 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 | Pagina | Release | Inhoud |
 | --- | --- | --- |
 | **Startpagina** `/` | 2.0 | Leesmethode (5 stappen), kaarten per onderwerp met aantal scripts, voortgang en status ("nog in opbouw" waar nodig). Een kaart opent het eerste script van het onderwerp in de werkbank (`/oefenen/?script=<id>&topic=<onderwerp>`) en toont het aantal scripts per niveau, hoeveel er nog te controleren zijn en de voortgang (beantwoord en goed bij eerste poging; open vragen tellen niet mee). |
-| **Oefenen** `/oefenen/?script=<id>` | 2.0 | De werkbank uit v1: script met regelnummers links, vragen rechts die regels oplichten. Bovenaan filters voor onderwerp, niveau en soort vraag. Waarschuwingsbalk bij `nog_te_controleren`. Op een telefoon staat de code boven de vragen. |
+| **Oefenen** `/oefenen/?script=<id>` | 2.0 | De werkbank uit v1: script met regelnummers links, vragen rechts die regels oplichten. Bovenaan filters voor onderwerp, niveau en soort vraag. Waarschuwingsbalk bij `nog_te_controleren`. Op een telefoon staat de code boven de vragen. Bij een filterwissel springt de werkbank naar het eerste passende script (blijft het huidige script passen, dan blijft het staan); een combinatie zonder scripts geeft een melding en laat het huidige script staan; een `?script=` buiten de filters blijft zichtbaar. Een antwoord wordt direct bewaard (alleen het eerste antwoord telt), staat met tekst (naast kleur) in de kaart, en de score toont "goed bij eerste poging" en "beantwoord"; "opnieuw" wist de voortgang van dat ene script. De werkbank handelt eerst de v1-overname af voordat er voortgang wordt bewaard. |
 | **Woordenboek** `/woordenboek/?q=` | 2.0 | Zoeken en groepen, zoals nu; leest/wijzigt-labels blijven. |
 | **Flashcards** `/flashcards/?topic=` | 2.1 | Term op de voorkant, uitleg en voorbeeld op de achterkant. "Weet ik" en "nog niet" per kaart. |
 | **Examen** `/examen/?topic=&level=` | 2.1 | Kies onderwerp, niveau en aantal vragen. Timer, geen uitleg tijdens het examen, eindscore met overzicht. Open vragen tellen niet mee. Foute antwoorden gaan naar "Herhaal je fouten". |

@@ -126,3 +126,52 @@ a.kaart:hover { border-color: var(--accent); }
 .kaartmeta { font-size: .88rem; color: var(--muted); }
 .kaartvoortgang { font-family: var(--f-mono); font-size: .8rem; color: var(--accent); }
 .badge { justify-self: start; margin: 4px 0 0; background: var(--warn-soft); color: var(--warn); border-radius: 999px; padding: 1px 10px; font-size: .78rem; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .05em; }
+
+/* Werkbank: filters, script met regelnummers, vragen */
+.werkbank { display: grid; gap: 14px; }
+.filters { display: grid; gap: 8px; }
+.chip.filter { padding: 5px 12px; font-size: .9rem; display: block; }
+.scorerij { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 1.6em; }
+.score { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.bench { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.codepane { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+@media (max-width: 900px) { .codepane { position: static; } }
+.codehead { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.codekop-inhoud { display: grid; gap: 6px; }
+.codehead h2 { font-family: var(--f-display); font-size: 1.2rem; margin: 0; }
+.kopregel, .controle { margin: 0; color: var(--muted); font-size: .92rem; }
+.controle { font-size: .8rem; }
+.code { overflow-x: auto; background: var(--code-bg); border-radius: 0 0 10px 10px; padding-block: 10px; }
+.codetabel { border-collapse: collapse; font-family: var(--f-mono); font-size: .84rem; line-height: 1.6; width: 100%; }
+.codetabel td { padding: 0 14px 0 0; white-space: pre; vertical-align: top; }
+.codetabel td.n { width: 1%; text-align: right; color: var(--muted); padding-left: 12px; padding-right: 14px; user-select: none; font-variant-numeric: tabular-nums; }
+.codetabel tr.hl td { background: var(--hl); }
+
+.qs { display: grid; gap: 14px; min-width: 0; }
+.q { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
+.q.active { border-color: var(--accent); }
+.qtop { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+.qnum { font-family: var(--f-display); font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.lines { font-family: var(--f-mono); font-size: .75rem; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 1px 9px; color: var(--accent); }
+.kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-family: var(--f-display); }
+.kind.bug { background: var(--bad-soft); color: var(--bad); }
+.kind.open { background: var(--warn-soft); color: var(--warn); }
+.stap-label { font-size: .75rem; color: var(--muted); font-family: var(--f-display); text-transform: uppercase; letter-spacing: .05em; }
+.q p.prompt { margin: 0; font-weight: 600; }
+.opts { display: grid; gap: 6px; }
+.opt { text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; gap: 10px; align-items: flex-start; }
+.opt:hover:not([disabled]) { border-color: var(--accent); }
+.opt .k { font-family: var(--f-mono); color: var(--muted); font-size: .85rem; padding-top: 1px; }
+.opt.right { border-color: var(--ok); background: var(--ok-soft); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt[disabled] { cursor: default; }
+.expl { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; font-size: .95rem; }
+.expl.ok { border-left-color: var(--ok); } .expl.no { border-left-color: var(--bad); } .expl.neutral { border-left-color: var(--warn); }
+.expl strong { display: block; margin-bottom: 2px; }
+textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+
+.qnum { margin: 0; }
+/* Op een breed scherm blijft het codeblok in beeld terwijl je door de vragen scrolt; een langer script scrolt dan binnen het blok. */
+@media (min-width: 901px) { .code { max-height: calc(100vh - 160px); overflow-y: auto; } }
