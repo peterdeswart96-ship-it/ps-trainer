@@ -1,0 +1,13 @@
+{
+  "name": "ps-trainer",
+  "version": "2.0.0-dev",
+  "private": true,
+  "description": "PowerShell Leestrainer: oefenen met het lezen van PowerShell-scripts voor Microsoft 365 en Azure",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "check-node": "node tools/check-node.mjs"
+  }
+}
