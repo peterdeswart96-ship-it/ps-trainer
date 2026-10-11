@@ -1,0 +1,32 @@
+[
+  {
+    "id": "migraties",
+    "name": "Migraties",
+    "summary": "Fileshares en SharePoint on-premises migreren naar SharePoint Online, met een eigen pre-scan, SPMT of ShareGate.",
+    "order": 1
+  },
+  {
+    "id": "sharepoint",
+    "name": "SharePoint",
+    "summary": "Sites, deelinstellingen, sitebeheerders en opslag in SharePoint Online beheren met de SharePoint- en PnP-modules.",
+    "order": 2
+  },
+  {
+    "id": "foundry",
+    "name": "Foundry",
+    "summary": "De Azure-laag rond Microsoft Foundry: resources, rollen, deployments, kosten en governance.",
+    "order": 3
+  },
+  {
+    "id": "purview",
+    "name": "Purview",
+    "summary": "Gevoeligheidslabels, DLP-beleid en retentiebeleid lezen met ExchangeOnlineManagement.",
+    "order": 4
+  },
+  {
+    "id": "entra-id",
+    "name": "Entra ID",
+    "summary": "Gebruikers en apparaten in Entra ID beheren met Microsoft Graph.",
+    "order": 5
+  }
+]

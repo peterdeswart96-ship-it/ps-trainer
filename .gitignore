@@ -1,0 +1,18 @@
+# Pakketten
+node_modules/
+
+# Wordt in GitHub Actions (en lokaal door npm run dev) gebouwd, niet in git bewaard
+data/index.json
+
+# Geheimen en lokale instellingen: nooit committen
+.env
+.env.*
+local.settings.json
+
+# Zip-bestanden voor handmatige deploys
+*.zip
+
+# Editor- en systeembestanden
+.vscode/
+.DS_Store
+Thumbs.db

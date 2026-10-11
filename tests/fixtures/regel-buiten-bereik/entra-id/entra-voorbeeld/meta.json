@@ -1,0 +1,64 @@
+{
+  "id": "entra-voorbeeld",
+  "title": "Voorbeeld: inactieve gebruikers",
+  "topic": "entra-id",
+  "level": "basis",
+  "tag": "Microsoft Graph · alleen lezen",
+  "summary": "Testscript voor het validatiescript: toont ingeschakelde accounts zonder recente aanmelding.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Graph.Users"
+  ],
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-11",
+    "source": "Microsoft Learn"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1
+      ],
+      "prompt": "Waarom vraagt het script om twee scopes?",
+      "options": [
+        "Voor de verbinding is altijd een tweede scope nodig",
+        "`AuditLog.Read.All` is nodig om `SignInActivity` te lezen",
+        "Beide scopes zijn nodig om gebruikers te wijzigen",
+        "De tweede scope geeft toegang tot het logboek van Exchange"
+      ],
+      "answer": 1,
+      "explanation": "Zonder `AuditLog.Read.All` blijft `SignInActivity` leeg."
+    },
+    {
+      "id": "q2",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        2,
+        5
+      ],
+      "prompt": "Welke regel gaat mis als de grens verkeerd om wordt vergeleken?",
+      "options": [
+        "Regel 1",
+        "Regel 2",
+        "Regel 4",
+        "Geen van de regels"
+      ],
+      "answer": 2,
+      "explanation": "Regel 4 vergelijkt met `-lt`: alleen accounts met een oudere aanmelding dan de grens blijven over."
+    },
+    {
+      "id": "q3",
+      "type": "open",
+      "step": "uitvoer",
+      "lines": [
+        4
+      ],
+      "prompt": "Beschrijf in eigen woorden wat het script uiteindelijk toont.",
+      "explanation": "**Naam en UPN** van ingeschakelde accounts waarvan de laatste aanmelding vóór de grens van 90 dagen ligt."
+    }
+  ]
+}

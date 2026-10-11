@@ -1,0 +1,76 @@
+# Validatie: controleert bij elke push naar een feature-branch en elke pull request naar main
+# of de inhoud en de tooling kloppen.
+# Deze workflow publiceert niets en gebruikt geen secrets; alleen lezen en controleren.
+name: Validatie
+
+# Wanneer draait dit?
+# - bij elke push naar een feature-branch (feature/...)
+# - bij elke pull request naar main (de check "Validatie" moet groen zijn voor de merge)
+on:
+  push:
+    branches:
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+
+# Minimale rechten: de workflow mag de repo alleen lezen (geen schrijfrechten, geen deploy).
+permissions:
+  contents: read
+
+# Bij een nieuwe push op dezelfde branch stoppen we de oude, nog lopende run.
+# Zo staat er altijd maar een run per branch of pull request te wachten op een runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validatie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10   # een vastgelopen run stopt vanzelf na 10 minuten
+    steps:
+      # 1. Haalt de code van deze branch op de runner.
+      - name: Code ophalen
+        uses: actions/checkout@v4
+
+      # 2. Installeert Node in de versie uit .nvmrc (nu 24). Nooit een los versienummer, 'latest'
+      #    of 'lts/*': .nvmrc is de enige bron voor de Node-versie (zie CLAUDE.md).
+      #    'cache: npm' bewaart de gedownloade pakketten tussen runs, zodat npm ci sneller is.
+      - name: Node installeren
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # 3. Toont de versies in het log, zodat achteraf te zien is waarmee er is gedraaid.
+      - name: Versies tonen
+        run: |
+          node -v
+          npm -v
+
+      # 4. Installeert exact de pakketten uit package-lock.json (ajv). Faalt als lock en
+      #    package.json niet bij elkaar passen, in tegenstelling tot 'npm install'.
+      - name: Pakketten installeren
+        run: npm ci
+
+      # 5. Controleert elk meta.json tegen het schema en de regelnummers tegen script.ps1.
+      - name: Inhoud valideren
+        run: npm run validate
+
+      # 6. Draait de unit-tests van de tooling (validatie, indexbouw, server).
+      - name: Tests draaien
+        run: npm test
+
+      # 7a. PowerShell (pwsh) staat al op ubuntu-latest. Deze stap laat in het log zien dat het
+      #     gevonden is; zonder pwsh zou de volgende stap met een onduidelijke fout falen.
+      - name: PowerShell-versie tonen
+        run: pwsh -Version
+
+      # 7b. Parseert elk script.ps1 met de PowerShell-parser en faalt bij een syntaxfout.
+      - name: PowerShell-syntax controleren
+        run: npm run syntax
+
+      # 8. Rooktest: bouwt de index, start de site lokaal en controleert dat elke pagina
+      #    HTTP 200 geeft en dat data/index.json klopt.
+      - name: Rooktest
+        run: npm run smoke
