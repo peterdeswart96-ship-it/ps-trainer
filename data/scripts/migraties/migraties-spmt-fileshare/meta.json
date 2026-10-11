@@ -1,0 +1,134 @@
+{
+  "id": "migraties-spmt-fileshare",
+  "title": "Fileshare migreren met SPMT",
+  "topic": "migraties",
+  "level": "gevorderd",
+  "tag": "SPMT-module · wijzigt doel",
+  "summary": "Kopieert een fileshare naar een submap in een SharePoint-bibliotheek met de SPMT-cmdlets en volgt de voortgang.",
+  "risk": "write",
+  "modules": [
+    "Microsoft.SharePoint.MigrationTool.PowerShell"
+  ],
+  "note": "De cmdlets en parameters zijn vergeleken met de Microsoft Learn-documentatie van de SPMT-module, maar het script is niet uitgevoerd: de module is hier niet geinstalleerd. De module werkt volgens de documentatie alleen in Windows PowerShell 5.x. De namen van de eigenschappen op het sessieobject (Status, StatusOfTasks, MigratingProgressPercentage) komen uit een documentatievoorbeeld; controleer ze met de geinstalleerde module.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        10
+      ],
+      "prompt": "Wat doen -Force en -MigrateFileVersionHistory $false bij Register-SPMTMigration?",
+      "options": [
+        "-Force dwingt de migratie af ondanks fouten in de scan; de tweede parameter laat alleen de nieuwste bestanden toe",
+        "-Force slaat de controle op rechten over; de tweede parameter zet de versiegeschiedenis van de doelbibliotheek uit",
+        "-Force stopt een bestaande sessie en maakt een nieuwe; de tweede parameter neemt alleen de nieuwste versie van elk bestand mee",
+        "-Force start de migratie meteen zonder te wachten; de tweede parameter bewaart de oude versies in een apart archief"
+      ],
+      "answer": 2,
+      "explanation": "`-Force` doet in feite `Stop-SPMTMigration` en `Unregister-SPMTMigration` voordat een nieuwe sessie wordt gemaakt. Met `-MigrateFileVersionHistory $false` gaat alleen de laatste versie van elk bestand mee: de migratie is kleiner en sneller, maar de oude versies zijn dan in SharePoint niet te zien. Let op: `-ReplacementOfInvalidChar '_'` vervangt tekens die niet in een SharePoint-naam mogen door een underscore."
+    },
+    {
+      "id": "q2",
+      "type": "bug",
+      "step": "bron",
+      "lines": [
+        8
+      ],
+      "prompt": "Je start dit script in PowerShell 7 en Import-Module geeft een foutmelding. Wat is de meest waarschijnlijke oorzaak?",
+      "options": [
+        "Volgens de documentatie wordt PowerShell 6 of hoger niet ondersteund; de module is voor Windows PowerShell 5.x",
+        "De modulenaam is verkeerd gespeld en moet gewoon SPMT zijn, zoals de afkorting van de tool",
+        "Import-Module bestaat in PowerShell 7 niet meer en is vervangen door Use-Module",
+        "Import-Module mag alleen worden uitgevoerd door een beheerder met verhoogde rechten"
+      ],
+      "answer": 0,
+      "explanation": "De documentatie zegt dat PowerShell 5.x vereist is en dat PowerShell 6.0 of hoger niet wordt ondersteund. Start dit script dus in Windows PowerShell (`powershell.exe`) en niet in `pwsh.exe`. De modulenaam `Microsoft.SharePoint.MigrationTool.PowerShell` is bewust zo lang en klopt wel."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        12
+      ],
+      "prompt": "Waar komen de bestanden uit de bronmap terecht?",
+      "options": [
+        "In de hoofdmap van de siteverzameling, buiten elke bibliotheek, zodat iedereen ze kan zien",
+        "In een nieuwe site die SPMT automatisch aanmaakt met dezelfde naam als de share",
+        "Op de share zelf, in een kopie van de map die SPMT als back-up maakt",
+        "In de submap Archief van de bibliotheek Documents van de doelsite; de bronmap zelf komt daar mogelijk als extra map bij"
+      ],
+      "answer": 3,
+      "explanation": "`-FileShareSource` is de bron. De drie doelparameters samen vormen het doel: `-TargetSiteUrl` de site, `-TargetList` de bibliotheek en `-TargetListRelativePath` de submap daarin. Let op: bij Register-SPMTMigration bestaat `-MigrateWithoutRootFolder`, om alleen de inhoud van de bronmap over te nemen. Daaruit volgt dat SPMT standaard de bronmap zelf ook meeneemt, dus de bestanden staan dan in `Archief\\afdeling\\...`. Controleer dat bij een proefmigratie. Een bibliotheek heet in een Nederlandstalige site vaak `Documenten`."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        14,
+        16
+      ],
+      "prompt": "Wat doet -NoShow bij Start-SPMTMigration, en waarom staat Get-SPMTMigration daarna?",
+      "options": [
+        "De migratie draait onzichtbaar en het script stopt meteen; Get-SPMTMigration is dan niet meer nodig",
+        "De migratie draait op de achtergrond en het script gaat door; Get-SPMTMigration geeft het sessieobject om de voortgang te volgen",
+        "De migratie meldt geen fouten meer; Get-SPMTMigration laat alleen die fouten alsnog zien",
+        "De migratie wordt niet gestart maar alleen gescand; Get-SPMTMigration toont de scanresultaten"
+      ],
+      "answer": 1,
+      "explanation": "Met `-NoShow` loopt de migratie op de achtergrond en kan het script verder. Zonder `-NoShow` toont de console de voortgang; met `Show-SPMTMigration` haal je een achtergrondmigratie weer naar voren. Het sessieobject van `Get-SPMTMigration` bevat de status van de sessie en van elke taak, zodat het script zelf kan wachten tot de migratie klaar is."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "prompt": "Wat doet de while-lus, en waarom staat Start-Sleep erin?",
+      "options": [
+        "Hij start de migratie opnieuw als die mislukt en wacht dan 30 seconden voordat hij het nog eens probeert",
+        "Hij kopieert de bestanden in groepen van 30 en wacht na elke groep even tot SharePoint klaar is",
+        "Hij toont elke 30 seconden de voortgang totdat de status Finished is; zonder pauze zou de lus continu draaien",
+        "Hij wacht eenmalig 30 seconden, controleert dan of de migratie klaar is en gaat daarna door"
+      ],
+      "answer": 2,
+      "explanation": "`while` herhaalt het blok zolang de voorwaarde klopt. De status wordt telkens opnieuw bekeken en per taak komt een voortgangsregel op het scherm. Het script wijzigt hier niets; het wacht alleen. Let op: de lus heeft geen eindtijd en geen controle op een mislukte sessie. Blijft de status op iets anders dan `Finished` staan, dan wacht het script oneindig."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        12,
+        14
+      ],
+      "prompt": "Welke regel start het daadwerkelijke kopiëren naar SharePoint Online?",
+      "options": [
+        "Regel 14, Start-SPMTMigration; de eerdere regels bereiden de sessie en de taak alleen voor",
+        "Regel 10, Register-SPMTMigration, omdat een sessie vanaf het registreren begint te kopiëren",
+        "Regel 12, Add-SPMTTask, omdat een taak bij het toevoegen direct wordt uitgevoerd",
+        "Regel 24, Unregister-SPMTMigration, omdat de migratie daar wordt afgerond en weggeschreven"
+      ],
+      "answer": 0,
+      "explanation": "`Register-SPMTMigration` maakt de sessie en stelt de opties in, `Add-SPMTTask` voegt de taak toe. Pas `Start-SPMTMigration` zet de migratie in gang en wijzigt dus het doel. Dit script schrijft in SharePoint Online: test het eerst met een kleine map en een testbibliotheek."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Het script toont alleen een percentage per taak. Hoe zou je na afloop vaststellen of alle bestanden zijn gelukt, en wat zou je in het script verbeteren?",
+      "explanation": "Volgens de documentatie bevat de status van een taak ook het aantal gescande, gefilterde, gemigreerde en mislukte bestanden en eventuele foutmeldingen. Schrijf die na afloop weg (bijvoorbeeld naar een CSV) en vergelijk ze met de bron, en gebruik daarna het script voor de validatie na de migratie. Verbeteringen: (1) een tijdslimiet en een controle op een mislukte sessie in de while-lus; (2) `-ScanOnly $true` bij `Register-SPMTMigration` voor een droge run; (3) het script gebruikt nu terecht geen wachtwoord en laat je inloggen via het inlogvenster; zet er nooit een wachtwoord in, en gebruik bij MFA geen `-SPOCredential`; (4) het sessieobject wordt maar een keer opgehaald; of het live bijwerkt is niet bevestigd, dus haal het bij twijfel in de lus opnieuw op met `Get-SPMTMigration`; (5) eerst testen met een kleine map."
+    }
+  ]
+}
