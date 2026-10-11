@@ -1,0 +1,131 @@
+{
+  "id": "migraties-validatie-na-migratie",
+  "title": "Validatie na de migratie",
+  "topic": "migraties",
+  "level": "gevorderd",
+  "tag": "PnP.PowerShell · alleen lezen",
+  "summary": "Vergelijkt een fileshare met een SharePoint-bibliotheek op aantal bestanden en totale grootte en schrijft het resultaat naar een CSV.",
+  "risk": "read",
+  "modules": [
+    "PnP.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. Controleer in de PnP.PowerShell-documentatie de parameters van Connect-PnPOnline (vooral -ClientId bij interactief inloggen) en Get-PnPListItem (-PageSize), en de eigenschappen FileSystemObjectType en File_x0020_Size, voordat je dit gebruikt.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        8
+      ],
+      "prompt": "Wat doen -Interactive en -ClientId bij Connect-PnPOnline?",
+      "options": [
+        "Ze zetten de verbinding in een alleen-lezen modus, zodat het script niets kan wijzigen",
+        "Ze laten het script wachten tot de gebruiker in een lijst een bibliotheek heeft gekozen",
+        "Je logt in via een browservenster (dus ook met MFA), met de app-registratie die het ClientId aanwijst",
+        "Ze loggen in met een wachtwoord dat in het script is vastgelegd, zonder browservenster"
+      ],
+      "answer": 2,
+      "explanation": "`-Interactive` opent een inlogvenster, vergelijkbaar met `-Browser` in het ShareGate-script. `-ClientId` is de ID van de app-registratie waarmee PnP namens jou inlogt. In recente versies van PnP.PowerShell heb je daarvoor een eigen registratie nodig. Er staat hier een lege voorbeeld-ID; vul nooit een echte ID of een geheim in het script zelf in."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        11,
+        12
+      ],
+      "prompt": "Wat bevat $doel na regel 11 en 12?",
+      "options": [
+        "Alle items in de bibliotheek, inclusief de mappen",
+        "Alleen de namen van de bestanden als tekst",
+        "De bestanden van de share, nu in SharePoint",
+        "Alleen de items in de bibliotheek die een bestand zijn; mappen worden weggefilterd"
+      ],
+      "answer": 3,
+      "explanation": "In een bibliotheek is ook een map een item. `FileSystemObjectType -eq 'File'` laat alleen bestanden over, zodat je appels met appels vergelijkt: de share is ook alleen met `-File` opgehaald. `-PageSize 500` betekent dat de items in delen van 500 worden opgehaald, zodat een grote bibliotheek niet in één aanroep hoeft."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        15
+      ],
+      "prompt": "Waarom staat er [long] voor $_.FieldValues['File_x0020_Size']?",
+      "options": [
+        "Het zet de waarde (die als tekst kan binnenkomen) om in een getal dat ook bij bestanden boven 2 GB past",
+        "Het zet de bytes om in megabytes, zodat de som in dezelfde eenheid staat als de rest",
+        "Het zet de waarde om in tekst, zodat Export-Csv het netjes kan schrijven",
+        "Het is alleen opmaak voor de leesbaarheid en verandert de waarde niet"
+      ],
+      "answer": 0,
+      "explanation": "`FieldValues` geeft de kolomwaarden van een item als losse objecten terug en de bestandsgrootte kan daarbij als tekst binnenkomen. Met `[long]` maak je er zeker een getal van, zodat de som klopt. Een gewoon `[int]` past maar tot ongeveer 2 GB. `File_x0020_Size` is de interne naam van de kolom Bestandsgrootte, in bytes. De cast verandert de eenheid niet: delen door `1GB` gebeurt pas verderop."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        20,
+        21,
+        22
+      ],
+      "prompt": "In validatie.csv staat: BronAantal 1200, DoelAantal 1200, BronGB 85, DoelGB 61. Wat zegt de kolom Gelijk?",
+      "options": [
+        "False, omdat er 24 GB verschil is",
+        "False, omdat 85 en 61 niet gelijk zijn",
+        "True, want Gelijk vergelijkt alleen de aantallen en niet de grootte",
+        "Er staat geen waarde, omdat de vergelijking mislukt"
+      ],
+      "answer": 2,
+      "explanation": "Regel 22 vergelijkt alleen `@($bron).Count` met `@($doel).Count`. Het script meldt dus \"gelijk\" terwijl er 24 GB verschil is: bestanden kunnen ontbreken, afgekapt of leeg zijn gemigreerd. Pas `Gelijk` aan zodat het ook de grootte vergelijkt, of voeg een aparte kolom voor de groottes toe."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        18,
+        19
+      ],
+      "prompt": "BronAantal is groter dan DoelAantal. Welke verklaring is een normale, onschuldige oorzaak?",
+      "options": [
+        "Get-PnPListItem geeft door -PageSize 500 maximaal 500 items terug",
+        "Tijdelijke bestanden of bestanden met een naam die SharePoint niet toestaat zijn bij de migratie overgeslagen",
+        "Export-Csv rondt de aantallen naar beneden af",
+        "SharePoint telt elke versie van een bestand als een nieuw bestand"
+      ],
+      "answer": 1,
+      "explanation": "Bijvoorbeeld `~$`-bestanden of namen die in de pre-scan voor ongeldige namen al gemeld waren. Ze komen niet over, dus het verschil is verwacht; je wilt het alleen kunnen uitleggen. De andere opties kloppen niet: `-PageSize` haalt alles in delen op en rondt niets af, en extra versies maken het doel niet groter in het aantal bestanden."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        23
+      ],
+      "prompt": "Wat wijzigt dit script?",
+      "options": [
+        "Het kopieert ontbrekende bestanden van de share naar SharePoint",
+        "Het verwijdert bestanden in SharePoint die niet op de share staan",
+        "Het synchroniseert de rechten tussen share en bibliotheek",
+        "Het schrijft alleen validatie.csv in de huidige map; share en SharePoint blijven ongewijzigd"
+      ],
+      "answer": 3,
+      "explanation": "`Get-ChildItem` en `Get-PnPListItem` lezen alleen, en `Connect-PnPOnline` maakt alleen een verbinding. Alleen `Export-Csv` schrijft, en alleen lokaal. Let op dat de bibliotheek in een Nederlandstalige site vaak `Documenten` heet in plaats van `Documents`; daarom is `$Bibliotheek` een parameter. Een bestaande `validatie.csv` wordt overschreven."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Het script vergelijkt alleen totalen. Wat zou je toevoegen om bij een verschil te zien welke bestanden ontbreken, en wat controleert dit script nog niet?",
+      "explanation": "Bijvoorbeeld: (1) maak per kant een lijst met het pad relatief aan de root en vergelijk die met `Compare-Object`, zodat je de ontbrekende bestanden bij naam ziet; (2) vergelijk per map in plaats van alleen het totaal; (3) controleer de grootte per bestand, niet alleen de som; (4) rechten, versiegeschiedenis en metagegevens zijn niet vergeleken; (5) sluit de verbinding netjes af met `Disconnect-PnPOnline` en vang fouten op met `try/catch`."
+    }
+  ]
+}
