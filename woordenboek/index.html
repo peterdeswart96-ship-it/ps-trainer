@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Woordenboek met cmdlets en begrippen voor het lezen van PowerShell-scripts.">
+<title>Woordenboek – PowerShell Leestrainer</title>
+<script src="/assets/js/theme-init.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+<a class="skip" href="#inhoud">Naar de inhoud</a>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Woordenboek</h1>
+      <p class="sub">Cmdlets en begrippen die je tegenkomt bij het lezen van scripts. Zoek op een deel van een naam of uitleg.</p>
+    </div>
+    <div class="kopacties">
+      <nav class="nav" aria-label="Hoofdmenu">
+        <a href="/">Start</a>
+        <a href="/oefenen/">Oefenscripts</a>
+        <a href="/woordenboek/" aria-current="page">Woordenboek</a>
+      </nav>
+      <button type="button" class="themaknop" id="thema-knop">Donker thema</button>
+    </div>
+  </header>
+
+  <main id="inhoud" class="dict">
+    <div class="zoekrij">
+      <label class="visually-hidden" for="zoek">Zoeken in het woordenboek</label>
+      <input id="zoek" type="search" maxlength="100" placeholder="Zoek een cmdlet of begrip, bijv. Where of -WhatIf" autocomplete="off">
+      <p id="aantal" class="empty" aria-live="polite"></p>
+    </div>
+    <div id="dict"><noscript><p class="fout">Voor deze pagina is JavaScript nodig.</p></noscript></div>
+  </main>
+
+  <footer>Microsoft Graph-, SharePoint Online- en ShareGate-cmdlets werken alleen met de bijbehorende module en de juiste rechten. Controleer parameters altijd met <code class="i">Get-Help &lt;cmdlet&gt; -Examples</code> of de documentatie voordat je iets in productie draait.</footer>
+</div>
+<script type="module" src="/assets/js/woordenboek.js"></script>
+</body>
+</html>
