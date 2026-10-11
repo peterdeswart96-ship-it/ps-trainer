@@ -69,8 +69,8 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] Stap 5: server blokkeert dotfiles, workflow `.github/workflows/validate.yml`, branchstrategie zonder `develop`
 - [x] Pull request feature/repo-en-validatie naar main (Peter)
 - [x] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
-- [ ] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7) (in uitvoering)
-- [ ] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten (in uitvoering: omzetting, woordenboekschema, `migreerV1()` en regressietest staan klaar; wacht op review en akkoord)
+- [x] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7)
+- [x] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten
 - [ ] `feature/startpagina-en-werkbank` (in uitvoering: stap 1 gedeelde basis klaar; daarna woordenboek, startpagina en werkbank)
 - [ ] `feature/deploy` (`deploy.yml`, DNS, eerste livegang)
 - [ ] Inhoud: Migraties, SharePoint, Foundry, Purview (elk eigen feature-branch)
