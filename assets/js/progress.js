@@ -1,7 +1,8 @@
-// Voortgang in de browser (DESIGN.md paragraaf 4.3).
-// Dit bestand bevat voorlopig alleen de overname van de voortgang uit v1; de rest van de
-// voortgangslogica komt in feature/startpagina-en-werkbank. De functies hier zijn zuiver
-// (geen localStorage, geen DOM), zodat ze met node:test te testen zijn.
+// Voortgang in de browser (DESIGN.md paragraaf 4.3): opslag in localStorage onder ps-trainer-v2,
+// antwoorden bijhouden, voortgang per script en onderwerp, en de overname van de voortgang uit v1.
+// De opslag wordt als parameter meegegeven (localStorage of een vervanger met getItem en setItem) en
+// er is geen DOM nodig, zodat alles met node:test te testen is. Een pagina die voortgang bewaart moet
+// eerst neemV1OverIndien() afhandelen: bestaat ps-trainer-v2 eenmaal, dan wordt v1 niet meer overgenomen.
 
 export const V1_SLEUTEL = 'ps-leestrainer-v1';
 export const V2_SLEUTEL = 'ps-trainer-v2';
@@ -52,4 +53,122 @@ export function migreerV1(v1, v2, legacyMap, vragen) {
     }
   }
   return { state, overgenomen, overgeslagen };
+}
+
+// --- Opslag (localStorage of een vervanger met getItem en setItem) ---
+// Alle toegang zit in try/catch: zonder opslag werkt de site gewoon, alleen zonder voortgang.
+
+// Leest de v2-voortgang; bij ontbreken of een kapotte waarde krijg je een lege v2.
+export function leesState(storage) {
+  try {
+    const ruw = storage.getItem(V2_SLEUTEL);
+    if (ruw === null || ruw === undefined) return leegV2();
+    const gelezen = JSON.parse(ruw);
+    if (gelezen === null || typeof gelezen !== 'object' || gelezen.version !== 2) return leegV2();
+    // Elk onderdeel moet het juiste type hebben (een halve schrijfactie of handwerk kan er iets anders van maken).
+    const object = (w) => (w !== null && typeof w === 'object' && !Array.isArray(w) ? w : {});
+    return {
+      ...leegV2(),
+      ...gelezen,
+      answers: object(gelezen.answers),
+      open: object(gelezen.open),
+      retry: object(gelezen.retry),
+      cards: object(gelezen.cards),
+      exams: Array.isArray(gelezen.exams) ? gelezen.exams : []
+    };
+  } catch {
+    return leegV2();
+  }
+}
+
+// Bewaart de v2-voortgang. Geeft false terug als opslaan niet lukt.
+export function bewaarState(storage, state) {
+  try {
+    storage.setItem(V2_SLEUTEL, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Leest de oude v1-voortgang (of null als die er niet is of kapot is).
+export function leesV1(storage) {
+  try {
+    const ruw = storage.getItem(V1_SLEUTEL);
+    if (ruw === null || ruw === undefined) return null;
+    const gelezen = JSON.parse(ruw);
+    return gelezen !== null && typeof gelezen === 'object' ? gelezen : null;
+  } catch {
+    return null;
+  }
+}
+
+// --- Antwoorden bijhouden (geven een nieuwe state terug; de invoer blijft ongewijzigd) ---
+
+// Alleen het eerste antwoord telt voor "goed bij eerste poging": een bestaand antwoord blijft staan.
+export function registreerAntwoord(state, scriptId, vraagId, first, correct, nu = new Date().toISOString()) {
+  const sleutel = `${scriptId}:${vraagId}`;
+  if (sleutel in state.answers) return state;
+  return { ...state, answers: { ...state.answers, [sleutel]: { first, correct, at: nu } } };
+}
+
+export function registreerOpenGetoond(state, scriptId, vraagId) {
+  const sleutel = `${scriptId}:${vraagId}`;
+  if (sleutel in state.open) return state;
+  return { ...state, open: { ...state.open, [sleutel]: { shown: true } } };
+}
+
+// Verwijdert alle voortgang van een script ("opnieuw").
+export function wisScript(state, scriptId) {
+  const zonder = (object) => Object.fromEntries(Object.entries(object).filter(([sleutel]) => !sleutel.startsWith(`${scriptId}:`)));
+  return { ...state, answers: zonder(state.answers), open: zonder(state.open), retry: zonder(state.retry) };
+}
+
+// Voortgang van een script uit de index: totaal = meerkeuze + zoek-de-fout (open vragen tellen niet mee).
+export function voortgangScript(state, script) {
+  const voorvoegsel = `${script.id}:`;
+  const antwoorden = Object.entries(state.answers).filter(([sleutel]) => sleutel.startsWith(voorvoegsel));
+  const totaal = script.counts.mc + script.counts.bug;
+  // Begrensd op het totaal: verdwijnt een vraag later uit het script, dan komt de voortgang nooit boven 100%.
+  return {
+    beantwoord: Math.min(antwoorden.length, totaal),
+    goed: Math.min(antwoorden.filter(([, a]) => a.correct).length, totaal),
+    totaal
+  };
+}
+
+// Voortgang van een onderwerp: som over de scripts van dat onderwerp.
+export function voortgangOnderwerp(state, scripts, topicId) {
+  return scripts
+    .filter((s) => s.topic === topicId)
+    .map((s) => voortgangScript(state, s))
+    .reduce((som, v) => ({ beantwoord: som.beantwoord + v.beantwoord, goed: som.goed + v.goed, totaal: som.totaal + v.totaal }),
+      { beantwoord: 0, goed: 0, totaal: 0 });
+}
+
+// --- Overname van v1 bij het eerste bezoek ---
+
+// Alleen als er v1-voortgang is en v2 nog niet bestaat. Zo wordt de overname maar een keer gedaan; mislukt
+// het ophalen, dan wordt er niets bewaard en probeert de pagina het de volgende keer opnieuw.
+export function moetV1Overnemen(storage) {
+  try {
+    return storage.getItem(V2_SLEUTEL) === null && leesV1(storage) !== null;
+  } catch {
+    return false;
+  }
+}
+
+// index: data/index.json; laadMeta(entry) geeft het meta.json van een script. Alleen scripts met een legacyId
+// worden opgehaald (nu de 4 uit v1; dat aantal groeit nooit). Geeft het resultaat van migreerV1 terug, of null.
+export async function neemV1OverIndien(storage, index, laadMeta) {
+  if (!moetV1Overnemen(storage)) return null;
+  const legacyScripts = index.scripts.filter((s) => s.legacyId);
+  const legacyMap = Object.fromEntries(legacyScripts.map((s) => [s.legacyId, s.id]));
+  const vragen = {};
+  for (const entry of legacyScripts) {
+    const meta = await laadMeta(entry);
+    vragen[entry.id] = meta.questions.map((v) => ({ type: v.type, answer: v.answer, aantalOpties: v.options?.length }));
+  }
+  const resultaat = migreerV1(leesV1(storage), null, legacyMap, vragen);
+  return bewaarState(storage, resultaat.state) ? resultaat : null;
 }
