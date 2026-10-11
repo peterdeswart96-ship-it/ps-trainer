@@ -183,6 +183,26 @@ test('werkbank: een script dat nog te controleren is toont een waarschuwing en d
   assert.equal(vind(p.els.codekop, (k) => k.className === 'controle'), undefined);
 });
 
+test('werkbank: de waarschuwingen zijn ingeklapt achter een knop met icoon, en de knop klapt ze open en dicht', async () => {
+  const p = await start({ zoek: '?script=b-gev' });
+  const uitleg = vind(p.els.codekop, (k) => k.className === 'waarschuwingen');
+  const knop = vind(p.els.codekop, (k) => k.className === 'waarschuwknop');
+  assert.equal(uitleg.hidden, true, 'standaard ingeklapt');
+  assert.equal(knop.attributen['aria-expanded'], 'false');
+  assert.equal(knop.attributen['aria-controls'], uitleg.id);
+  assert.ok(vind(knop, (k) => k.className === 'icoon ico-waarschuwing'), 'icoon in de knop');
+  assert.match(tekstVan(knop), /Nog te controleren.*Toon uitleg/);
+  klik(knop);
+  assert.equal(uitleg.hidden, false);
+  assert.equal(knop.attributen['aria-expanded'], 'true');
+  assert.match(tekstVan(knop), /Verberg uitleg/);
+  klik(knop);
+  assert.equal(uitleg.hidden, true);
+  // Een gecontroleerd script heeft geen knop
+  const g = await start();
+  assert.equal(vind(g.els.codekop, (k) => k.className === 'waarschuwknop'), undefined);
+});
+
 test('werkbank: filters uit de URL worden toegepast; een ?script= buiten de filters blijft zichtbaar', async () => {
   // Een oude &level= in de URL wordt genegeerd en komt er niet meer in terug
   const p = await start({ zoek: '?script=b-gev&topic=eerste&level=basis&type=bug' });
