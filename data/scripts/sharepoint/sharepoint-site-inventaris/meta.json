@@ -10,10 +10,10 @@
   "modules": [
     "Microsoft.Online.SharePoint.PowerShell"
   ],
-  "note": "Volgens de documentatie van Get-SPOSite worden bij -Limit of -Filter sommige eigenschappen, waaronder SharingCapability, mogelijk niet gevuld. Controleer dit in een eigen tenant, net als de eenheid (MB) van StorageUsageCurrent.",
+  "note": "Volgens de documentatie van Get-SPOSite worden bij -Limit of -Filter sommige eigenschappen, waaronder SharingCapability, niet gevuld. Regel 4 haalt daarom elke site na het overzicht opnieuw op met -Identity. Dat is een afleiding: de documentatie zegt dat Get-SPOSite -Identity de site met gedetailleerde eigenschappen toont, maar bevestigt niet uitdrukkelijk dat SharingCapability dan gevuld is. Een aparte aanroep per site is langzamer bij veel sites en kan mogelijk tot throttling leiden. De eenheid (MB) van StorageUsageCurrent is alleen door communitybronnen bevestigd. Niet uitgevoerd tegen een echte tenant.",
   "check": {
     "status": "nog_te_controleren",
-    "source": "Microsoft Learn: Connect-SPOService (-Url), Get-SPOSite (-Limit All, standaard 200, -IncludePersonalSite) en Set-SPOSite (waarden van SharingCapability). Open punten: eenheid van StorageUsageCurrent en of SharingCapability gevuld is bij -Limit."
+    "source": "Microsoft Learn: Connect-SPOService (-Url), Get-SPOSite (-Limit All, standaard 200, -IncludePersonalSite, -Identity; bij -Limit worden eigenschappen zoals SharingCapability niet gevuld) en Set-SPOSite (waarden van SharingCapability). Open punten: of -Identity SharingCapability altijd vult, en de eenheid van StorageUsageCurrent."
   },
   "questions": [
     {
@@ -49,7 +49,7 @@
         "Er verandert niets"
       ],
       "answer": 1,
-      "explanation": "`Get-SPOSite` geeft standaard maximaal 200 sites terug. Hetzelfde idee als `-All` bij Graph: zonder die parameter mis je stilletjes data. `-IncludePersonalSite $false` laat OneDrive-sites weg."
+      "explanation": "`Get-SPOSite` geeft standaard maximaal 200 sites terug. Hetzelfde idee als `-All` bij Graph: zonder die parameter mis je stilletjes data. `-IncludePersonalSite $false` laat OneDrive-sites weg. Let op: bij `-Limit` worden volgens de documentatie sommige eigenschappen, zoals `SharingCapability`, niet gevuld. Daarom haalt het script elke site daarna opnieuw op: `ForEach-Object` voert het blok uit voor elke site uit de pipeline, en `$_` is de huidige site, dus `Get-SPOSite -Identity $_.Url` vraagt die ene site opnieuw op."
     },
     {
       "id": "q3",
@@ -91,7 +91,7 @@
         "Om het percentage te berekenen"
       ],
       "answer": 1,
-      "explanation": "`StorageUsageCurrent` staat in megabytes. Delen door 1024 geeft gigabytes; `[math]::Round(..., 1)` rondt af op één decimaal."
+      "explanation": "`StorageUsageCurrent` staat volgens communitybronnen in megabytes (de officiële pagina van `Get-SPOSite` noemt geen eenheid). Delen door 1024 geeft gigabytes; `[math]::Round(..., 1)` rondt af op één decimaal."
     },
     {
       "id": "q5",
