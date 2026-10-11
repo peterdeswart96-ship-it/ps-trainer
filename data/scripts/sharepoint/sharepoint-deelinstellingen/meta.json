@@ -123,7 +123,7 @@
         "Het verwijdert externe gebruikers van de sites waarvan de deelinstelling te ruim blijkt te zijn"
       ],
       "answer": 2,
-      "explanation": "Er staat geen `Set-` of `Remove-` cmdlet in het script. `Get-SPOTenant` en `Get-SPOSite` lezen alleen, en volgens de documentatie moet je SharePoint-beheerder zijn om `Get-SPOTenant` te draaien. Het overzicht kun je veilig op een productietenant gebruiken."
+      "explanation": "Er staat geen `Set-` of `Remove-` cmdlet in het script. `Get-SPOTenant` en `Get-SPOSite` lezen alleen, en volgens de documentatie moet je SharePoint-beheerder zijn om `Get-SPOTenant` te draaien. Het script wijzigt niets in de tenant."
     },
     {
       "id": "q7",

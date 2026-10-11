@@ -118,7 +118,7 @@
         "Het zet sites die vol zijn op alleen-lezen, zodat er geen nieuwe bestanden bij komen"
       ],
       "answer": 0,
-      "explanation": "Er staat geen `Set-`, `Remove-` of `New-` cmdlet in het script. `Connect-SPOService` opent een sessie met het beheercentrum, `Get-SPOSite` leest, en `Format-Table` toont het resultaat. Het is dus veilig om op een productietenant te draaien."
+      "explanation": "Er staat geen `Set-`, `Remove-` of `New-` cmdlet in het script. `Connect-SPOService` opent een sessie met het beheercentrum, `Get-SPOSite` leest, en `Format-Table` toont het resultaat. Het script wijzigt niets in de tenant."
     },
     {
       "id": "q7",
