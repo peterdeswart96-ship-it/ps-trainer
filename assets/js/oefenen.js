@@ -190,7 +190,7 @@ export function bouwVraagKaart(vraag, ctx) {
   nav.append(vorigeKnop, volgendeKnop);
   kaart.navKnoppen = { vorige: vorigeKnop, volgende: volgendeKnop };
 
-  // Twee vakken: links de ruimte voor antwoorden en uitleg, rechts de vragenbox met nummer, vraag en navigatie.
+  // Twee vakken: links de vragenbox met nummer, vraag en navigatie, rechts de ruimte voor antwoorden en uitleg.
   function vul() {
     uitlegElement = null;
     const box = el(doc, 'div', 'qbox');
