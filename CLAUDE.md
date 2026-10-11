@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.7, akkoord).
-- `DESIGN.md`: hoe (versie 1.1, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.3, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 
 ## Werkwijze (verplicht)
@@ -49,6 +49,8 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 - Scripts worden nooit uitgevoerd in de app.
 - Vaste URL's (`/oefenen/?script=`, `/examen/`, `/flashcards/`, `/woordenboek/`) mogen niet veranderen zonder de agentinstructies aan te passen.
 - Elke nieuwe pagina wordt toegevoegd aan `PAGINAS` in `tools/smoke.mjs`, anders test de rooktest haar niet.
+- De lokale server (`tools/server.mjs`) geeft 404 voor dotfiles (`.env`, `.git/`) en `node_modules`; alleen `/.well-known/` is toegestaan.
+- Bij `feature/deploy` wordt alleen een allowlist van sitebestanden gepubliceerd (`index.html`, pagina-mappen, `assets/`, `data/`, `schema/`, `CNAME`). Nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/` of andere repo-bestanden publiceren.
 
 ## Voortgang Develop (release 2.0) – houd dit bij
 - [x] Repo `peterdeswart96-ship-it/ps-trainer` met `main` en `develop`
@@ -57,7 +59,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 - [x] Stap 3: `schema/script.schema.json`, `tools/validate.mjs`, testfixtures en tests
 - [x] Stap 4a: `tools/Test-Syntax.ps1` en uitgebreide validatietests
 - [x] Stap 4b: `data/topics.json`, `tools/build-index.mjs`, `tools/server.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs` en `tests/tools.test.mjs`
-- [ ] Stap 5: workflow `validate.yml`
+- [ ] Stap 5 (in uitvoering): server blokkeert dotfiles, workflow `.github/workflows/validate.yml`
 - [ ] `feature/omzetten-v1`: 4 scripts, 26 vragen en woordenboek uit v1 omzetten
 - [ ] `feature/startpagina-en-werkbank`
 - [ ] `feature/deploy` (`deploy.yml`, DNS, eerste livegang)

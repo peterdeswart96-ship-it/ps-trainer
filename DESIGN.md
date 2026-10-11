@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.2 (11 oktober 2026), definitief. Wijziging t.o.v. 1.1: de status van een onderwerp (`live` of `in-opbouw`) staat niet meer in `data/topics.json` maar wordt door `tools/build-index.mjs` berekend uit het aantal scripts; verder is `tools/server.mjs` aan de repo-indeling toegevoegd. Geen open vragen.
+Status: versie 1.3 (11 oktober 2026), definitief. Wijziging t.o.v. 1.2: de lokale server blokkeert dotfiles en `node_modules`, de workflow `validate.yml` is uitgewerkt in paragraaf 6, en paragraaf 8 legt vast dat bij een deploy alleen een allowlist van sitebestanden wordt gepubliceerd. (1.2 was al vastgelegd in een eerdere commit, daarom nu 1.3.) Geen open vragen.
 
 ## 1. Besluiten
 
@@ -190,6 +190,19 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 
 `main` wordt alleen gedeployed nadat alle stappen groen zijn. Zoals altijd: wachten op het groene vinkje voordat je test.
 
+### 6.1 Workflow `validate.yml`
+
+Naam "Validatie". Draait bij een push op `develop` en `feature/**` en bij een pull request naar `develop` of `main`. `permissions: contents: read`, geen secrets, geen deploy. `concurrency` per workflow en ref met `cancel-in-progress`, zodat een nieuwe push de oude run stopt. Eén job `validatie` op `ubuntu-latest` met `timeout-minutes: 10`. Stappen:
+
+1. `actions/checkout@v4`
+2. `actions/setup-node@v4` met `node-version-file: .nvmrc` en `cache: npm` (nooit een los versienummer, `latest` of `lts/*`)
+3. `node -v` en `npm -v` in het log
+4. `npm ci`
+5. `npm run validate`
+6. `npm test`
+7. `pwsh -Version` (bewijs in het log dat pwsh aanwezig is), daarna `npm run syntax`
+8. `npm run smoke`
+
 ## 7. Backend en AI (release 2.2)
 
 **Function App** in `rg-ps-trainer` (hostingplan en Node-versie: zie 7.1), drie eindpunten:
@@ -247,6 +260,8 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 | Lettertypen | Google Fonts blijft (besluit). De CSP staat `fonts.googleapis.com` en `fonts.gstatic.com` toe. Bezoekers sturen daarbij hun IP-adres naar Google; voor een persoonlijke leertool is dat geaccepteerd. Zelf meeleveren kan later zonder ontwerpwijziging. |
 | Oefenscripts | Geen echte tenant-ID's, sleutels of sitenamen; voorbeelden gebruiken `contoso`. |
 | Rechten | Branch-protectie op `main`; nooit automatisch mergen zonder mijn akkoord. |
+| Lokale server | `tools/server.mjs` geeft 404 (met dezelfde tekst als bij een onbekend pad) voor elk padsegment dat met een punt begint en voor `node_modules`, ook in de `%2e`-variant en na het oplossen van `..`. Alleen `/.well-known/` is toegestaan. Zo komen `.env` en `.git/` niet via de dev-server of de rooktest naar buiten. |
+| Publiceren | Bij een deploy gaat alleen een allowlist van sitebestanden naar GitHub Pages: `index.html`, de pagina-mappen, `assets/`, `data/`, `schema/` en `CNAME`. Nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/` of andere repo-bestanden. |
 
 ## 9. Kosten (indicatief, prijzen controleren in de Azure-prijscalculator)
 

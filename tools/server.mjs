@@ -3,7 +3,7 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { extname, resolve, sep } from 'node:path';
+import { extname, relative, resolve, sep } from 'node:path';
 
 const MIMETYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -33,7 +33,15 @@ function bestandsPad(root, urlPad) {
   }
   if (pad.includes('\0')) return null;
   const volledig = resolve(root, '.' + (pad.startsWith('/') ? pad : '/' + pad));
-  return volledig === root || volledig.startsWith(root + sep) ? volledig : null;
+  if (volledig !== root && !volledig.startsWith(root + sep)) return null;
+
+  // Blokkeer dotfiles (.env, .git/...) en node_modules. We controleren het opgeloste pad ten opzichte
+  // van root, dus ook %2e-varianten, /a/../.env en een root die zelf in een map met punt staat vallen goed.
+  // Uitzondering: een eerste segment ".well-known". node_modules ook in andere hoofdletters (Windows).
+  const delen = relative(root, volledig).split(sep).filter(Boolean);
+  const verboden = delen.some((deel, i) =>
+    (deel.startsWith('.') && !(i === 0 && deel === '.well-known')) || deel.toLowerCase() === 'node_modules');
+  return verboden ? null : volledig;
 }
 
 // Start de server en geeft een belofte terug met het luisterende server-object.

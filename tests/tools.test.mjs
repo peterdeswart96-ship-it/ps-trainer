@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -148,5 +148,53 @@ test('server: map geeft index.html, HEAD geeft geen inhoud', () => metTmp(async 
     const head = await vraag(server, 'HEAD', '/');
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
+  });
+}));
+
+// --- server: dotfiles en node_modules ---
+
+// Bouwt een tijdelijke sitemap met gevoelige bestanden, een gewoon bestand en .well-known.
+function maakSite(tmp) {
+  writeFileSync(join(tmp, '.env'), 'GEHEIM=1');
+  mkdirSync(join(tmp, '.git'));
+  writeFileSync(join(tmp, '.git', 'config'), '[core]');
+  mkdirSync(join(tmp, 'node_modules', 'x'), { recursive: true });
+  writeFileSync(join(tmp, 'node_modules', 'x', 'index.js'), 'export {};');
+  writeFileSync(join(tmp, 'gewoon.txt'), 'gewoon');
+  mkdirSync(join(tmp, '.well-known'));
+  writeFileSync(join(tmp, '.well-known', 'test.txt'), 'toegestaan');
+}
+
+test('server: dotfiles en node_modules geven 404, ook als %2e-variant', () => metTmp(async (tmp) => {
+  maakSite(tmp);
+  await metServer(tmp, async (server) => {
+    for (const pad of [
+      '/.env', '/%2eenv', '/%2Eenv',
+      '/.git/config', '/%2egit/config', '/.git%2fconfig', '/.git/',
+      '/node_modules/x/index.js', '/%6eode_modules/x/index.js', '/Node_Modules/x/index.js',
+      '/.well-known/../.env'
+    ]) {
+      const r = await vraag(server, 'GET', pad);
+      assert.equal(r.status, 404, pad);
+      assert.equal(r.body, 'Niet gevonden', pad);
+    }
+  });
+}));
+
+test('server: gewoon bestand in dezelfde map geeft 200 (anders test het blokkeren niets)', () => metTmp(async (tmp) => {
+  maakSite(tmp);
+  await metServer(tmp, async (server) => {
+    const r = await vraag(server, 'GET', '/gewoon.txt');
+    assert.equal(r.status, 200);
+    assert.equal(r.body, 'gewoon');
+  });
+}));
+
+test('server: /.well-known/ blijft toegestaan', () => metTmp(async (tmp) => {
+  maakSite(tmp);
+  await metServer(tmp, async (server) => {
+    const r = await vraag(server, 'GET', '/.well-known/test.txt');
+    assert.equal(r.status, 200);
+    assert.equal(r.body, 'toegestaan');
   });
 }));
