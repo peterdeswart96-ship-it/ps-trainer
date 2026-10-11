@@ -75,4 +75,5 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten
 - [x] `feature/startpagina-en-werkbank`: gedeelde basis, woordenboekpagina, startpagina en werkbank (visueel gecontroleerd op de livesite: desktop en telefoon, licht en donker)
 - [x] `feature/deploy`: `deploy.yml`, `tools/build-site.mjs`, `DEPLOY.md` en tests; DNS, Pages en eigen domein ingesteld; PR 12 gemerged op 11 oktober 2026, site live op https://ps-trainer.pdscloud.nl/
-- [ ] Inhoud: Migraties, SharePoint, Foundry, Purview (elk eigen feature-branch)
+- [x] Inhoud Migraties: 8 scripts (PR 16 t/m 22), alle op `nog_te_controleren`: SPMT en ShareGate kunnen niet worden getoetst aan een geïnstalleerde module, en bij de andere vier zijn limieten of PnP-parameters niet tegen de bron of een echte tenant gecontroleerd
+- [ ] Inhoud: SharePoint, Foundry, Purview (elk eigen feature-branch)
