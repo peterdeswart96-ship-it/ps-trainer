@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.7, akkoord).
-- `DESIGN.md`: hoe (versie 1.3, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.4, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 
 ## Werkwijze (verplicht)
@@ -15,8 +15,8 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 2. Peter is geen developer: leg bij elk bestand dat je maakt of wijzigt kort uit wat het doet en waarom.
 3. **Eén stap tegelijk.** Na elke stap: laat zien wat er is gewijzigd, voer de controles uit, en wacht op Peters akkoord vóór je commit of verdergaat.
 4. Lever altijd **volledige bestanden**, nooit instructies om losse regels te vervangen.
-5. Branches: `main` = productie, `develop` = integratie, `feature/*` = werk. Maak feature-branches vanaf `develop`.
-6. **Nooit mergen naar `main`, nooit pushen naar `main`, zonder Peters expliciete akkoord.**
+5. Branches: `main` = productie (beschermd), `feature/*` = werk. Er is geen `develop`. Maak feature-branches vanaf `main` en lever wijzigingen via een pull request naar `main`.
+6. **Nooit mergen naar `main`, nooit pushen naar `main`, zonder Peters expliciete akkoord.** Peter merget zelf in GitHub nadat het groene vinkje van "Validatie" er staat; die Merge-klik is zijn akkoord. Claude Code maakt nooit zelf een merge en pusht nooit naar `main`.
 7. Commitberichten in het Nederlands, kort en beschrijvend.
 8. Na elke push: herinner Peter eraan te wachten op het **groene vinkje** in GitHub Actions voordat hij test.
 9. Werkomgeving is Windows met PowerShell. Geef PowerShell-commando's, geen bash. Zips voor handmatige deploys met Windows-`tar` (volledig pad met `C:/`), niet met `Compress-Archive`.
@@ -32,7 +32,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 ## Afwijkingen van Peters standaardstack (bewust, niet "corrigeren")
 - Geen React, Vite of Tailwind: platte HTML, CSS en JavaScript-modules. Eén klein Node-script bouwt `data/index.json` in CI.
 - AI loopt via Microsoft Foundry (gpt-5-mini), **niet** via de Claude API.
-- Geen online testomgeving en geen `.test.pdscloud.nl`, ondanks de skill `pdscloud-project-setup`. Peter test lokaal met `npm run dev`; GitHub Actions doet validatie, bouw en rooktest op elke push. Alleen `main` wordt gedeployed.
+- Geen online testomgeving en geen `.test.pdscloud.nl`, ondanks de skill `pdscloud-project-setup`. Peter test lokaal met `npm run dev`; GitHub Actions doet validatie, bouw en rooktest op elke push naar een feature-branch, en elke pull request naar `main` wordt gevalideerd (check "Validatie"). Alleen `main` wordt gedeployed: `deploy.yml` (later) draait alleen op een push naar `main`, dus op het merge-moment.
 - `api/` blijft leeg tot release 2.2. Bouw niets voor de backend eerder.
 
 ## Inhoudsregels voor scripts en vragen
@@ -53,13 +53,15 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 - Bij `feature/deploy` wordt alleen een allowlist van sitebestanden gepubliceerd (`index.html`, pagina-mappen, `assets/`, `data/`, `schema/`, `CNAME`). Nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/` of andere repo-bestanden publiceren.
 
 ## Voortgang Develop (release 2.0) – houd dit bij
-- [x] Repo `peterdeswart96-ship-it/ps-trainer` met `main` en `develop`
+- [x] Repo `peterdeswart96-ship-it/ps-trainer` met `main` (`develop` vervalt)
 - [x] Feature-branch `feature/repo-en-validatie` aangemaakt
 - [x] `.gitattributes`, `.gitignore`, `.npmrc`, `.nvmrc`, `package.json`, `tools/check-node.mjs`
 - [x] Stap 3: `schema/script.schema.json`, `tools/validate.mjs`, testfixtures en tests
 - [x] Stap 4a: `tools/Test-Syntax.ps1` en uitgebreide validatietests
 - [x] Stap 4b: `data/topics.json`, `tools/build-index.mjs`, `tools/server.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs` en `tests/tools.test.mjs`
-- [ ] Stap 5 (in uitvoering): server blokkeert dotfiles, workflow `.github/workflows/validate.yml`
+- [x] Stap 5: server blokkeert dotfiles, workflow `.github/workflows/validate.yml`, branchstrategie zonder `develop`
+- [ ] Pull request feature/repo-en-validatie naar main (Peter)
+- [ ] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
 - [ ] `feature/omzetten-v1`: 4 scripts, 26 vragen en woordenboek uit v1 omzetten
 - [ ] `feature/startpagina-en-werkbank`
 - [ ] `feature/deploy` (`deploy.yml`, DNS, eerste livegang)

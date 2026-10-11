@@ -1,18 +1,17 @@
-# Validatie: controleert bij elke push en pull request of de inhoud en de tooling kloppen.
+# Validatie: controleert bij elke push naar een feature-branch en elke pull request naar main
+# of de inhoud en de tooling kloppen.
 # Deze workflow publiceert niets en gebruikt geen secrets; alleen lezen en controleren.
 name: Validatie
 
 # Wanneer draait dit?
-# - bij elke push naar develop of een feature-branch (feature/...)
-# - bij elke pull request naar develop of main
+# - bij elke push naar een feature-branch (feature/...)
+# - bij elke pull request naar main (de check "Validatie" moet groen zijn voor de merge)
 on:
   push:
     branches:
-      - develop
       - 'feature/**'
   pull_request:
     branches:
-      - develop
       - main
 
 # Minimale rechten: de workflow mag de repo alleen lezen (geen schrijfrechten, geen deploy).

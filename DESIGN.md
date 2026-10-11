@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.3 (11 oktober 2026), definitief. Wijziging t.o.v. 1.2: de lokale server blokkeert dotfiles en `node_modules`, de workflow `validate.yml` is uitgewerkt in paragraaf 6, en paragraaf 8 legt vast dat bij een deploy alleen een allowlist van sitebestanden wordt gepubliceerd. (1.2 was al vastgelegd in een eerdere commit, daarom nu 1.3.) Geen open vragen.
+Status: versie 1.4 (11 oktober 2026), definitief. Wijziging t.o.v. 1.3: de integratietak `develop` vervalt; alles gaat via feature-branches en pull requests naar `main`; `validate.yml` draait op push naar `feature/**` en pull requests naar `main`. Geen open vragen.
 
 ## 1. Besluiten
 
@@ -16,7 +16,7 @@ Status: versie 1.3 (11 oktober 2026), definitief. Wijziging t.o.v. 1.2: de lokal
 | Taal van de Function | Node.js. Versie per scope vastgelegd; de versie van de Function wordt in Azure bewezen met een runtime-test voordat er iets gebouwd wordt (paragraaf 7.1). |
 | Hostingplan Function | Flex Consumption. Terugval: Linux Consumption met Node 22 (bewezen in `mokum-competitie`), als de runtime-test op Flex faalt. Windows Consumption valt af. |
 | Node-scopes | Tooling op Node 24 (gelijk aan de laptop, v24.18.0). Function op de versie die de runtime-test in Azure bewijst, verwacht Node 22. |
-| Testen | Alleen lokaal (`npm run dev`), geen online testomgeving. Op elke push en pull request draaien validatie, bouw en rooktest in GitHub Actions. |
+| Testen | Alleen lokaal (`npm run dev`), geen online testomgeving. Op elke push naar een feature-branch en elke pull request naar `main` draaien validatie, bouw en rooktest in GitHub Actions. |
 | Lettertypen | Google Fonts blijft, zoals in v1. |
 
 ## 2. Overzicht van de architectuur
@@ -188,11 +188,11 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 | Indexbouw | 2.0 | `build-index.mjs` maakt `data/index.json` voor de gedeployde site. |
 | Rooktest | 2.0 | `smoke.mjs` start de site lokaal in de workflow en controleert dat elke pagina laadt en `index.json` klopt. Dit vervangt een online testomgeving. |
 
-`main` wordt alleen gedeployed nadat alle stappen groen zijn. Zoals altijd: wachten op het groene vinkje voordat je test.
+`main` wordt alleen gedeployed na een pull request waarvan alle stappen groen zijn. Zoals altijd: wachten op het groene vinkje voordat je test.
 
 ### 6.1 Workflow `validate.yml`
 
-Naam "Validatie". Draait bij een push op `develop` en `feature/**` en bij een pull request naar `develop` of `main`. `permissions: contents: read`, geen secrets, geen deploy. `concurrency` per workflow en ref met `cancel-in-progress`, zodat een nieuwe push de oude run stopt. Eén job `validatie` op `ubuntu-latest` met `timeout-minutes: 10`. Stappen:
+Naam "Validatie". Draait bij een push op `feature/**` en bij een pull request naar `main`. `permissions: contents: read`, geen secrets, geen deploy. `concurrency` per workflow en ref met `cancel-in-progress`, zodat een nieuwe push de oude run stopt. Eén job `validatie` op `ubuntu-latest` met `timeout-minutes: 10`. Stappen:
 
 1. `actions/checkout@v4`
 2. `actions/setup-node@v4` met `node-version-file: .nvmrc` en `cache: npm` (nooit een los versienummer, `latest` of `lts/*`)
@@ -259,7 +259,7 @@ Naam "Validatie". Draait bij een push op `develop` en `feature/**` en bij een pu
 | Externe scripts | Externe bibliotheken (MSAL.js) met vaste versie en integriteitscontrole (SRI), of lokaal meegeleverd. Content-Security-Policy via een `meta`-tag, want GitHub Pages kan geen headers zetten. |
 | Lettertypen | Google Fonts blijft (besluit). De CSP staat `fonts.googleapis.com` en `fonts.gstatic.com` toe. Bezoekers sturen daarbij hun IP-adres naar Google; voor een persoonlijke leertool is dat geaccepteerd. Zelf meeleveren kan later zonder ontwerpwijziging. |
 | Oefenscripts | Geen echte tenant-ID's, sleutels of sitenamen; voorbeelden gebruiken `contoso`. |
-| Rechten | Branch-protectie op `main`; nooit automatisch mergen zonder mijn akkoord. |
+| Rechten | Branch-protectie op `main`: alleen via een pull request, met de check "Validatie" als verplichte, groene check. Mijn Merge-klik in GitHub is het akkoord. Claude Code pusht nooit naar `main` en merget nooit zelf. |
 | Lokale server | `tools/server.mjs` geeft 404 (met dezelfde tekst als bij een onbekend pad) voor elk padsegment dat met een punt begint en voor `node_modules`, ook in de `%2e`-variant en na het oplossen van `..`. Alleen `/.well-known/` is toegestaan. Zo komen `.env` en `.git/` niet via de dev-server of de rooktest naar buiten. |
 | Publiceren | Bij een deploy gaat alleen een allowlist van sitebestanden naar GitHub Pages: `index.html`, de pagina-mappen, `assets/`, `data/`, `schema/` en `CNAME`. Nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/` of andere repo-bestanden. |
 
@@ -277,11 +277,14 @@ Naam "Validatie". Draait bij een push op `develop` en `feature/**` en bij een pu
 
 - **Domein:** `ps-trainer.pdscloud.nl`; DNS bij TransIP (CNAME naar `peterdeswart96-ship-it.github.io`); HTTPS afdwingen in de Pages-instellingen. De bestaande skill `github-pages-subdomain` begeleidt dit in Deploy.
 - **Deploy:** GitHub Actions (`upload-pages-artifact` en `deploy-pages`) zodat de gebouwde index meegaat zonder die in git te zetten.
-- **Verschil met de skill `pdscloud-project-setup`:** die gaat uit van een testomgeving op `<naam>.test.pdscloud.nl` voor `develop`. Hier is bewust gekozen voor alleen lokaal testen; dit staat ook in `CLAUDE.md`.
-- **Branches en testen:** `main` is productie, `develop` is de integratietak, `feature/*` voor nieuwe functies. Er is geen online testomgeving; ik test lokaal met `npm run dev` (een webserver is nodig, want `fetch` van JSON werkt niet via `file://`). Op elke push en pull request draait de workflow met validatie, bouw en rooktest. Alleen `main` wordt gedeployed, en alleen na mijn expliciete akkoord. Nadeel: de eerste echte test op `ps-trainer.pdscloud.nl` gebeurt na de merge. De rooktest en mijn controle direct na livegang (in `DEPLOY.md`) dekken dat af; terugdraaien kan met een revert-commit.
+- **Verschil met de skill `pdscloud-project-setup`:** die gaat uit van een tak `develop` met een testomgeving op `<naam>.test.pdscloud.nl`. Hier zijn beide bewust vervallen: er is geen `develop` en geen online testomgeving, alleen lokaal testen; dit staat ook in `CLAUDE.md`.
+- **Branches en testen:** `main` is productie (beschermd) en `feature/*` is voor werk, altijd gemaakt vanaf `main`. Er is geen `develop` en geen online testomgeving; ik test lokaal met `npm run dev` (een webserver is nodig, want `fetch` van JSON werkt niet via `file://`). Op elke push naar een feature-branch en op elke pull request naar `main` draait `validate.yml` met validatie, tests, syntaxcheck en rooktest. Wijzigingen komen alleen via een pull request in `main`; mijn Merge-klik is het akkoord.
+- **Deploy:** `deploy.yml` draait alleen op een push naar `main`, dus op het merge-moment, en voert vooraf zelf `npm run validate`, `npm test` en `npm run smoke` uit als extra veiligheid. Alleen `main` wordt gedeployed. Nadeel: de eerste echte test op `ps-trainer.pdscloud.nl` gebeurt na de merge. De rooktest en mijn controle direct na livegang (in `DEPLOY.md`) dekken dat af; terugdraaien kan met Revert op de gemergde pull request.
 - **Azure:** `rg-ps-trainer` voor de Function App en opslag; de bestaande Foundry-resource uit `rg-foundry-lab` wordt hergebruikt, met een eigen project voor de PS Coach.
 
 ## 11. Plan voor Develop (release 2.0)
+
+Elke feature-branch gaat vanaf `main` en wordt via een pull request naar `main` gemerged.
 
 Kleine stappen, elk op een eigen feature-branch en elk met mijn akkoord vóór de volgende:
 
