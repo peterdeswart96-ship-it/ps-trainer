@@ -150,9 +150,22 @@ a.kaart:hover { border-color: var(--accent); }
    contrast van die kleur op de pagina wordt door een test bewaakt). De gekozen knop is te herkennen aan een dikkere
    rand (2px, de opvulling wordt 1px kleiner zodat de knop niet groeit) en een sterkere tint (26%).
    De kleuren staan verderop (--p- en --t-). */
-.chip.filter[data-onderwerp] { --tint: var(--accent); --rand: var(--accent);
+.chip[data-onderwerp], .chip[data-soort] { --tint: var(--accent); --rand: var(--accent);
   background: color-mix(in srgb, var(--tint) 4%, transparent); border-color: var(--rand); }
-.chip.filter[data-onderwerp][aria-pressed="true"] { background: color-mix(in srgb, var(--tint) 26%, transparent); border-width: 2px; padding: 4px 11px; }
+.chip[data-onderwerp][aria-pressed="true"], .chip[data-soort][aria-pressed="true"] { background: color-mix(in srgb, var(--tint) 26%, transparent); border-width: 2px; padding: 4px 11px; }
+#scriptkeuze .chip[data-onderwerp][aria-pressed="true"] { padding: 5px 11px; }
+/* De scripttegels in de scriptkeuze hebben dezelfde kleur als het onderwerp van het script */
+#scriptkeuze .chip[data-onderwerp="migraties"] { --tint: var(--p-migraties); --rand: var(--t-migraties); }
+#scriptkeuze .chip[data-onderwerp="sharepoint"] { --tint: var(--p-sharepoint); --rand: var(--t-sharepoint); }
+#scriptkeuze .chip[data-onderwerp="foundry"] { --tint: var(--p-foundry); --rand: var(--t-foundry); }
+#scriptkeuze .chip[data-onderwerp="purview"] { --tint: var(--p-purview); --rand: var(--t-purview); }
+#scriptkeuze .chip[data-onderwerp="entra-id"] { --tint: var(--p-entra-id); --rand: var(--t-entra-id); }
+/* Soort vraag: rechts uitgelijnd, elk soort een eigen pastelkleur (kleuren: --sp- en --st-, bij de onderwerpkleuren) */
+.chips.rechts { margin-left: auto; }
+@media (max-width: 700px) { .chips.rechts { margin-left: 0; } }
+.chip.filter[data-soort="mc"] { --tint: var(--sp-mc); --rand: var(--st-mc); }
+.chip.filter[data-soort="bug"] { --tint: var(--sp-bug); --rand: var(--st-bug); }
+.chip.filter[data-soort="open"] { --tint: var(--sp-open); --rand: var(--st-open); }
 .chip.filter[data-onderwerp="migraties"] { --tint: var(--p-migraties); --rand: var(--t-migraties); }
 .chip.filter[data-onderwerp="sharepoint"] { --tint: var(--p-sharepoint); --rand: var(--t-sharepoint); }
 .chip.filter[data-onderwerp="foundry"] { --tint: var(--p-foundry); --rand: var(--t-foundry); }
@@ -183,11 +196,14 @@ a.kaart:hover { border-color: var(--accent); }
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "box antwoorden"; }
 .q[data-huidig="false"] { display: none; }
 .q.active { border-color: var(--accent); }
-.qbox { grid-area: box; display: grid; gap: 10px; align-content: start; min-width: 0; }
+/* De vragenbox is zo hoog als het vak ernaast: de vraag krijgt de ruimte en de navigatie staat onderaan. */
+.qbox { grid-area: box; display: grid; gap: 10px; grid-template-rows: auto auto 1fr; align-self: stretch; min-width: 0; }
+.qbox .qnav { align-self: end; }
 .qantwoord { grid-area: antwoorden; display: grid; gap: 10px; align-content: start; min-width: 0; }
 @media (max-width: 900px) { .q { grid-template-columns: minmax(0, 1fr); grid-template-areas: "box" "antwoorden"; } }
+/* Compacte knoppen (ongeveer 41% van de vorige afmetingen), links en rechts onderaan de vragenbox */
 .qnav { display: flex; gap: 10px; justify-content: space-between; margin-top: 6px; }
-.qknop { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 18px; justify-self: auto; flex: 1 1 0; }
+.qknop { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; padding: 3px 12px; font-size: .8rem; justify-self: auto; flex: 0 0 auto; }
 .qnav .qknop:last-child { background: var(--accent); color: var(--panel); border: 1px solid var(--accent); }
 .qknop:disabled { opacity: .4; cursor: default; }
 .qtop { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
@@ -197,7 +213,7 @@ a.kaart:hover { border-color: var(--accent); }
 .kind.bug { background: var(--bad-soft); color: var(--bad); }
 .kind.open { background: var(--warn-soft); color: var(--warn); }
 .stap-label { font-size: .75rem; color: var(--muted); font-family: var(--f-display); text-transform: uppercase; letter-spacing: .05em; }
-.q p.prompt { margin: 0; font-weight: 600; }
+.q p.prompt { margin: 0; font-weight: 600; font-size: 1.12rem; line-height: 1.4; }
 .opts { display: grid; gap: 6px; }
 .opt { text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; gap: 10px; align-items: flex-start; }
 .opt:hover:not([disabled]) { border-color: var(--accent); }
@@ -251,6 +267,9 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-foundry: #4a43c9; --p-foundry: #cfd1ff;
   --t-purview: #c42b63; --p-purview: #ffc2d6;
   --t-entra-id: #0f6cbd; --p-entra-id: #bfe3ff;
+  --st-mc: #2e7d32; --sp-mc: #bfe8b8;
+  --st-bug: #8a6d00; --sp-bug: #fbe48a;
+  --st-open: #7b3fb8; --sp-open: #e3cdfa;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
@@ -258,6 +277,9 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-foundry: #a5a6ff; --p-foundry: #4141b5;
   --t-purview: #ff7fa8; --p-purview: #b22f5e;
   --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
+  --st-mc: #7fd67f; --sp-mc: #2f6b31;
+  --st-bug: #f2c94c; --sp-bug: #7a5f00;
+  --st-open: #c9a0ff; --sp-open: #5b2f91;
 } }
 :root[data-theme="dark"] {
   --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
@@ -265,6 +287,9 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-foundry: #a5a6ff; --p-foundry: #4141b5;
   --t-purview: #ff7fa8; --p-purview: #b22f5e;
   --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
+  --st-mc: #7fd67f; --sp-mc: #2f6b31;
+  --st-bug: #f2c94c; --sp-bug: #7a5f00;
+  --st-open: #c9a0ff; --sp-open: #5b2f91;
 }
 .kaart { --tint: var(--accent); --pastel: var(--accent-soft); border: 1.5px solid var(--tint); }
 @supports (background: color-mix(in srgb, red 40%, transparent)) {

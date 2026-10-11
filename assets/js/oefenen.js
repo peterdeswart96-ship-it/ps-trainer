@@ -245,15 +245,16 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
   };
 
   // Chips voor een filter: "Alle" plus de opties; aria-pressed laat de keuze zien.
-  const filterGroep = (label, opties, gekozen, kies) => {
-    const groep = el(doc, 'div', 'chips');
+  const filterGroep = (label, opties, gekozen, kies, klasse = 'chips') => {
+    const groep = el(doc, 'div', klasse);
     groep.setAttribute('role', 'group');
     groep.setAttribute('aria-label', label);
-    for (const [waarde, tekst, onderwerp] of opties) {
+    for (const [waarde, tekst, onderwerp, soort] of opties) {
       const knop = el(doc, 'button', 'chip filter', tekst);
       knop.type = 'button';
-      // Een onderwerpknop krijgt zijn onderwerp mee, zodat de opmaak er een eigen pastelkleur aan kan geven
+      // Een onderwerp- of soortknop krijgt zijn waarde mee, zodat de opmaak er een eigen pastelkleur aan kan geven
       if (onderwerp) knop.setAttribute('data-onderwerp', onderwerp);
+      if (soort) knop.setAttribute('data-soort', soort);
       knop.setAttribute('aria-pressed', String(gekozen === waarde));
       knop.addEventListener('click', () => kies(waarde));
       groep.append(knop);
@@ -265,7 +266,7 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
     const onderwerpenMetScripts = index.topics.filter((t) => index.scripts.some((s) => s.topic === t.id));
     onderdeel('filters').replaceChildren(
       filterGroep('Onderwerp', [[null, 'Alle onderwerpen'], ...onderwerpenMetScripts.map((t) => [t.id, t.name, t.id])], filters.topic, (w) => zetFilter('topic', w)),
-      filterGroep('Soort vraag', [[null, 'Alle vragen'], ...VRAAGTYPES.map((t) => [t, TYPE_LABELS[t]])], filters.type, (w) => zetFilter('type', w))
+      filterGroep('Soort vraag', [[null, 'Alle vragen'], ...VRAAGTYPES.map((t) => [t, TYPE_LABELS[t], undefined, t])], filters.type, (w) => zetFilter('type', w), 'chips rechts')
     );
   };
 
@@ -281,6 +282,8 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
       const knop = el(doc, 'button', 'chip');
       knop.type = 'button';
       knop.setAttribute('aria-pressed', String(huidig && entry.id === huidig.id));
+      // Dezelfde pastelkleur als de onderwerpknop van het script
+      if (entry.topic) knop.setAttribute('data-onderwerp', entry.topic);
       knop.append(el(doc, 'span', '', entry.title), el(doc, 'small', '', entry.tag), el(doc, 'span', 'prog', `${v.beantwoord}/${v.totaal}`));
       knop.addEventListener('click', () => selecteer(entry.id));
       groep.append(knop);

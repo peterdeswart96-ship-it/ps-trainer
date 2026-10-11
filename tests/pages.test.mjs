@@ -440,6 +440,28 @@ test('kleuren: tekst op de tegel (40% pastel over de achtergrond) haalt 4,5:1 en
   }
 });
 
+test('kleuren: elk soort vraag heeft een eigen kleur; rand en tekst op de knop zijn leesbaar in licht en donker', () => {
+  const css = cssTekst();
+  for (const soort of ['mc', 'bug', 'open']) {
+    assert.match(css, new RegExp(`\\.chip\\.filter\\[data-soort="${soort}"\\]\\s*\\{[^}]*--tint:\\s*var\\(--sp-${soort}\\)[^}]*--rand:\\s*var\\(--st-${soort}\\)`), `kleurregel voor ${soort}`);
+  }
+  // Volgorde in het bestand: licht, donker (media-query), donker (handmatig)
+  const alle = [...css.matchAll(/--(s[tp]-[a-z]+):\s*(#[0-9a-f]{6})/g)];
+  const per = (volgorde) => Object.fromEntries(alle.slice(volgorde * 6, volgorde * 6 + 6).map((m) => [m[1], m[2]]));
+  assert.equal(alle.length, 18, 'zes kleuren in drie blokken');
+  assert.deepEqual(per(1), per(2), 'het donkere thema via de media-query en via data-theme moeten gelijk zijn');
+  for (const [naam, begin, volgorde] of [['licht', ':root {', 0], ['donker', ':root[data-theme="dark"] {', 2]]) {
+    const k = themaKleuren(css, begin);
+    const kleuren = per(volgorde);
+    for (const soort of ['mc', 'bug', 'open']) {
+      assert.ok(kleuren[`st-${soort}`] && kleuren[`sp-${soort}`], `${naam} ${soort}: kleuren ontbreken`);
+      const knop = menging(hexNaarRgb(kleuren[`sp-${soort}`]), k.bg, 0.26); // gekozen knop: 26% pastel
+      assert.ok(contrast(k.ink, knop) >= 4.5, `${naam} ${soort}: tekst op de gekozen knop`);
+      assert.ok(contrast(hexNaarRgb(kleuren[`st-${soort}`]), k.bg) >= 3, `${naam} ${soort}: rand op de pagina`);
+    }
+  }
+});
+
 test('kleuren: de tegel krijgt het onderwerp als data-attribuut (alleen bij een veilig id)', () => {
   const kaarten = kaartenVan(bouwKaarten(testIndex(), leegV2(), nepDocument()));
   assert.deepEqual(kaarten.map((k) => k.attributen['data-onderwerp']), ['eerste', 'leeg', 'tweede']);
