@@ -7,9 +7,11 @@
   "summary": "Zoekt op een fileshare naar bestanden en mappen met een naam die SharePoint Online niet accepteert, en schrijft ze met de reden naar een CSV.",
   "risk": "read",
   "modules": [],
-  "note": "De lijst met niet-toegestane namen is samengesteld uit documentatie die niet volledig is nagelopen. Controleer de actuele lijst in de Microsoft-documentatie (\"Restrictions and limitations in OneDrive and SharePoint\") voordat je op de uitslag vertrouwt.",
+  "note": "De regels komen uit de Microsoft-pagina Restrictions and limitations in OneDrive and SharePoint. De tekens \" * : < > ? / \\ | kunnen op een Windows-share niet voorkomen en worden hier niet gecontroleerd. Een punt aan het eind van een naam is volgens Microsoft geen hard verbod maar een naam die OneDrive automatisch kan hernoemen. De tekens # en % staan niet in het script: volgens de documentatie ondersteunen sommige organisaties ze nog niet, dus behandel ze als waarschuwing. De lijst verandert in de tijd; controleer hem opnieuw voordat je op een uitslag vertrouwt.",
   "check": {
-    "status": "nog_te_controleren"
+    "status": "gecontroleerd",
+    "date": "2026-10-11",
+    "source": "Microsoft Support: Restrictions and limitations in OneDrive and SharePoint (spaties, .lock, CON/PRN/AUX/NUL, COM0-9, LPT0-9, _vti_ overal in de naam, desktop.ini, ~$, forms in de root) en Why has my filename changed (punt of spatie aan het eind). Gecontroleerd op de bronpagina's op 11 oktober 2026; de PowerShell-logica is getest in Windows PowerShell 5.1 en PowerShell 7. Niet in het script: # en % (volgens Microsoft niet overal ondersteund, dus een waarschuwing en geen fout) en de tekens \" * : < > ? / \\ | (kunnen op een Windows-share niet voorkomen). Een punt aan het eind wordt volgens Microsoft door OneDrive hernoemd en is geen hard verbod."
   },
   "questions": [
     {
@@ -23,10 +25,10 @@
       ],
       "prompt": "Wat gebeurt er als je het script start zonder -Share?",
       "options": [
-        "Het script vraagt om de naam van de share",
-        "Het script scant de standaardwaarde uit het param-blok",
-        "Het script scant de huidige map",
-        "Het script stopt met een foutmelding"
+        "Het script vraagt om de naam van de share voordat het verdergaat met het scannen",
+        "Het script scant de standaardwaarde uit het param-blok, de voorbeeldshare in de code",
+        "Het script scant de huidige map in plaats van een share, omdat er niets is opgegeven",
+        "Het script stopt met een foutmelding, omdat de parameter niet is ingevuld bij het starten"
       ],
       "answer": 1,
       "explanation": "Een parameter met een waarde na het `=` gebruikt die waarde als je er zelf niets voor opgeeft. Hier is dat de voorbeeldshare. Zonder standaardwaarde en zonder `Mandatory` zou `$Share` leeg zijn."
@@ -36,16 +38,16 @@
       "type": "mc",
       "step": "bron",
       "lines": [
-        8
+        9
       ],
-      "prompt": "Op regel 8 staat geen -File, anders dan in de pre-scan voor padlengte. Wat is het gevolg?",
+      "prompt": "Op regel 9 staat geen -File, anders dan in de pre-scan voor padlengte. Wat is het gevolg?",
       "options": [
-        "Er komen bestanden en mappen langs, dus ook mapnamen worden gecontroleerd",
-        "Het script kijkt alleen naar mappen",
-        "Het script geeft een foutmelding",
-        "Het script leest de inhoud van de bestanden"
+        "Het script kijkt alleen naar mappen en slaat de bestanden in die mappen over",
+        "Het script geeft een foutmelding, omdat -Recurse zonder -File niet is toegestaan",
+        "Het script leest ook de inhoud van de bestanden, zodat het hun grootte kan bepalen",
+        "Er komen bestanden én mappen langs, dus ook de mapnamen zelf worden gecontroleerd"
       ],
-      "answer": 0,
+      "answer": 3,
       "explanation": "Zonder `-File` of `-Directory` geeft `Get-ChildItem` allebei. Dat is hier wat je wilt: ook een map met een spatie aan het eind of een gereserveerde naam geeft problemen bij een migratie."
     },
     {
@@ -53,16 +55,16 @@
       "type": "mc",
       "step": "bewerking",
       "lines": [
-        13
+        14
       ],
       "prompt": "Wat controleert $naam -ne $naam.Trim()?",
       "options": [
-        "Of de naam leeg is",
-        "Of de naam hoofdletters bevat",
-        "Of de naam te lang is",
-        "Of de naam een spatie aan het begin of eind heeft"
+        "Of de naam een spatie aan het begin of eind heeft, zodat Trim() iets weghaalt",
+        "Of de naam hoofdletters bevat die SharePoint niet accepteert in een naam",
+        "Of de naam te lang is voor een pad in SharePoint Online en dus moet worden ingekort",
+        "Of de naam leeg is of alleen uit spaties in het midden van de tekst bestaat"
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "`Trim()` haalt spaties aan begin en eind weg. Is het resultaat anders dan de originele naam, dan zat er een spatie aan een van beide kanten. Spaties midden in een naam blijven toegestaan."
     },
     {
@@ -71,16 +73,16 @@
       "step": "bewerking",
       "lines": [
         5,
-        17
+        19
       ],
       "prompt": "Waarom wordt de gereserveerde apparaatnaam gecontroleerd op $item.BaseName en niet op $naam?",
       "options": [
-        "Een bestand als con.txt is ook gereserveerd, maar het patroon met ^ en $ matcht alleen een naam zonder extensie",
-        "BaseName is sneller dan Name",
-        "BaseName werkt alleen bij mappen, Name alleen bij bestanden",
-        "Er is geen verschil tussen de twee"
+        "BaseName is sneller dan Name, zodat het script minder lang over een grote share doet",
+        "BaseName werkt alleen bij mappen en Name alleen bij bestanden, dus er is een keuze",
+        "Ook con.txt is gereserveerd; het patroon met ^ en $ past alleen op een naam zonder extensie",
+        "Er is geen verschil tussen de twee, het is alleen een kwestie van schrijfstijl in het script"
       ],
-      "answer": 0,
+      "answer": 2,
       "explanation": "`BaseName` is de naam zonder extensie. Het patroon `^(con|prn|...)$` moet de hele tekst matchen. Op `con.txt` zou dat niet slagen, op `con` wel. Let ook op: `-match` is in PowerShell standaard niet hoofdlettergevoelig, dus `CON` en `Con` worden ook gevonden."
     },
     {
@@ -88,20 +90,22 @@
       "type": "bug",
       "step": "uitvoer",
       "lines": [
-        13,
         14,
         15,
         16,
-        17
+        17,
+        18,
+        19,
+        20
       ],
       "prompt": "Op een NAS is een bestand aangemaakt met de naam \"~$notities \" (begint met ~$ en heeft een spatie aan het eind). Hoeveel regels levert dat op in de CSV, en met welke reden?",
       "options": [
-        "Twee regels: een per reden",
-        "Een regel, met de reden \"tijdelijk Office-bestand\"",
-        "Een regel, met de reden \"spatie aan begin of eind\"",
-        "Geen regel, omdat de redenen elkaar opheffen"
+        "Twee regels in de CSV: een voor elke reden die op de naam van toepassing is",
+        "Een regel, met de reden \"spatie aan begin of eind\", want de eerste reden wint",
+        "Een regel, met de reden \"tijdelijk Office-bestand\", want de naam begint met ~$",
+        "Geen regel, omdat de redenen elkaar opheffen en de naam dan weer geldig is"
       ],
-      "answer": 2,
+      "answer": 1,
       "explanation": "Door de `if/elseif`-keten stopt het script bij de eerste reden die klopt. Het andere probleem blijft onzichtbaar tot je het eerste hebt opgelost en het script opnieuw draait. Wil je alle redenen zien, dan zijn losse `if`-blokken die een lijst vullen beter."
     },
     {
@@ -109,16 +113,16 @@
       "type": "mc",
       "step": "wijziging",
       "lines": [
-        23
+        26
       ],
       "prompt": "Welke wijziging doet dit script?",
       "options": [
-        "Het hernoemt de bestanden met een ongeldige naam",
-        "Het verwijdert de bestanden met een ongeldige naam",
-        "Het schrijft alleen ongeldige-namen.csv in de huidige map",
-        "Het zet de bestanden in quarantaine"
+        "Het hernoemt de bestanden met een ongeldige naam, zodat ze wel gemigreerd kunnen worden",
+        "Het verwijdert de bestanden met een ongeldige naam om de migratie schoon te houden",
+        "Het zet de bestanden met een ongeldige naam in quarantaine in een aparte map",
+        "Het schrijft alleen ongeldige-namen.csv in de huidige map; de share blijft ongewijzigd"
       ],
-      "answer": 2,
+      "answer": 3,
       "explanation": "Er staat geen `Rename-Item` of `Remove-Item` in het script. Alleen `Export-Csv` schrijft, en alleen een lokaal bestand dat bij een volgende run wordt overschreven. De share blijft ongewijzigd."
     },
     {
@@ -126,7 +130,25 @@
       "type": "open",
       "step": "bewerking",
       "prompt": "De bekende verboden tekens zoals \" * : < > ? | staan niet in dit script. Waarom zou dat op een Windows-share weinig uitmaken, en wat zou je extra controleren?",
-      "explanation": "Windows laat deze tekens normaal niet toe in bestandsnamen, dus ze komen op een share zelden voor. Wat wel kan voorkomen zijn spaties of punten aan het eind, bijvoorbeeld door bestanden die vanaf een Mac, een NAS of een ander systeem zijn aangemaakt. Extra controles: (1) de lijst met niet-toegestane namen in de Microsoft-documentatie naslaan, want die verandert; (2) geblokkeerde bestandstypen controleren; (3) de lengte van het hele pad (zie de pre-scan voor padlengte) en de lengte van elke naam apart."
+      "explanation": "Windows laat deze tekens normaal niet toe in bestandsnamen, dus ze komen op een share zelden voor. Wat wel kan voorkomen zijn spaties of punten aan het eind, bijvoorbeeld door bestanden die vanaf een Mac, een NAS of een ander systeem zijn aangemaakt. Extra controles: (1) `#` en `%`: volgens de documentatie ondersteunen sommige organisaties ze nog niet, dus meld ze als waarschuwing en niet als fout; (2) een punt aan het eind is volgens Microsoft een naam die OneDrive automatisch kan hernoemen, geen hard verbod; (3) de lengte van het hele pad (zie de pre-scan voor padlengte); (4) de lijst met niet-toegestane namen verandert, dus controleer hem af en toe opnieuw. Een aparte lengtelimiet voor een enkele naam in SharePoint Online is niet bevestigd; verwar dat niet met de 255 tekens van Verkenner en Finder."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        17,
+        20
+      ],
+      "prompt": "Waarom wordt _vti_ overal in de naam gezocht (regel 17), en forms alleen in de hoofdmap van de share (regel 20)?",
+      "options": [
+        "_vti_ mag nergens in een naam staan; forms is alleen in de root van een bibliotheek gereserveerd",
+        "_vti_ en forms zijn allebei overal verboden, maar het script controleert alleen de hoofdmap om tijd te besparen",
+        "Beide namen gelden alleen in de hoofdmap, maar -like zoekt voor _vti_ toevallig overal in de naam",
+        "Omdat _vti_ een map is en forms een bestand, en bestanden en mappen anders worden behandeld"
+      ],
+      "answer": 0,
+      "explanation": "De documentatie zegt dat `_vti_` nergens in een naam mag voorkomen, daarom zoekt `-like '*_vti_*'` overal. Voor `forms` geldt dat alleen in de root van een bibliotheek. Het script gaat ervan uit dat de hoofdmap van de share de root van de doelbibliotheek wordt; migreer je naar een submap, dan geldt dat niet. `Split-Path ... -Parent` geeft de map waarin het item staat, ook bij een map, daarom is dat hier gekozen in plaats van `DirectoryName`."
     }
   ]
 }

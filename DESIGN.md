@@ -1,6 +1,7 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.11 (11 oktober 2026), definitief. Wijziging t.o.v. 1.10: de deploy is uitgewerkt: de workflow `deploy.yml` (paragraaf 6.2), het buildscript `tools/build-site.mjs` dat alleen de allowlist als pakket bouwt, de rooktest op het pakket zelf, het runbook `DEPLOY.md` (instellen in een vaste volgorde, controle na livegang, terugdraaien) en het bestand `CNAME`. DNS, de Pages-instellingen en de livegang zelf blijven stappen die Peter uitdrukkelijk goedkeurt. Geen open vragen.
+Status: versie 1.12 (11 oktober 2026), definitief. Wijziging t.o.v. 1.11: een script met `check.status` `gecontroleerd` toont op de werkbank geen enkele waarschuwing meer: het blok "Nog te controleren" ontbrak al, en nu wordt ook de `note` niet meer getoond. Open punten van een gecontroleerd script horen daarom in `check.source`. Geen open vragen.
+Eerdere wijziging (1.11): de deploy is uitgewerkt: de workflow `deploy.yml` (paragraaf 6.2), het buildscript `tools/build-site.mjs` dat alleen de allowlist als pakket bouwt, de rooktest op het pakket zelf, het runbook `DEPLOY.md` (instellen in een vaste volgorde, controle na livegang, terugdraaien) en het bestand `CNAME`. DNS, de Pages-instellingen en de livegang zelf blijven stappen die Peter uitdrukkelijk goedkeurt.
 
 ## 1. Besluiten
 
@@ -128,7 +129,7 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 | `topic` | `migraties`, `sharepoint`, `foundry`, `purview` of `entra-id`. |
 | `level` | `basis`, `gevorderd` of `expert`. |
 | `risk` | `read` of `write`. Toont het label "alleen lezen" of "wijzigt". |
-| `check.status` | `gecontroleerd` of `nog_te_controleren`. De ShareGate-scripts staan op `nog_te_controleren` en tonen een zichtbare waarschuwing. |
+| `check.status` | `gecontroleerd` of `nog_te_controleren`. De ShareGate-scripts staan op `nog_te_controleren` en tonen een zichtbare waarschuwing, met de `note`. Bij `gecontroleerd` (met `date` en `source`) toont de werkbank een regel "Gecontroleerd op ... · bron: ..." en geen waarschuwing en geen `note`; open punten staan dan in `check.source`. |
 | `question.type` | `mc` (meerkeuze), `bug` (zoek de fout) of `open` (zelf formuleren). In 2.2 komt `explain-line` erbij. |
 | `question.step` | Een van de vijf leesstappen: `parameters`, `bron`, `bewerking`, `wijziging`, `uitvoer`. Hiermee kan de voortgangspagina laten zien welke stap je het zwakst beheerst. |
 | `question.lines` | Regelnummers in `script.ps1` die oplichten. De controle in `validate.mjs` faalt als een regelnummer buiten het script valt. |

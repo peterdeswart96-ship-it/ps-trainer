@@ -7,9 +7,11 @@
   "summary": "Zoekt op een fileshare naar bestanden waarvan het pad in SharePoint Online te lang wordt, en schrijft ze naar een CSV.",
   "risk": "read",
   "modules": [],
-  "note": "Het script telt het volledige adres inclusief domeinnaam mee en is daarmee strenger dan nodig. Controleer in de Microsoft-documentatie (\"Restrictions and limitations in OneDrive and SharePoint\") of de limiet van 400 tekens het gedecodeerde pad met of zonder domeinnaam telt.",
+  "note": "De limiet van 400 tekens voor het gedecodeerde pad (inclusief bestandsnaam) staat in de documentatie van Microsoft. Of de domeinnaam meetelt, is niet bevestigd: de documentatie zegt alleen dat het gedecodeerde pad telt. Het script telt daarom het volledige adres inclusief domeinnaam mee en is strenger dan nodig; meet in een testtenant als je het precies wilt weten.",
   "check": {
-    "status": "nog_te_controleren"
+    "status": "gecontroleerd",
+    "date": "2026-10-11",
+    "source": "Microsoft Learn: SharePoint limits (gedecodeerd pad maximaal 400 tekens, bijgewerkt 6 oktober 2026). Open punt: telt de domeinnaam mee; het script rekent bewust streng. De PowerShell-logica is getest in Windows PowerShell 5.1 en PowerShell 7."
   },
   "questions": [
     {
@@ -126,7 +128,7 @@
       "type": "open",
       "step": "wijziging",
       "prompt": "Wat zou je aanpassen om deze pre-scan betrouwbaarder te maken voordat je op de uitslag vertrouwt?",
-      "explanation": "Bijvoorbeeld: (1) `-ErrorAction SilentlyContinue` op regel 7 verbergt ook mappen waar je geen toegang toe hebt en, in Windows PowerShell 5.1, paden langer dan 260 tekens. Dat zijn juist de bestanden die je zoekt. Gebruik `-ErrorVariable` en schrijf de fouten weg, zodat je ziet wat de scan gemist heeft. (2) Controleer ook de mapnamen en niet alleen de bestanden. (3) Haal de share en de bibliotheeknaam uit het migratieplan, in plaats van ze zelf in te vullen. (4) Draai het script met een lagere `-MaxLengte` om een marge te houden."
+      "explanation": "Bijvoorbeeld: (1) `-ErrorAction SilentlyContinue` op regel 7 verbergt ook mappen waar je geen toegang toe hebt en mogelijk ook paden langer dan 260 tekens, afhankelijk van de configuratie van Windows. Dat zijn juist de bestanden die je zoekt. Gebruik `-ErrorVariable` en schrijf de fouten weg, zodat je ziet wat de scan gemist heeft. (2) Controleer ook de mapnamen en niet alleen de bestanden. (3) Haal de share en de bibliotheeknaam uit het migratieplan, in plaats van ze zelf in te vullen. (4) Draai het script met een lagere `-MaxLengte` om een marge te houden."
     }
   ]
 }

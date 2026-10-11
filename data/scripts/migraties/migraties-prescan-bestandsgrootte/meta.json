@@ -7,9 +7,11 @@
   "summary": "Zoekt op een fileshare naar te grote bestanden en maakt een overzicht van aantal en totale grootte per map op het hoogste niveau.",
   "risk": "read",
   "modules": [],
-  "note": "De standaardwaarde van 250 GB voor een enkel bestand komt uit documentatie die niet is nagelopen. Controleer de actuele limiet in de Microsoft-documentatie (\"Restrictions and limitations in OneDrive and SharePoint\") voordat je op de uitslag vertrouwt.",
+  "note": "De standaardwaarde van 250 GB geldt volgens de documentatie van Microsoft voor elk afzonderlijk bestand dat je uploadt naar SharePoint, OneDrive of Teams. Voor een bijlage bij een lijstitem geldt een andere limiet (250 MB). De limiet kan veranderen; controleer hem opnieuw voordat je op een uitslag vertrouwt.",
   "check": {
-    "status": "nog_te_controleren"
+    "status": "gecontroleerd",
+    "date": "2026-10-11",
+    "source": "Microsoft Learn: SharePoint limits (250 GB per bestand, bijgewerkt 6 oktober 2026) en Microsoft Support: Restrictions and limitations in OneDrive and SharePoint (Individual files 250 GB). De PowerShell-logica is getest in Windows PowerShell 5.1 en PowerShell 7. Voor een bijlage bij een lijstitem geldt een andere limiet (250 MB)."
   },
   "questions": [
     {

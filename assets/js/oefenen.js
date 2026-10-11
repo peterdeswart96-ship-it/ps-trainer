@@ -294,7 +294,8 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
       w.append(el(doc, 'strong', '', 'Nog te controleren. '), 'De cmdlets en parameters in dit script zijn nog niet nagelopen in de documentatie of een geïnstalleerde module. Gebruik het als leesoefening, niet als voorbeeld voor productie.');
       kop.append(w);
     }
-    if (meta.note) kop.append(el(doc, 'p', 'waarschuwing', meta.note));
+    // Bij een gecontroleerd script verdwijnen alle waarschuwingen; open punten staan dan in de bronregel (check.source).
+    if (meta.note && meta.check.status !== 'gecontroleerd') kop.append(el(doc, 'p', 'waarschuwing', meta.note));
     onderdeel('codekop').replaceChildren(kop);
   };
 

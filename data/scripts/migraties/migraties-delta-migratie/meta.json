@@ -9,7 +9,7 @@
   "modules": [
     "Microsoft.SharePoint.MigrationTool.PowerShell"
   ],
-  "note": "De cmdlets en parameters zijn vergeleken met de Microsoft Learn-documentatie van de SPMT-module, maar het script is niet uitgevoerd: de module is hier niet geinstalleerd. De module werkt volgens de documentatie in Windows PowerShell 5.x. De documentatie beschrijft niet duidelijk wat er gebeurt met bestanden die al in het doel staan en die opnieuw worden aangeboden, en of een tweede run alleen het verschil kopieert. Dit script beperkt de run met een datumgrens en laat de module extra controlerondes doen; test het gedrag met een kleine map voordat je het gebruikt. In de JSON-definitie van een taak bestaat volgens de documentatie ook een instelling EnableIncremental; die wordt hier niet gebruikt.",
+  "note": "De cmdlets en parameters zijn vergeleken met de Microsoft Learn-documentatie van de SPMT-module, maar het script is niet uitgevoerd: de module is hier niet geinstalleerd. De module werkt volgens de documentatie alleen in Windows PowerShell 5.x. Over een tweede run zegt de documentatie van de SPMT-tool: bestaande objecten in het doel worden overgeslagen en alleen nieuwere bronbestanden worden gemigreerd; hernoem of verplaats gemigreerde bestanden niet voor de laatste run, want dat leidt tot overschrijven. Die tekst gaat over de SPMT-tool (taken opnieuw uitvoeren) en noemt niet bij naam welke instelling dat in de PowerShell-cmdlets aanzet. In de JSON-definitie van een taak komt de sleutel EnableIncremental voor, zonder uitleg; dat wordt hier niet gebruikt. Test het gedrag met een kleine map voordat je het gebruikt.",
   "check": {
     "status": "nog_te_controleren"
   },
@@ -100,7 +100,7 @@
         "Regel 16, Start-SPMTMigration, schrijft in de doelbibliotheek en leest de share alleen"
       ],
       "answer": 3,
-      "explanation": "`Register-SPMTMigration` en `Add-SPMTTask` bereiden voor, `Start-SPMTMigration` zet het kopiëren in gang. SPMT leest de bron en schrijft naar het doel. Wat er gebeurt met een bestand dat al in het doel staat en opnieuw wordt aangeboden, beschrijft de documentatie niet duidelijk. Test dat met een kleine map."
+      "explanation": "`Register-SPMTMigration` en `Add-SPMTTask` bereiden voor, `Start-SPMTMigration` zet het kopiëren in gang. SPMT leest de bron en schrijft naar het doel. Volgens de documentatie van de SPMT-tool worden bij een tweede run bestaande objecten overgeslagen en alleen nieuwere bestanden gemigreerd, en leidt hernoemen of verplaatsen van gemigreerde bestanden vóór de laatste run tot overschrijven. Of de cmdlets precies zo werken, moet je met een kleine map testen."
     },
     {
       "id": "q6",
@@ -124,8 +124,8 @@
       "id": "q7",
       "type": "open",
       "step": "wijziging",
-      "prompt": "De documentatie zegt niet precies wat een tweede run doet met bestanden die al in het doel staan. Hoe zou je dat uitzoeken, en wat regel je voor de cut-over-dag?",
-      "explanation": "Bijvoorbeeld: (1) maak een testmap met een paar bestanden, migreer die, wijzig er een paar en draai de delta; kijk in SharePoint of alleen de gewijzigde bestanden een nieuwe versie hebben, of alles is overschreven; (2) noteer het starttijdstip van de eerste run, want dat is de datumgrens; (3) zet de bron op alleen-lezen op het moment van de cut-over, zodat er geen wijzigingen meer bijkomen; (4) vergelijk het gedrag met `-OnContentItemExists IncrementalUpdate` in het ShareGate-script, dat dit expliciet regelt; (5) controleer na afloop met het script voor de validatie na de migratie; (6) in de JSON-definitie van een taak bestaat volgens de documentatie een instelling `EnableIncremental`; zoek op wat die doet voordat je kiest tussen de aanpakken."
+      "prompt": "De documentatie beschrijft het gedrag van een tweede run in de SPMT-tool, maar niet bij naam welke instelling dat in de PowerShell-cmdlets regelt. Hoe controleer je dat voor jouw situatie, en wat regel je voor de cut-over-dag?",
+      "explanation": "Bijvoorbeeld: (1) maak een testmap met een paar bestanden, migreer die, wijzig er een paar en draai de delta; kijk in SharePoint of alleen de gewijzigde bestanden zijn bijgewerkt of dat alles is overschreven; (2) noteer het starttijdstip van de eerste run, want dat is de datumgrens; (3) hernoem of verplaats geen gemigreerde bestanden vóór de laatste run, want volgens de documentatie leidt dat tot overschrijven; (4) zet de bron op alleen-lezen op het moment van de cut-over, zodat er geen wijzigingen meer bijkomen; (5) vergelijk het gedrag met `-OnContentItemExists IncrementalUpdate` in het ShareGate-script; (6) controleer na afloop met het script voor de validatie na de migratie; (7) in de JSON-definitie van een taak komt de sleutel `EnableIncremental` voor zonder uitleg; zoek op wat die doet voordat je erop vertrouwt."
     }
   ]
 }
