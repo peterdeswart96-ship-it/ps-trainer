@@ -8,6 +8,11 @@
     "node": ">=24 <25"
   },
   "scripts": {
-    "check-node": "node tools/check-node.mjs"
+    "check-node": "node tools/check-node.mjs",
+    "validate": "node tools/check-node.mjs && node tools/validate.mjs",
+    "test": "node tools/check-node.mjs && node --test tests/validate.test.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0"
   }
 }
