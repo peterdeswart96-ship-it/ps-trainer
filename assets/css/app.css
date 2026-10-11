@@ -162,10 +162,10 @@ a.kaart:hover { border-color: var(--accent); }
 .codetabel tr.hl td { background: var(--hl); }
 
 .qs { display: grid; gap: 14px; min-width: 0; }
-/* Eén vraag tegelijk. Twee vakken naast elkaar en even breed: links ruimte voor antwoorden en uitleg,
-   rechts de vragenbox met nummer, vraag en navigatie. Op een smal scherm staat de vragenbox bovenaan. */
+/* Eén vraag tegelijk. Twee vakken naast elkaar en even breed: links de vragenbox met nummer, vraag en navigatie,
+   rechts ruimte voor antwoorden en uitleg. Op een smal scherm staat de vragenbox bovenaan. */
 .q { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 16px 24px; align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "antwoorden box"; }
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "box antwoorden"; }
 .q[data-huidig="false"] { display: none; }
 .q.active { border-color: var(--accent); }
 .qbox { grid-area: box; display: grid; gap: 10px; align-content: start; min-width: 0; }
