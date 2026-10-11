@@ -213,7 +213,7 @@ a.kaart:hover { border-color: var(--accent); }
 .kind.bug { background: var(--bad-soft); color: var(--bad); }
 .kind.open { background: var(--warn-soft); color: var(--warn); }
 .stap-label { font-size: .75rem; color: var(--muted); font-family: var(--f-display); text-transform: uppercase; letter-spacing: .05em; }
-.q p.prompt { margin: 0; font-weight: 600; font-size: 1.12rem; line-height: 1.4; }
+.q p.prompt { margin: 0; font-weight: 600; }
 .opts { display: grid; gap: 6px; }
 .opt { text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; gap: 10px; align-items: flex-start; }
 .opt:hover:not([disabled]) { border-color: var(--accent); }
