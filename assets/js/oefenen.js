@@ -310,20 +310,43 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
 
   const renderKop = (meta) => {
     const kop = el(doc, 'div', 'codekop-inhoud');
-    kop.append(el(doc, 'h2', '', meta.title), el(doc, 'p', 'kopregel', meta.summary));
+    const kopbalk = el(doc, 'div', 'kopbalk');
+    kopbalk.append(el(doc, 'h2', '', meta.title));
+    kop.append(kopbalk, el(doc, 'p', 'kopregel', meta.summary));
     const labels = el(doc, 'p', 'kopregel');
     labels.append(el(doc, 'span', `risk ${meta.risk}`, SCRIPT_RISICO_LABELS[meta.risk]), ` ${NIVEAU_LABELS[meta.level]} · ${meta.tag}`);
     kop.append(labels);
     if (meta.check.status === 'gecontroleerd') {
       kop.append(el(doc, 'p', 'controle', `Gecontroleerd op ${meta.check.date} · bron: ${meta.check.source}`));
     } else {
+      // Waarschuwingen: een knop met icoon rechts naast de titel; de uitleg staat ingeklapt en opent met de knop.
+      const uitleg = el(doc, 'div', 'waarschuwingen');
+      uitleg.id = 'waarschuwingen';
+      uitleg.hidden = true;
       const w = el(doc, 'div', 'waarschuwing');
       w.setAttribute('role', 'note');
       w.append(el(doc, 'strong', '', 'Nog te controleren. '), 'De cmdlets en parameters in dit script zijn nog niet nagelopen in de documentatie of een geïnstalleerde module. Gebruik het als leesoefening, niet als voorbeeld voor productie.');
-      kop.append(w);
+      uitleg.append(w);
+      // Bij een gecontroleerd script verdwijnen alle waarschuwingen; open punten staan dan in de bronregel (check.source).
+      if (meta.note) uitleg.append(el(doc, 'p', 'waarschuwing', meta.note));
+
+      const knop = el(doc, 'button', 'waarschuwknop');
+      knop.type = 'button';
+      knop.setAttribute('aria-expanded', 'false');
+      knop.setAttribute('aria-controls', 'waarschuwingen');
+      const pictogram = el(doc, 'span', 'icoon ico-waarschuwing');
+      pictogram.setAttribute('aria-hidden', 'true');
+      const actie = el(doc, 'small', '', 'Toon uitleg');
+      knop.append(pictogram, el(doc, 'span', '', 'Nog te controleren'), actie);
+      knop.addEventListener('click', () => {
+        const open = uitleg.hidden;
+        uitleg.hidden = !open;
+        knop.setAttribute('aria-expanded', String(open));
+        actie.textContent = open ? 'Verberg uitleg' : 'Toon uitleg';
+      });
+      kopbalk.append(knop);
+      kop.append(uitleg);
     }
-    // Bij een gecontroleerd script verdwijnen alle waarschuwingen; open punten staan dan in de bronregel (check.source).
-    if (meta.note && meta.check.status !== 'gecontroleerd') kop.append(el(doc, 'p', 'waarschuwing', meta.note));
     onderdeel('codekop').replaceChildren(kop);
   };
 

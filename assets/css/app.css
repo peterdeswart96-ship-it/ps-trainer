@@ -180,6 +180,12 @@ a.kaart:hover { border-color: var(--accent); }
 .codehead { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
 .codekop-inhoud { display: grid; gap: 6px; }
 .codehead h2 { font-family: var(--f-display); font-size: 1.2rem; margin: 0; }
+/* Titel links, rechts de waarschuwingsknop (alleen bij een script dat nog te controleren is). De uitleg klapt eronder open. */
+.kopbalk { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; }
+.waarschuwknop { display: inline-flex; align-items: center; gap: 8px; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); border-radius: 8px; padding: 4px 12px; font-size: .88rem; text-align: left; }
+.waarschuwknop .icoon { width: 1.3em; height: 1.3em; }
+.waarschuwknop small { font-size: .78rem; }
+.waarschuwingen { display: grid; gap: 8px; }
 .kopregel, .controle { margin: 0; color: var(--muted); font-size: .92rem; }
 .controle { font-size: .8rem; }
 /* Geen schuifbalk: een lange regel breekt af onder zijn eigen regelnummer, het hele script staat in beeld. */
@@ -253,6 +259,7 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
 .ico-open { --ico: url('/assets/img/icons/open.svg'); background-color: currentColor; }
 .ico-vorige { --ico: url('/assets/img/icons/vorige.svg'); background-color: currentColor; }
 .ico-volgende { --ico: url('/assets/img/icons/volgende.svg'); background-color: currentColor; }
+.ico-waarschuwing { --ico: url('/assets/img/icons/waarschuwing.svg'); background-color: currentColor; }
 .nav a { display: inline-flex; align-items: center; gap: 6px; }
 .kaart > .icoon { width: 1.9rem; height: 1.9rem; color: var(--accent); }
 .kaart.in-opbouw > .icoon { color: var(--muted); }
