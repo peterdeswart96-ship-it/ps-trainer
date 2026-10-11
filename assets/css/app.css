@@ -131,18 +131,33 @@ a.kaart:hover { border-color: var(--accent); }
 .werkbank { display: grid; gap: 14px; }
 /* Bovenbalk: de drie filters naast elkaar (ze lopen door naar een volgende regel als het scherm smal is) */
 .filters { display: flex; flex-wrap: wrap; gap: 8px 28px; }
-/* De scriptkeuze is compact: titel en voortgang. De tag en de samenvatting staan boven het script. */
-#scriptkeuze .chips { gap: 6px; }
-#scriptkeuze .chip { padding: 6px 12px; gap: 0; }
+/* De scriptkeuze is compact (titel en voortgang) en staat op één regel met een schuifbalk, op elk scherm.
+   De tag en de samenvatting staan boven het script. */
+#scriptkeuze .chips { gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
+#scriptkeuze .chip { padding: 6px 12px; gap: 0; flex: none; white-space: nowrap; }
 #scriptkeuze .chip small { display: none; }
-/* Op een smal scherm is elke filtergroep en de scriptkeuze één rij die je zijwaarts schuift, zodat het script snel in beeld komt. */
 .wrap > *, .werkbank > * { min-width: 0; }
+/* Op een smal scherm is ook elke filtergroep één zijwaarts schuifbare rij, zodat het script snel in beeld komt. */
 @media (max-width: 700px) {
   .filters { display: grid; gap: 8px; }
-  .filters .chips, #scriptkeuze .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
-  .filters .chip, #scriptkeuze .chip { flex: none; white-space: nowrap; }
+  .filters .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .filters .chip { flex: none; white-space: nowrap; }
 }
 .chip.filter { padding: 5px 12px; font-size: .9rem; display: block; }
+
+/* Onderwerpknoppen in het filter: elk onderwerp een eigen pastelkleur. De achtergrond is een lichte tint (4%) van de
+   pastelkleur van het onderwerp; het randje heeft dezelfde kleurfamilie, iets steviger (de onderwerpkleur zelf; het
+   contrast van die kleur op de pagina wordt door een test bewaakt). De gekozen knop is te herkennen aan een dikkere
+   rand (2px, de opvulling wordt 1px kleiner zodat de knop niet groeit) en een sterkere tint (26%).
+   De kleuren staan verderop (--p- en --t-). */
+.chip.filter[data-onderwerp] { --tint: var(--accent); --rand: var(--accent);
+  background: color-mix(in srgb, var(--tint) 4%, transparent); border-color: var(--rand); }
+.chip.filter[data-onderwerp][aria-pressed="true"] { background: color-mix(in srgb, var(--tint) 26%, transparent); border-width: 2px; padding: 4px 11px; }
+.chip.filter[data-onderwerp="migraties"] { --tint: var(--p-migraties); --rand: var(--t-migraties); }
+.chip.filter[data-onderwerp="sharepoint"] { --tint: var(--p-sharepoint); --rand: var(--t-sharepoint); }
+.chip.filter[data-onderwerp="foundry"] { --tint: var(--p-foundry); --rand: var(--t-foundry); }
+.chip.filter[data-onderwerp="purview"] { --tint: var(--p-purview); --rand: var(--t-purview); }
+.chip.filter[data-onderwerp="entra-id"] { --tint: var(--p-entra-id); --rand: var(--t-entra-id); }
 .scorerij { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 1.6em; }
 .score { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 

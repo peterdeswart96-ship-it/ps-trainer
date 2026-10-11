@@ -1,11 +1,11 @@
 // De werkbank (/oefenen/?script=<id>): links het script met regelnummers, rechts de vragen die regels
-// laten oplichten. Filters bovenin: onderwerp en niveau bepalen welke scripts je ziet, "soort vraag" welke
+// laten oplichten. Filters bovenin: het onderwerp bepaalt welke scripts je ziet, "soort vraag" welke
 // vragen binnen het script. Alle tekst komt via textContent en tekstknopen; nooit HTML uit de data.
 //
 // De opbouw staat in losse functies met het document als parameter, en startWerkbank() krijgt alles wat het
 // nodig heeft (document, venster, opslag, ophaalfuncties) mee, zodat het zonder browser te testen is.
 import {
-  NIVEAU_LABELS, NIVEAUS, SCRIPT_RISICO_LABELS, STAP_LABELS, TYPE_LABELS, VRAAGTYPES,
+  NIVEAU_LABELS, SCRIPT_RISICO_LABELS, STAP_LABELS, TYPE_LABELS, VRAAGTYPES,
   filterScripts, kiesScript, laadIndex, laadMeta, laadScript, leesParams, regelLabel, scriptRegels, werkbankUrl
 } from './data.js';
 import { renderLine } from './highlight.js';
@@ -232,7 +232,7 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
   let state = await laadVoortgang(opslag, index, haalMeta, meld);
 
   const params = leesParams(win.location.search, { topics: index.topics.map((t) => t.id) });
-  const filters = { topic: params.topic, level: params.level, type: params.type };
+  const filters = { topic: params.topic, type: params.type };
   let huidig = kiesScript(index.scripts, params.script, filters);
   let geladen = null; // { entry, meta, code }
   let rijen = [];
@@ -249,9 +249,11 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
     const groep = el(doc, 'div', 'chips');
     groep.setAttribute('role', 'group');
     groep.setAttribute('aria-label', label);
-    for (const [waarde, tekst] of opties) {
+    for (const [waarde, tekst, onderwerp] of opties) {
       const knop = el(doc, 'button', 'chip filter', tekst);
       knop.type = 'button';
+      // Een onderwerpknop krijgt zijn onderwerp mee, zodat de opmaak er een eigen pastelkleur aan kan geven
+      if (onderwerp) knop.setAttribute('data-onderwerp', onderwerp);
       knop.setAttribute('aria-pressed', String(gekozen === waarde));
       knop.addEventListener('click', () => kies(waarde));
       groep.append(knop);
@@ -262,8 +264,7 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
   const renderFilters = () => {
     const onderwerpenMetScripts = index.topics.filter((t) => index.scripts.some((s) => s.topic === t.id));
     onderdeel('filters').replaceChildren(
-      filterGroep('Onderwerp', [[null, 'Alle onderwerpen'], ...onderwerpenMetScripts.map((t) => [t.id, t.name])], filters.topic, (w) => zetFilter('topic', w)),
-      filterGroep('Niveau', [[null, 'Alle niveaus'], ...NIVEAUS.map((n) => [n, NIVEAU_LABELS[n]])], filters.level, (w) => zetFilter('level', w)),
+      filterGroep('Onderwerp', [[null, 'Alle onderwerpen'], ...onderwerpenMetScripts.map((t) => [t.id, t.name, t.id])], filters.topic, (w) => zetFilter('topic', w)),
       filterGroep('Soort vraag', [[null, 'Alle vragen'], ...VRAAGTYPES.map((t) => [t, TYPE_LABELS[t]])], filters.type, (w) => zetFilter('type', w))
     );
   };
@@ -473,14 +474,9 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
     }
     const lijst = filterScripts(index.scripts, filters);
     schrijfUrl();
-    if (lijst.length === 0) {
-      // Het huidige script blijft staan (de keuzelijst toont dan alleen dit script), met een uitleg erbij.
-      const leeg = el(doc, 'p', 'empty', 'Geen scripts voor deze combinatie van filters. Het huidige script blijft zichtbaar.');
-      leeg.setAttribute('role', 'status');
-      melding.replaceChildren(leeg);
-      renderChips();
-      return;
-    }
+    // Een onderwerp zonder scripts is geen knop in het filter, dus een lege lijst kan hier niet voorkomen;
+    // de controle voorkomt alleen een fout als dat ooit toch gebeurt. Het huidige script blijft dan staan.
+    if (lijst.length === 0) { renderChips(); return; }
     melding.replaceChildren();
     if (!lijst.some((s) => s.id === huidig.id)) {
       huidig = lijst[0];

@@ -108,23 +108,25 @@ const scripts = [
 
 test('data: leesParams geeft alleen geldige waarden terug', () => {
   const topics = ['migraties', 'sharepoint'];
-  assert.deepEqual(leesParams('?script=entra-x&topic=sharepoint&level=basis&type=bug&q=Where', { topics }),
-    { script: 'entra-x', topic: 'sharepoint', level: 'basis', type: 'bug', q: 'Where' });
-  assert.deepEqual(leesParams('?script=../etc&topic=nep&level=hoog&type=x', { topics }),
-    { script: null, topic: null, level: null, type: null, q: '' });
+  assert.deepEqual(leesParams('?script=entra-x&topic=sharepoint&type=bug&q=Where', { topics }),
+    { script: 'entra-x', topic: 'sharepoint', type: 'bug', q: 'Where' });
+  assert.deepEqual(leesParams('?script=../etc&topic=nep&type=x', { topics }),
+    { script: null, topic: null, type: null, q: '' });
+  // Een oude &level= uit een bladwijzer wordt genegeerd: de werkbank heeft geen niveaufilter meer
+  assert.deepEqual(leesParams('?script=entra-x&level=basis', { topics }), { script: 'entra-x', topic: null, type: null, q: '' });
   assert.equal(leesParams('?q=' + 'x'.repeat(500)).q.length, 100);
   assert.equal(leesParams('').script, null);
 });
 
 test('data: werkbankUrl houdt ?script= vooraan en voegt filters optioneel toe', () => {
   assert.equal(werkbankUrl('entra-x'), '/oefenen/?script=entra-x');
-  assert.equal(werkbankUrl('entra-x', { topic: 'entra-id', level: 'basis', type: 'mc' }), '/oefenen/?script=entra-x&topic=entra-id&level=basis&type=mc');
+  assert.equal(werkbankUrl('entra-x', { topic: 'entra-id', type: 'mc' }), '/oefenen/?script=entra-x&topic=entra-id&type=mc');
+  assert.equal(werkbankUrl('entra-x', { topic: 'entra-id', level: 'basis' }), '/oefenen/?script=entra-x&topic=entra-id', 'level komt niet meer in de URL');
 });
 
 test('data: filters op scripts en vragen', () => {
   assert.deepEqual(filterScripts(scripts, { topic: 'sharepoint' }).map((s) => s.id), ['b-gevorderd', 'c-basis']);
-  assert.deepEqual(filterScripts(scripts, { level: 'basis' }).map((s) => s.id), ['a-basis', 'c-basis']);
-  assert.deepEqual(filterScripts(scripts, { topic: 'sharepoint', level: 'basis' }).map((s) => s.id), ['c-basis']);
+  assert.equal(filterScripts(scripts, { level: 'basis' }).length, 3, 'het niveau is geen filter meer');
   assert.equal(filterScripts(scripts, {}).length, 3);
   const vragen = [{ id: 'q1', type: 'mc' }, { id: 'q2', type: 'bug' }, { id: 'q3', type: 'open' }];
   assert.deepEqual(filterVragen(vragen, 'bug').map((v) => v.id), ['q2']);
@@ -441,7 +443,6 @@ test('data: kiesScript zonder ?script= gebruikt het standaardscript, binnen de f
   ];
   assert.equal(kiesScript(lijst, null).id, 'c-basis-gec');
   assert.equal(kiesScript(lijst, null, { topic: 'a' }).id, 'a-gev');
-  assert.equal(kiesScript(lijst, null, { level: 'basis' }).id, 'c-basis-gec');
   assert.equal(kiesScript(lijst, null, { topic: 'bestaat-niet' }).id, 'c-basis-gec', 'geen script binnen de filters: terug naar het standaardscript');
   assert.equal(kiesScript(lijst, 'a-gev').id, 'a-gev', 'een bestaand ?script= wint altijd');
 });

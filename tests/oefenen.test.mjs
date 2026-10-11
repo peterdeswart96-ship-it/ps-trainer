@@ -141,9 +141,15 @@ test('werkbank: zonder ?script= opent het eerste script van de index; filters, k
   const p = await start();
   assert.equal(p.api.huidigId(), 'a-basis');
   assert.equal(p.doc.title, 'Titel a-basis – PowerShell Leestrainer');
-  assert.deepEqual(vindAlle(p.els.filters, (k) => k.attributen.role === 'group').map((g) => g.attributen['aria-label']), ['Onderwerp', 'Niveau', 'Soort vraag']);
+  assert.deepEqual(vindAlle(p.els.filters, (k) => k.attributen.role === 'group').map((g) => g.attributen['aria-label']), ['Onderwerp', 'Soort vraag'], 'er is geen niveaufilter meer');
   // Onderwerpen zonder scripts (Leeg) staan niet in het filter
   assert.deepEqual(knoppen(p.els.filters).map((k) => k.textContent).slice(0, 3), ['Alle onderwerpen', 'Eerste', 'Tweede']);
+  assert.equal(knoppen(p.els.filters).some((k) => /niveau|Basis|Gevorderd|Expert/.test(k.textContent)), false, 'geen enkele niveauknop');
+  // Elke onderwerpknop draagt zijn onderwerp (voor de pastelkleur); "Alle onderwerpen" en soort vraag niet
+  const onderwerpGroep = vind(p.els.filters, (k) => k.attributen['aria-label'] === 'Onderwerp');
+  assert.deepEqual(knoppen(onderwerpGroep).map((k) => k.attributen['data-onderwerp'] ?? null), [null, 'eerste', 'tweede']);
+  const typeGroep = vind(p.els.filters, (k) => k.attributen['aria-label'] === 'Soort vraag');
+  assert.equal(knoppen(typeGroep).some((k) => 'data-onderwerp' in k.attributen), false);
   assert.equal(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').length, 3);
   assert.equal(vindAlle(p.els.codetabel, (k) => k.tag === 'tr').length, 4);
   assert.equal(vindAlle(p.els.vragen, (k) => k.tag === 'article').length, 3);
@@ -173,13 +179,15 @@ test('werkbank: een script dat nog te controleren is toont een waarschuwing en d
 });
 
 test('werkbank: filters uit de URL worden toegepast; een ?script= buiten de filters blijft zichtbaar', async () => {
+  // Een oude &level= in de URL wordt genegeerd en komt er niet meer in terug
   const p = await start({ zoek: '?script=b-gev&topic=eerste&level=basis&type=bug' });
   assert.equal(p.api.huidigId(), 'b-gev');
+  assert.equal(p.urls.every((u) => !u.includes('level')), true);
   const scripts = vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').map((k) => k.kinderen[0].textContent);
   assert.deepEqual(scripts, ['Titel b-gev', 'Titel a-basis'], 'het huidige script staat vooraan, daarna de scripts binnen de filters');
   assert.equal(zichtbareKaarten(p).length, 1, 'alleen de bug-vraag');
   const gedrukt = knoppen(p.els.filters).filter((k) => k.attributen['aria-pressed'] === 'true').map((k) => k.textContent);
-  assert.deepEqual(gedrukt, ['Eerste', 'Basis', 'Zoek de fout']);
+  assert.deepEqual(gedrukt, ['Eerste', 'Zoek de fout']);
 });
 
 // --- Antwoorden ---
@@ -446,7 +454,7 @@ test('werkbank: een filter zonder passende vragen toont een melding in plaats va
   assert.equal(melding.hidden, true);
 });
 
-test('werkbank: een onderwerp- of niveaufilter wisselt naar het eerste passende script als het huidige niet past', async () => {
+test('werkbank: een onderwerpfilter wisselt naar het eerste passende script als het huidige niet past', async () => {
   const p = await start();
   assert.equal(p.api.huidigId(), 'a-basis');
   klik(knopMetTekst(p.els.filters, 'Tweede'));
@@ -455,9 +463,10 @@ test('werkbank: een onderwerp- of niveaufilter wisselt naar het eerste passende 
   assert.equal(p.urls.at(-1), '/oefenen/?script=c-basis&topic=tweede');
   assert.deepEqual(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').map((k) => k.kinderen[0].textContent), ['Titel c-basis', 'Titel b-gev']);
 
-  klik(knopMetTekst(p.els.filters, 'Gevorderd'));
+  klik(knopMetTekst(p.els.filters, 'Alle onderwerpen'));
   await wacht();
-  assert.equal(p.api.huidigId(), 'b-gev');
+  assert.equal(p.api.huidigId(), 'c-basis', 'het huidige script past nog en blijft staan');
+  assert.equal(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').length, 3);
 });
 
 test('werkbank: blijft het huidige script passen, dan wordt het niet opnieuw geladen', async () => {
@@ -468,19 +477,6 @@ test('werkbank: blijft het huidige script passen, dan wordt het niet opnieuw gel
   await wacht();
   assert.equal(geladen, 1);
   assert.equal(p.api.huidigId(), 'a-basis');
-});
-
-test('werkbank: een combinatie van filters zonder scripts geeft een melding en laat het huidige script staan', async () => {
-  const p = await start();
-  klik(knopMetTekst(p.els.filters, 'Eerste'));
-  klik(knopMetTekst(p.els.filters, 'Gevorderd')); // Eerste heeft alleen een basisscript
-  await wacht();
-  assert.match(tekstVan(p.els.melding), /Geen scripts voor deze combinatie/);
-  assert.equal(p.api.huidigId(), 'a-basis');
-  assert.equal(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').length, 1);
-  klik(knopMetTekst(p.els.filters, 'Alle niveaus'));
-  await wacht();
-  assert.equal(p.els.melding.kinderen.length, 0);
 });
 
 // --- Fouten en volgorde ---
