@@ -90,7 +90,11 @@ export function bouwVraagKaart(vraag, ctx) {
     const top = el(doc, 'div', 'qtop');
     top.append(el(doc, 'h3', 'qnum', `Vraag ${nummer}`));
     const rij = el(doc, 'span', 'row');
-    rij.append(el(doc, 'span', `kind ${vraag.type === 'mc' ? '' : vraag.type}`.trim(), TYPE_LABELS[vraag.type]));
+    const soort = el(doc, 'span', `kind ${vraag.type === 'mc' ? '' : vraag.type}`.trim());
+    const pictogram = el(doc, 'span', `icoon ico-${vraag.type}`);
+    pictogram.setAttribute('aria-hidden', 'true');
+    soort.append(pictogram, TYPE_LABELS[vraag.type]);
+    rij.append(soort);
     rij.append(el(doc, 'span', 'stap-label', STAP_LABELS[vraag.step]));
     const label = regelLabel(vraag.lines);
     if (label) {

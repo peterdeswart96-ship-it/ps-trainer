@@ -39,7 +39,7 @@ export function bouwKaarten(index, state, doc = globalThis.document) {
     const scripts = index.scripts.filter((s) => s.topic === onderwerp.id);
     const live = onderwerp.status === 'live' && scripts.length > 0;
     const item = element(doc, 'li');
-    // Een klikbare kaart opent het eerste script van het onderwerp in de werkbank; een lege kaart is gewone tekst.
+    // Een klikbare kaart opent het standaardscript van het onderwerp (laagste niveau, dan een gecontroleerd script) in de werkbank; een lege kaart is gewone tekst.
     const kaart = element(doc, live ? 'a' : 'div', live ? 'kaart' : 'kaart in-opbouw');
     if (live) kaart.setAttribute('href', werkbankUrl(kiesScript(scripts, null).id, { topic: onderwerp.id }));
 
@@ -47,6 +47,13 @@ export function bouwKaarten(index, state, doc = globalThis.document) {
     const metId = (el, soort) => { el.id = `kaart-${onderwerp.id}-${soort}`; return el; };
     const naam = metId(element(doc, 'h3', 'kaartnaam', onderwerp.name), 'naam');
     const tekst = metId(element(doc, 'p', 'kaarttekst', onderwerp.summary), 'tekst');
+    // Het pictogram van het onderwerp (ico-<id> in app.css); alleen voor een veilig id, anders geen pictogram.
+    if (/^[a-z0-9-]+$/.test(onderwerp.id)) {
+      const pictogram = element(doc, 'span', `icoon ico-${onderwerp.id}`);
+      pictogram.setAttribute('aria-hidden', 'true');
+      kaart.append(pictogram);
+      kaart.setAttribute('data-onderwerp', onderwerp.id); // de kleur van het onderwerp (app.css)
+    }
     kaart.append(naam, tekst);
     const beschrijving = [tekst.id];
     if (live) {

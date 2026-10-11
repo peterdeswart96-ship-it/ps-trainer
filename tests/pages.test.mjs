@@ -309,7 +309,7 @@ test('start: HTML in de data wordt tekst en nooit een element', () => {
     scripts: [{ id: 's', topic: 't', level: 'basis', counts: { mc: 1, bug: 0, open: 0 }, check: { status: 'gecontroleerd' } }]
   };
   const knopen = alle(bouwKaarten(index, leegV2(), nepDocument()));
-  assert.deepEqual([...new Set(knopen.map((k) => k.tag))].sort(), ['a', 'h3', 'li', 'p', 'ul']);
+  assert.deepEqual([...new Set(knopen.map((k) => k.tag))].sort(), ['a', 'h3', 'li', 'p', 'span', 'ul']);
   assert.ok(knopen.some((k) => k.textContent === '<img src=x onerror=alert(1)>'));
 });
 
@@ -317,4 +317,138 @@ test('data: laadMeta gebruikt hetzelfde gevalideerde pad als laadScript', async 
   const haal = async (url) => ({ ok: true, json: async () => ({ url }) });
   assert.deepEqual(await laadMeta({ path: 'data/scripts/entra-id/x' }, haal), { url: '/data/scripts/entra-id/x/meta.json' });
   await assert.rejects(laadMeta({ path: '../x' }, haal), /Ongeldig scriptpad/);
+});
+
+// --- Logo en iconen ---
+
+const ICONENMAP = join(root, 'assets', 'img', 'icons');
+const cssTekst = () => readFileSync(join(root, 'assets', 'css', 'app.css'), 'utf8');
+
+test('iconen: elke ico-klasse in app.css wijst naar een bestaand SVG-bestand en elk bestand wordt gebruikt', () => {
+  const css = cssTekst();
+  const regels = [...css.matchAll(/\.ico-([a-z0-9-]+)\s*\{\s*--ico:\s*url\('(\/[^']+)'\)/g)];
+  assert.ok(regels.length >= 11);
+  for (const [, naam, pad] of regels) {
+    assert.equal(pad, `/assets/img/icons/${naam}.svg`, `ico-${naam} wijst naar een ander bestand`);
+    assert.ok(existsSync(join(root, pad.slice(1))), `${pad} bestaat niet`);
+  }
+  const gebruikt = new Set(regels.map(([, naam]) => `${naam}.svg`));
+  for (const bestand of readdirSync(ICONENMAP)) assert.ok(gebruikt.has(bestand), `${bestand} wordt nergens gebruikt`);
+});
+
+test('iconen: elk onderwerp en elke soort vraag heeft een pictogram', () => {
+  const css = cssTekst();
+  const onderwerpen = JSON.parse(readFileSync(join(root, 'data', 'topics.json'), 'utf8')).map((t) => t.id);
+  for (const naam of [...onderwerpen, 'mc', 'bug', 'open', 'home', 'terminal', 'boek']) {
+    assert.match(css, new RegExp(`\\.ico-${naam}\\s*\\{`), `.ico-${naam} ontbreekt in app.css (nieuw onderwerp zonder pictogram?)`);
+  }
+});
+
+test('iconen: de SVG-bestanden zijn kaal (geen scripts, handlers, externe verwijzingen of ingebedde afbeeldingen)', () => {
+  const bestanden = [...readdirSync(ICONENMAP).map((n) => join(ICONENMAP, n)), join(root, 'assets', 'img', 'logo.svg'), join(root, 'assets', 'img', 'favicon.svg')];
+  assert.ok(bestanden.length >= 13);
+  for (const bestand of bestanden) {
+    const svg = readFileSync(bestand, 'utf8');
+    assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" /, bestand);
+    assert.ok(svg.trim().endsWith('</svg>'), bestand);
+    assert.doesNotMatch(svg, /<script|<foreignObject|<image|<use\b|\son[a-z]+=|href=|xlink|javascript:|<style|data:/i, bestand);
+    // De enige URL is de naamruimte
+    assert.deepEqual([...svg.matchAll(/https?:\/\/[^"'\s)]+/g)].map((m) => m[0]), ['http://www.w3.org/2000/svg'], bestand);
+  }
+});
+
+test('iconen: logo en favicon zijn gelijk, en elke pagina verwijst ernaar met een leeg alt-attribuut op het logo', () => {
+  assert.equal(readFileSync(join(root, 'assets', 'img', 'logo.svg'), 'utf8'), readFileSync(join(root, 'assets', 'img', 'favicon.svg'), 'utf8'));
+  for (const pad of paginas) {
+    const html = readFileSync(bestandVan(pad), 'utf8');
+    assert.match(html, /<link rel="icon" href="\/assets\/img\/favicon\.svg" type="image\/svg\+xml">/, `${pad}: favicon`);
+    assert.match(html, /<img class="logo" src="\/assets\/img\/logo\.svg" alt="" width="\d+" height="\d+">/, `${pad}: logo`);
+    const navIconen = [...html.matchAll(/<span class="icoon ico-[a-z0-9-]+" aria-hidden="true"><\/span>/g)];
+    assert.equal(navIconen.length, 3, `${pad}: een pictogram per navigatielink, verborgen voor schermlezers`);
+  }
+});
+
+test('start: elke kaart heeft een verborgen pictogram voor zijn onderwerp, behalve bij een onveilig id', () => {
+  const kaarten = kaartenVan(bouwKaarten(testIndex(), leegV2(), nepDocument()));
+  for (const kaart of kaarten) {
+    const pictogram = kaart.kinderen[0];
+    assert.equal(pictogram.tag, 'span');
+    assert.match(pictogram.className, /^icoon ico-[a-z0-9-]+$/);
+    assert.equal(pictogram.attributen['aria-hidden'], 'true');
+  }
+  assert.equal(kaarten[0].kinderen[0].className, 'icoon ico-eerste');
+  const gevaarlijk = { topics: [{ id: 'x" onclick="y', name: 'N', summary: 'S', order: 1, status: 'in-opbouw' }], scripts: [] };
+  const [kaart] = kaartenVan(bouwKaarten(gevaarlijk, leegV2(), nepDocument()));
+  assert.ok(!kaart.kinderen.some((k) => String(k.className).startsWith('icoon')), 'geen pictogram bij een onveilig id');
+});
+
+// --- Onderwerpkleuren op de tegels ---
+
+const hexNaarRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const lichtheid = (rgb) => {
+  const [r, g, b] = rgb.map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a, b) => { const [x, y] = [lichtheid(a), lichtheid(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const menging = (voor, achter, alpha) => voor.map((v, i) => Math.round(v * alpha + achter[i] * (1 - alpha)));
+
+// De waarde van een CSS-variabele binnen het eerste blok dat met het gegeven begin start
+function themaKleuren(css, begin) {
+  const van = css.indexOf(begin);
+  const blok = css.slice(van, css.indexOf('}', van));
+  const kleur = (naam) => hexNaarRgb(new RegExp(`${naam}:\\s*(#[0-9a-f]{6})`).exec(blok)[1]);
+  return { bg: kleur('--bg'), ink: kleur('--ink'), muted: kleur('--muted'), accent: kleur('--accent') };
+}
+
+test('kleuren: elk onderwerp heeft een felle en een pastelkleur voor licht en donker, en de donkere waarden zijn dubbel gedefinieerd gelijk', () => {
+  const css = cssTekst();
+  const onderwerpen = JSON.parse(readFileSync(join(root, 'data', 'topics.json'), 'utf8')).map((t) => t.id);
+  const lees = (voorvoegsel) => [...css.matchAll(new RegExp(`--${voorvoegsel}-([a-z0-9-]+):\\s*(#[0-9a-f]{6})`, 'g'))].map((m) => [m[1], m[2]]);
+  for (const voorvoegsel of ['t', 'p']) {
+    const alles = lees(voorvoegsel);
+    assert.equal(alles.length, onderwerpen.length * 3, `--${voorvoegsel}-: licht, donker (media) en donker (handmatig)`);
+    const per = onderwerpen.length;
+    assert.deepEqual(alles.slice(0, per).map(([n]) => n).sort(), [...onderwerpen].sort());
+    assert.deepEqual(alles.slice(per, per * 2), alles.slice(per * 2), 'het donkere thema via de media-query en via data-theme moeten gelijk zijn');
+  }
+  for (const onderwerp of onderwerpen) assert.match(css, new RegExp(`\\.kaart\\[data-onderwerp="${onderwerp}"\\]\\s*\\{`), `kleurregel voor ${onderwerp} ontbreekt`);
+});
+
+test('kleuren: tekst op de tegel (40% pastel over de achtergrond) haalt 4,5:1 en icoon en rand 3:1, in licht en donker', () => {
+  const css = cssTekst();
+  const palet = (volgorde) => {
+    const t = [...css.matchAll(/--t-([a-z0-9-]+):\s*(#[0-9a-f]{6})/g)].map((m) => [m[1], m[2]]);
+    const p = [...css.matchAll(/--p-([a-z0-9-]+):\s*(#[0-9a-f]{6})/g)].map((m) => [m[1], m[2]]);
+    const per = t.length / 3;
+    return t.slice(per * volgorde, per * (volgorde + 1)).map(([naam, tint], i) => ({ naam, tint, pastel: p[per * volgorde + i][1] }));
+  };
+  const thema = { licht: { kleuren: themaKleuren(css, ':root {'), palet: palet(0) }, donker: { kleuren: themaKleuren(css, ':root[data-theme="dark"] {'), palet: palet(2) } };
+  for (const [naam, { kleuren, palet: lijst }] of Object.entries(thema)) {
+    assert.equal(lijst.length, 5);
+    for (const { naam: onderwerp, tint, pastel } of lijst) {
+      const tegel = menging(hexNaarRgb(pastel), kleuren.bg, 0.4);
+      const wie = `${naam} ${onderwerp}`;
+      assert.ok(contrast(kleuren.ink, tegel) >= 4.5, `${wie}: gewone tekst`);
+      assert.ok(contrast(kleuren.muted, tegel) >= 4.5, `${wie}: grijze tekst`);
+      assert.ok(contrast(kleuren.accent, tegel) >= 4.5, `${wie}: voortgangstekst`);
+      assert.ok(contrast(hexNaarRgb(tint), tegel) >= 3, `${wie}: icoon op de tegel`);
+      assert.ok(contrast(hexNaarRgb(tint), kleuren.bg) >= 3, `${wie}: rand op de pagina`);
+    }
+  }
+});
+
+test('kleuren: de tegel krijgt het onderwerp als data-attribuut (alleen bij een veilig id)', () => {
+  const kaarten = kaartenVan(bouwKaarten(testIndex(), leegV2(), nepDocument()));
+  assert.deepEqual(kaarten.map((k) => k.attributen['data-onderwerp']), ['eerste', 'leeg', 'tweede']);
+  const gevaarlijk = { topics: [{ id: 'x" onclick="y', name: 'N', summary: 'S', order: 1, status: 'in-opbouw' }], scripts: [] };
+  assert.equal(kaartenVan(bouwKaarten(gevaarlijk, leegV2(), nepDocument()))[0].attributen['data-onderwerp'], undefined);
+});
+
+test('iconen: alleen een ico-klasse met een eigen regel krijgt een kleur (een onbekende ico-klasse toont niets)', () => {
+  const css = cssTekst();
+  const algemeen = /\.icoon\[class\*="ico-"\]\s*\{([^}]*)\}/.exec(css)[1];
+  assert.doesNotMatch(algemeen, /background-color/, 'de algemene regel mag geen kleur zetten, anders wordt een onbekend icoon een effen vierkant');
+  const eigenRegels = [...css.matchAll(/\.ico-[a-z0-9-]+\s*\{([^}]*)\}/g)].map((m) => m[1]).filter((r) => r.includes('--ico'));
+  assert.ok(eigenRegels.length >= 11);
+  for (const regel of eigenRegels) assert.match(regel, /background-color:\s*currentColor/);
 });

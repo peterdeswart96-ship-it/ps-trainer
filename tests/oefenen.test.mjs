@@ -559,3 +559,12 @@ test('app.css bevat de klassen die de werkbank gebruikt', () => {
     assert.match(css, new RegExp(`\\.${klasse}\\b`), `.${klasse} ontbreekt in app.css`);
   }
 });
+
+test('werkbank: de soort-vraag-badge heeft een verborgen pictogram bij elk vraagtype', async () => {
+  const p = await start();
+  const badges = vindAlle(p.els.vragen, (k) => typeof k.className === 'string' && k.className.startsWith('kind'));
+  assert.equal(badges.length, 3);
+  assert.deepEqual(badges.map((b) => b.kinderen[0].className), ['icoon ico-mc', 'icoon ico-bug', 'icoon ico-open']);
+  for (const b of badges) assert.equal(b.kinderen[0].attributen['aria-hidden'], 'true');
+  assert.deepEqual(badges.map((b) => b.kinderen[1].textContent), ['Meerkeuze', 'Zoek de fout', 'Zelf formuleren']);
+});

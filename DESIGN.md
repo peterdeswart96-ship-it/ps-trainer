@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.8 (11 oktober 2026), definitief. Wijziging t.o.v. 1.7: de werkbank (paragraaf 5) is uitgewerkt: gedrag van de filters, de score met "opnieuw", antwoorden met tekst naast kleur, en de volgorde "eerst v1 overnemen, dan pas voortgang bewaren". Geen open vragen.
+Status: versie 1.9 (11 oktober 2026), definitief. Wijziging t.o.v. 1.8: logo, favicon en iconen (eigen SVG's in `assets/img`, als masker getekend zodat ze de themakleur volgen), onderwerpkleuren op de tegels van de startpagina (pastel met 40% dekking, felle rand en icoon in dezelfde kleur, contrast gecontroleerd) en een nieuw standaardscript voor `/oefenen/` zonder `?script=` (laagste niveau eerst, dan een gecontroleerd script). Geen open vragen.
 
 ## 1. Besluiten
 
@@ -178,9 +178,9 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 | Flashcards | `https://ps-trainer.pdscloud.nl/flashcards/?topic=<id>` |
 | Woordenboek | `https://ps-trainer.pdscloud.nl/woordenboek/?q=<term>` |
 
-**Filters op de werkbank (optioneel, wijzigen de vaste URL niet):** `/oefenen/?script=<id>` blijft ongewijzigd; daarachter mogen `&topic=<onderwerp>`, `&level=<niveau>` en `&type=<mc|bug|open>`. Onderwerp en niveau bepalen welke scripts als chips bovenin staan; "soort vraag" bepaalt welke vragen binnen het script zichtbaar zijn. Ongeldige waarden worden genegeerd. Zonder `?script=` (of met een onbekend id) opent het eerste script volgens de volgorde in de index (onderwerp, niveau, id), eerst binnen de filters. Onderwerpen zonder scripts (status "in-opbouw") staan als niet-klikbare kaart met "nog in opbouw" op de startpagina.
+**Filters op de werkbank (optioneel, wijzigen de vaste URL niet):** `/oefenen/?script=<id>` blijft ongewijzigd; daarachter mogen `&topic=<onderwerp>`, `&level=<niveau>` en `&type=<mc|bug|open>`. Onderwerp en niveau bepalen welke scripts als chips bovenin staan; "soort vraag" bepaalt welke vragen binnen het script zichtbaar zijn. Ongeldige waarden worden genegeerd. Zonder `?script=` (of met een onbekend id) opent het standaardscript (laagste niveau, bij gelijk niveau eerst een gecontroleerd script, daarna de indexvolgorde), eerst binnen de filters. Onderwerpen zonder scripts (status "in-opbouw") staan als niet-klikbare kaart met "nog in opbouw" op de startpagina.
 
-**Uiterlijk en toegankelijkheid:** het huidige ontwerp blijft (kleurvariabelen, licht en donker via `prefers-color-scheme` plus een handmatige keuze, IBM Plex en Source Sans). Elke vraagkaart is met het toetsenbord te bedienen, kleur is nooit het enige signaal (goed/fout krijgt ook tekst), en animaties respecteren `prefers-reduced-motion`.
+**Uiterlijk en toegankelijkheid:** het huidige ontwerp blijft (kleurvariabelen, licht en donker via `prefers-color-scheme` plus een handmatige keuze, IBM Plex en Source Sans). Elke vraagkaart is met het toetsenbord te bedienen, kleur is nooit het enige signaal (goed/fout krijgt ook tekst), en animaties respecteren `prefers-reduced-motion`. **Logo en iconen:** het logo en de favicon zijn een eigen `>_`-prompt (`assets/img/logo.svg`); het officiële PowerShell-logo is een handelsmerk van Microsoft en wordt niet gebruikt. De navigatie-, onderwerp- en vraagsoort-iconen zijn eigen SVG's in `assets/img/icons` en worden met CSS (`mask-image`) in de tekstkleur getekend; ze zijn decoratief (`aria-hidden`). **Onderwerpkleuren:** elk onderwerp heeft een felle kleur (icoon en rand) en een pastelkleur (de tegel, 40% dekking) voor licht en donker; onbekende onderwerpen vallen terug op de accentkleur. Een nieuw onderwerp krijgt dus een icoon (`ico-<id>`) en kleuren (`--t-<id>`, `--p-<id>`) in `app.css`; een test bewaakt dat. **Standaardscript:** `/oefenen/` zonder `?script=` opent het script met het laagste niveau, en bij gelijk niveau eerst een gecontroleerd script (daarna de indexvolgorde).
 
 ## 6. Controle van de inhoud (GitHub Actions)
 
