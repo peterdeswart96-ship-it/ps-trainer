@@ -5,11 +5,14 @@
 // verwijst (src="/..." en <link href="/...">): die moeten HTTP 200 geven. Links naar andere pagina's
 // (<a href>) controleren we niet; die staan zelf in PAGINAS.
 //
-// De test werkt op een tijdelijke kopie van de repo (zonder .git en node_modules), zodat
+// Zonder argument werkt de test op een tijdelijke kopie van de repo (zonder .git, node_modules en _site), zodat
 // data/index.json in de echte repo niet verandert. De server draait op een vrije poort.
-import { cpSync, mkdtempSync, rmSync } from 'node:fs';
+//
+// Met een map als argument (node tools/smoke.mjs _site) wordt precies die map getest, zoals die gepubliceerd
+// wordt: de workflow deploy.yml bouwt eerst het pakket (tools/build-site.mjs) en toetst dan het pakket zelf.
+import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bouwIndex, schrijfIndex } from './build-index.mjs';
 import { OFFICIELE_ICONEN } from '../assets/js/start.js';
@@ -18,22 +21,27 @@ import { startServer } from './server.mjs';
 const PAGINAS = ['/', '/oefenen/', '/woordenboek/'];
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const tmp = mkdtempSync(join(tmpdir(), 'ps-trainer-smoke-'));
+const siteMap = process.argv[2] ? resolve(process.argv[2]) : null;
+const tmp = siteMap ? null : mkdtempSync(join(tmpdir(), 'ps-trainer-smoke-'));
 let server;
 let fouten = 0;
 const mislukt = (bericht) => { console.error(`FOUT  ${bericht}`); fouten++; };
 
 try {
-  cpSync(root, tmp, { recursive: true, filter: (bron) => !['.git', 'node_modules'].includes(basename(bron)) });
+  if (siteMap) {
+    if (!existsSync(join(siteMap, 'index.html'))) throw new Error(`${siteMap} is geen gebouwde site (index.html ontbreekt)`);
+  } else {
+    cpSync(root, tmp, { recursive: true, filter: (bron) => !['.git', 'node_modules', '_site'].includes(basename(bron)) });
 
-  const gebouwd = bouwIndex({ scriptsMap: join(tmp, 'data', 'scripts'), topicsBestand: join(tmp, 'data', 'topics.json') });
-  if (gebouwd.fouten.length > 0) {
-    for (const regel of gebouwd.fouten) console.error(regel);
-    throw new Error('index bouwen mislukt');
+    const gebouwd = bouwIndex({ scriptsMap: join(tmp, 'data', 'scripts'), topicsBestand: join(tmp, 'data', 'topics.json') });
+    if (gebouwd.fouten.length > 0) {
+      for (const regel of gebouwd.fouten) console.error(regel);
+      throw new Error('index bouwen mislukt');
+    }
+    schrijfIndex(gebouwd.index, join(tmp, 'data', 'index.json'));
   }
-  schrijfIndex(gebouwd.index, join(tmp, 'data', 'index.json'));
 
-  server = await startServer({ root: tmp, port: 0 });
+  server = await startServer({ root: siteMap ?? tmp, port: 0 });
   const basis = `http://127.0.0.1:${server.address().port}`;
 
   for (const pad of [...PAGINAS, '/data/index.json']) {
@@ -92,7 +100,7 @@ try {
     server.closeAllConnections();
     await new Promise((klaar) => server.close(klaar));
   }
-  rmSync(tmp, { recursive: true, force: true });
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
 }
 
 console.log(fouten === 0 ? 'Rooktest geslaagd' : `Rooktest mislukt: ${fouten} fouten`);
