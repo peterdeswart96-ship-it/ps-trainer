@@ -97,13 +97,20 @@ export function laadIndex(haal) {
 // Een scriptpad uit de index heeft altijd de vorm data/scripts/<onderwerp>/<id>; al het andere weigeren we.
 const SCRIPTPAD = /^data\/scripts\/[a-z0-9-]+\/[a-z0-9-]+$/;
 
+function controleerPad(entry) {
+  if (typeof entry?.path !== 'string' || !SCRIPTPAD.test(entry.path)) throw new Error('Ongeldig scriptpad in de index');
+  return entry.path;
+}
+
+// Alleen het meta.json (met de vragen) van een script uit de index
+export async function laadMeta(entry, haal) {
+  return haalJson(`/${controleerPad(entry)}/meta.json`, haal);
+}
+
 // meta.json (met vragen) en script.ps1 van een script uit de index
 export async function laadScript(entry, haal) {
-  if (typeof entry?.path !== 'string' || !SCRIPTPAD.test(entry.path)) throw new Error('Ongeldig scriptpad in de index');
-  const [meta, code] = await Promise.all([
-    haalJson(`/${entry.path}/meta.json`, haal),
-    haalTekst(`/${entry.path}/script.ps1`, haal)
-  ]);
+  const pad = controleerPad(entry);
+  const [meta, code] = await Promise.all([haalJson(`/${pad}/meta.json`, haal), haalTekst(`/${pad}/script.ps1`, haal)]);
   return { meta, code };
 }
 

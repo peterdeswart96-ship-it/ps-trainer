@@ -55,6 +55,15 @@ export function migreerV1(v1, v2, legacyMap, vragen) {
   return { state, overgenomen, overgeslagen };
 }
 
+// localStorage kan al bij het opvragen een fout geven (geblokkeerde opslag); dan werken we zonder (null).
+export function standaardOpslag() {
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // --- Opslag (localStorage of een vervanger met getItem en setItem) ---
 // Alle toegang zit in try/catch: zonder opslag werkt de site gewoon, alleen zonder voortgang.
 
@@ -171,4 +180,17 @@ export async function neemV1OverIndien(storage, index, laadMeta) {
   }
   const resultaat = migreerV1(leesV1(storage), null, legacyMap, vragen);
   return bewaarState(storage, resultaat.state) ? resultaat : null;
+}
+
+// Gedeeld door de startpagina en de werkbank: eerst de v1-overname afhandelen (alleen bij het eerste
+// bezoek), pas daarna de voortgang lezen. Een pagina die voortgang bewaart moet dit eerst afwachten;
+// anders bestaat ps-trainer-v2 al en wordt v1 nooit meer overgenomen. Een fout bij de overname
+// (bijvoorbeeld een mislukte fetch) blokkeert de pagina niet; meld(fout) mag hem loggen.
+export async function laadVoortgang(opslag, index, laadMetaFn, meld = () => {}) {
+  try {
+    await neemV1OverIndien(opslag, index, laadMetaFn);
+  } catch (fout) {
+    meld(fout);
+  }
+  return leesState(opslag);
 }

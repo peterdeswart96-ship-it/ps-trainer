@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.6 (11 oktober 2026), definitief. Wijziging t.o.v. 1.5: de werkbank (`/oefenen/`) krijgt optionele filterparameters `topic`, `level` en `type` naast het vaste `?script=` (paragraaf 5), met vastgelegde regels voor welk script opent en wat de filters doen; de lege onderwerpen (Foundry, Purview) zijn "nog in opbouw" en niet klikbaar; de gedeelde webmodules bouwen alles met DOM-elementen en `textContent`. Geen open vragen.
+Status: versie 1.7 (11 oktober 2026), definitief. Wijziging t.o.v. 1.6: de onderwerpkaart op de startpagina is uitgewerkt (paragraaf 5): een kaart opent het eerste script van het onderwerp in de werkbank (met `&topic=`) en toont het aantal scripts per niveau, hoeveel scripts nog te controleren zijn en de voortgang; lege onderwerpen zijn een niet-klikbare kaart. Geen open vragen.
 
 ## 1. Besluiten
 
@@ -161,7 +161,7 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 
 | Pagina | Release | Inhoud |
 | --- | --- | --- |
-| **Startpagina** `/` | 2.0 | Leesmethode (5 stappen), kaarten per onderwerp met aantal scripts, voortgang en status ("nog in opbouw" waar nodig). |
+| **Startpagina** `/` | 2.0 | Leesmethode (5 stappen), kaarten per onderwerp met aantal scripts, voortgang en status ("nog in opbouw" waar nodig). Een kaart opent het eerste script van het onderwerp in de werkbank (`/oefenen/?script=<id>&topic=<onderwerp>`) en toont het aantal scripts per niveau, hoeveel er nog te controleren zijn en de voortgang (beantwoord en goed bij eerste poging; open vragen tellen niet mee). |
 | **Oefenen** `/oefenen/?script=<id>` | 2.0 | De werkbank uit v1: script met regelnummers links, vragen rechts die regels oplichten. Bovenaan filters voor onderwerp, niveau en soort vraag. Waarschuwingsbalk bij `nog_te_controleren`. Op een telefoon staat de code boven de vragen. |
 | **Woordenboek** `/woordenboek/?q=` | 2.0 | Zoeken en groepen, zoals nu; leest/wijzigt-labels blijven. |
 | **Flashcards** `/flashcards/?topic=` | 2.1 | Term op de voorkant, uitleg en voorbeeld op de achterkant. "Weet ik" en "nog niet" per kaart. |
