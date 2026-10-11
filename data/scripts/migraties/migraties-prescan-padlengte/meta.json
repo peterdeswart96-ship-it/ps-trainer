@@ -1,0 +1,132 @@
+{
+  "id": "migraties-prescan-padlengte",
+  "title": "Pre-scan: te lange paden",
+  "topic": "migraties",
+  "level": "basis",
+  "tag": "Get-ChildItem · alleen lezen",
+  "summary": "Zoekt op een fileshare naar bestanden waarvan het pad in SharePoint Online te lang wordt, en schrijft ze naar een CSV.",
+  "risk": "read",
+  "modules": [],
+  "note": "Het script telt het volledige adres inclusief domeinnaam mee en is daarmee strenger dan nodig. Controleer in de Microsoft-documentatie (\"Restrictions and limitations in OneDrive and SharePoint\") of de limiet van 400 tekens het gedecodeerde pad met of zonder domeinnaam telt.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        4
+      ],
+      "prompt": "Wat betekent [int]$MaxLengte = 400 in het param-blok?",
+      "options": [
+        "De waarde moet altijd 400 zijn",
+        "Het is een geheel getal met 400 als standaard; je kunt het overschrijven met -MaxLengte 300",
+        "Het script stopt na 400 bestanden",
+        "Het is het aantal tekens van de bestandsnaam"
+      ],
+      "answer": 1,
+      "explanation": "Het deel na het `=` is de standaardwaarde. Roep je het script aan zonder `-MaxLengte`, dan geldt 400. Met `[int]` weigert PowerShell een waarde die geen getal is."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        7
+      ],
+      "prompt": "Wat geeft Get-ChildItem -Path $Share -Recurse -File terug?",
+      "options": [
+        "Alleen de bestanden direct in de hoofdmap van de share",
+        "Alle mappen en bestanden, inclusief de inhoud van de bestanden",
+        "Alleen de namen van de bestanden als tekst",
+        "Alle bestanden in de share en alle onderliggende mappen, zonder de mappen zelf"
+      ],
+      "answer": 3,
+      "explanation": "`-Recurse` gaat door alle submappen, `-File` laat de mappen zelf weg. Je krijgt per bestand een object met onder meer `FullName`, `Name` en `Length`. De inhoud van de bestanden wordt niet gelezen."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        10,
+        11
+      ],
+      "prompt": "Waarom berekent het script $doelPad en kijkt het niet gewoon naar de lengte van het pad op de share?",
+      "options": [
+        "Omdat in SharePoint Online het adres van de site en de bibliotheek ervoor komt, dus het pad wordt daar langer dan op de share",
+        "Omdat SharePoint Online geen backslashes kent en de lengte daardoor verandert",
+        "Omdat de share altijd een langer pad heeft dan SharePoint",
+        "Omdat Get-ChildItem alleen de bestandsnaam teruggeeft en niet het hele pad"
+      ],
+      "answer": 0,
+      "explanation": "De limiet geldt voor het pad in SharePoint, en dat begint met het adres van de site en de bibliotheek. Een bestand dat op de share nog netjes past, kan na de migratie dus te lang zijn. De regel `.Replace('\\', '/')` zet de backslashes om in de slashes van een webadres."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        10,
+        11
+      ],
+      "prompt": "Je roept het script aan met -Share '\\\\fs01\\afdeling\\' (met een backslash aan het eind). Wat gaat er mis op regel 10?",
+      "options": [
+        "Niets, Substring verwijdert de backslash vanzelf",
+        "Het gedeelte na de share begint dan niet met een slash, dus $doelPad plakt de mapnaam direct aan de bibliotheeknaam en is een teken te kort",
+        "Het script geeft een foutmelding omdat de share niet bestaat",
+        "Alle bestanden worden als te lang gemeld"
+      ],
+      "answer": 1,
+      "explanation": "`Substring($Share.Length)` knipt precies zoveel tekens weg als de share lang is. Staat er al een backslash aan het eind, dan wordt die ook weggeknipt en begint `$relatief` zonder slash. Het adres klopt dan niet meer en is een teken korter: bestanden net boven de limiet worden gemist. Een oplossing is `$Share.TrimEnd('\\')` voordat je rekent."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        20
+      ],
+      "prompt": "Welk deel van dit script schrijft iets weg, en waar?",
+      "options": [
+        "Get-ChildItem op regel 7 schrijft in de share",
+        "De foreach op regel 9 verplaatst de bestanden",
+        "Export-Csv op regel 20 schrijft een CSV-bestand in de map waar je het script draait",
+        "Write-Host op regel 21 schrijft in SharePoint"
+      ],
+      "answer": 2,
+      "explanation": "Alleen `Export-Csv` schrijft, en alleen een lokaal bestand `te-lange-paden.csv`. Het script wijzigt niets op de share of in SharePoint; het leest wel de hele share, dus draai het buiten piektijden. Let op: een bestaande CSV met dezelfde naam wordt overschreven."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        20
+      ],
+      "prompt": "Wat staat er in te-lange-paden.csv?",
+      "options": [
+        "Alle bestanden van de share, op alfabet",
+        "Alleen de namen van de mappen die te lang zijn",
+        "Alleen de bestanden waarvan het berekende pad boven de limiet komt, met het pad op de share en de berekende lengte, de langste bovenaan",
+        "De bestanden die al in SharePoint staan"
+      ],
+      "answer": 2,
+      "explanation": "Alleen bestanden die door de `if` komen, worden als object (`[pscustomobject]`) in `$teLang` verzameld. `Sort-Object Lengte -Descending` zet de langste bovenaan. Kolom `Pad` is het pad op de share, zodat je weet wat je moet inkorten; `Lengte` is de lengte van het berekende pad in SharePoint."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Wat zou je aanpassen om deze pre-scan betrouwbaarder te maken voordat je op de uitslag vertrouwt?",
+      "explanation": "Bijvoorbeeld: (1) `-ErrorAction SilentlyContinue` op regel 7 verbergt ook mappen waar je geen toegang toe hebt en, in Windows PowerShell 5.1, paden langer dan 260 tekens. Dat zijn juist de bestanden die je zoekt. Gebruik `-ErrorVariable` en schrijf de fouten weg, zodat je ziet wat de scan gemist heeft. (2) Controleer ook de mapnamen en niet alleen de bestanden. (3) Haal de share en de bibliotheeknaam uit het migratieplan, in plaats van ze zelf in te vullen. (4) Draai het script met een lagere `-MaxLengte` om een marge te houden."
+    }
+  ]
+}
