@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.1 (11 oktober 2026), definitief. Wijziging t.o.v. 1.0: correctie in paragraaf 7.1 en 3: npm controleert `engines` alleen bij installeren, niet bij `npm run`; daarom is er een eigen controlescript `tools/check-node.mjs`. Geen open vragen.
+Status: versie 1.2 (11 oktober 2026), definitief. Wijziging t.o.v. 1.1: de status van een onderwerp (`live` of `in-opbouw`) staat niet meer in `data/topics.json` maar wordt door `tools/build-index.mjs` berekend uit het aantal scripts; verder is `tools/server.mjs` aan de repo-indeling toegevoegd. Geen open vragen.
 
 ## 1. Besluiten
 
@@ -59,7 +59,7 @@ ps-trainer/
 │  ├─ css/app.css                 Thema's (licht/donker), layout
 │  └─ js/                         data.js, progress.js, highlight.js, markdown-lite.js, per pagina een eigen module
 ├─ data/
-│  ├─ topics.json                 De 5 onderwerpen (naam, omschrijving, volgorde, status)
+│  ├─ topics.json                 De 5 onderwerpen (id, naam, omschrijving, volgorde; geen status, die wordt berekend)
 │  ├─ dictionary.json             Woordenboek (ook voor de flashcards)
 │  └─ scripts/
 │     └─ <onderwerp>/<script-id>/
@@ -73,7 +73,8 @@ ps-trainer/
 │  ├─ validate.mjs                Controleert alle meta.json tegen het schema en regelnummers tegen de .ps1
 │  ├─ Test-Syntax.ps1             PowerShell-syntaxcheck van alle .ps1-bestanden
 │  ├─ check-node.mjs              Stopt direct als de Node-hoofdversie niet gelijk is aan .nvmrc
-│  ├─ dev-server.mjs              Kleine lokale webserver zonder extra pakketten (bouwt eerst de index)
+│  ├─ server.mjs                  Statische webserver (node:http, alleen 127.0.0.1), gebruikt door dev-server, smoke en tests
+│  ├─ dev-server.mjs              Lokale ontwikkelserver: bouwt eerst de index en start dan server.mjs
 │  └─ smoke.mjs                   Rooktest: alle pagina's geven HTTP 200 en index.json is geldig
 ├─ .nvmrc                         De vaste Node-versie (zie 7.1)
 ├─ .npmrc                         engine-strict=true (npm weigert installeren bij een verkeerde Node-versie)
@@ -131,9 +132,9 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 
 ### 4.2 Overige bestanden
 
-- **`topics.json`:** per onderwerp `id`, `name`, `summary`, `order`, `status` (`live` of `in-opbouw`). Een onderwerp zonder scripts toont "nog in opbouw" in plaats van een lege lijst.
+- **`topics.json`:** per onderwerp `id`, `name`, `summary` en `order`. De status (`live` of `in-opbouw`) staat hier niet, maar wordt door `build-index.mjs` berekend: `live` bij minstens één script, anders `in-opbouw`. Een onderwerp zonder scripts toont "nog in opbouw" in plaats van een lege lijst.
 - **`dictionary.json`:** groepen met items (`term`, `explanation`, `example`, `risk`, optioneel `topics`). Dezelfde data voedt het woordenboek en de flashcards.
-- **`index.json`** (gebouwd in CI, niet in git): per script de velden uit `meta.json` behalve de vragen, plus het aantal vragen per type. De startpagina en filters gebruiken alleen dit bestand.
+- **`index.json`** (gebouwd in CI, niet in git): per script de velden uit `meta.json` behalve de vragen, plus het aantal vragen per type (`counts`) en het pad naar de scriptmap. Per onderwerp komen `scriptCount` en de berekende `status` erbij. De startpagina en filters gebruiken alleen dit bestand.
 
 ### 4.3 Voortgang in de browser (2.0 en 2.1)
 

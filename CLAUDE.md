@@ -48,13 +48,15 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 - Tekst uit JSON altijd escapen voor weergave. Geen `innerHTML` met ongecontroleerde data.
 - Scripts worden nooit uitgevoerd in de app.
 - Vaste URL's (`/oefenen/?script=`, `/examen/`, `/flashcards/`, `/woordenboek/`) mogen niet veranderen zonder de agentinstructies aan te passen.
+- Elke nieuwe pagina wordt toegevoegd aan `PAGINAS` in `tools/smoke.mjs`, anders test de rooktest haar niet.
 
 ## Voortgang Develop (release 2.0) – houd dit bij
 - [x] Repo `peterdeswart96-ship-it/ps-trainer` met `main` en `develop`
 - [x] Feature-branch `feature/repo-en-validatie` aangemaakt
 - [x] `.gitattributes`, `.gitignore`, `.npmrc`, `.nvmrc`, `package.json`, `tools/check-node.mjs`
 - [x] Stap 3: `schema/script.schema.json`, `tools/validate.mjs`, testfixtures en tests
-- [ ] Stap 4: `tools/Test-Syntax.ps1`, `tools/build-index.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs`
+- [x] Stap 4a: `tools/Test-Syntax.ps1` en uitgebreide validatietests
+- [x] Stap 4b: `data/topics.json`, `tools/build-index.mjs`, `tools/server.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs` en `tests/tools.test.mjs`
 - [ ] Stap 5: workflow `validate.yml`
 - [ ] `feature/omzetten-v1`: 4 scripts, 26 vragen en woordenboek uit v1 omzetten
 - [ ] `feature/startpagina-en-werkbank`
