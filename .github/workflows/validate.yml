@@ -26,18 +26,20 @@ concurrency:
 
 jobs:
   validatie:
-    runs-on: ubuntu-latest
+    # Vastgezet, want ubuntu-latest migreert vanaf 19 oktober 2026 naar Ubuntu 26.
+    # Bewust overstappen doen we later door eerst ubuntu-26.04 te testen.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10   # een vastgelopen run stopt vanzelf na 10 minuten
     steps:
       # 1. Haalt de code van deze branch op de runner.
       - name: Code ophalen
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # 2. Installeert Node in de versie uit .nvmrc (nu 24). Nooit een los versienummer, 'latest'
       #    of 'lts/*': .nvmrc is de enige bron voor de Node-versie (zie CLAUDE.md).
       #    'cache: npm' bewaart de gedownloade pakketten tussen runs, zodat npm ci sneller is.
       - name: Node installeren
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -61,7 +63,7 @@ jobs:
       - name: Tests draaien
         run: npm test
 
-      # 7a. PowerShell (pwsh) staat al op ubuntu-latest. Deze stap laat in het log zien dat het
+      # 7a. PowerShell (pwsh) staat al op ubuntu-24.04. Deze stap laat in het log zien dat het
       #     gevonden is; zonder pwsh zou de volgende stap met een onduidelijke fout falen.
       - name: PowerShell-versie tonen
         run: pwsh -Version

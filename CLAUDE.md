@@ -60,8 +60,9 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 - [x] Stap 4a: `tools/Test-Syntax.ps1` en uitgebreide validatietests
 - [x] Stap 4b: `data/topics.json`, `tools/build-index.mjs`, `tools/server.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs` en `tests/tools.test.mjs`
 - [x] Stap 5: server blokkeert dotfiles, workflow `.github/workflows/validate.yml`, branchstrategie zonder `develop`
-- [ ] Pull request feature/repo-en-validatie naar main (Peter)
-- [ ] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
+- [x] Pull request feature/repo-en-validatie naar main (Peter)
+- [x] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
+- [ ] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7) (in uitvoering)
 - [ ] `feature/omzetten-v1`: 4 scripts, 26 vragen en woordenboek uit v1 omzetten
 - [ ] `feature/startpagina-en-werkbank`
 - [ ] `feature/deploy` (`deploy.yml`, DNS, eerste livegang)

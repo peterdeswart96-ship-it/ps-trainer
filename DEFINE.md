@@ -1,6 +1,6 @@
 # DEFINE – PowerShell Leestrainer
 
-Status: versie 0.7 (11 oktober 2026), klaar voor akkoord. Wijzigingen t.o.v. 0.6: omvang release 2.0 bevestigd, geen ShareGate-toegang vastgelegd, Foundry-scripts omvatten zowel beheer als aanmaken. Geen open vragen meer.
+Status: versie 0.7 (11 oktober 2026), akkoord van Peter op 11 oktober 2026. Wijzigingen t.o.v. 0.6: omvang release 2.0 bevestigd, geen ShareGate-toegang vastgelegd, Foundry-scripts omvatten zowel beheer als aanmaken. Geen open vragen meer.
 
 ## Besluiten
 

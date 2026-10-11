@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.4 (11 oktober 2026), definitief. Wijziging t.o.v. 1.3: de integratietak `develop` vervalt; alles gaat via feature-branches en pull requests naar `main`; `validate.yml` draait op push naar `feature/**` en pull requests naar `main`. Geen open vragen.
+Status: versie 1.4 (11 oktober 2026), definitief. Wijziging t.o.v. 1.3: de integratietak `develop` vervalt; alles gaat via feature-branches en pull requests naar `main`; `validate.yml` draait op push naar `feature/**` en pull requests naar `main`. Bijgewerkt (stap 5c): runner vastgezet op `ubuntu-24.04` en de acties op `actions/checkout@v7` en `actions/setup-node@v7`. Geen open vragen.
 
 ## 1. Besluiten
 
@@ -192,10 +192,10 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 
 ### 6.1 Workflow `validate.yml`
 
-Naam "Validatie". Draait bij een push op `feature/**` en bij een pull request naar `main`. `permissions: contents: read`, geen secrets, geen deploy. `concurrency` per workflow en ref met `cancel-in-progress`, zodat een nieuwe push de oude run stopt. Eén job `validatie` op `ubuntu-latest` met `timeout-minutes: 10`. Stappen:
+Naam "Validatie". Draait bij een push op `feature/**` en bij een pull request naar `main`. `permissions: contents: read`, geen secrets, geen deploy. `concurrency` per workflow en ref met `cancel-in-progress`, zodat een nieuwe push de oude run stopt. Eén job `validatie` op `ubuntu-24.04` (bewust vastgezet: `ubuntu-latest` migreert vanaf 19 oktober 2026 naar Ubuntu 26; overstappen doen we later, nadat `ubuntu-26.04` is getest) met `timeout-minutes: 10`. Stappen:
 
-1. `actions/checkout@v4`
-2. `actions/setup-node@v4` met `node-version-file: .nvmrc` en `cache: npm` (nooit een los versienummer, `latest` of `lts/*`)
+1. `actions/checkout@v7` (draait op node24)
+2. `actions/setup-node@v7` (draait op node24) met `node-version-file: .nvmrc` en `cache: npm` (nooit een los versienummer, `latest` of `lts/*`)
 3. `node -v` en `npm -v` in het log
 4. `npm ci`
 5. `npm run validate`
