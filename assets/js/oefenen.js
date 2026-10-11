@@ -62,8 +62,8 @@ export function scoreTekst({ beantwoord, goed, totaal }) {
 }
 
 // Bouwt een vraagkaart. ctx:
-//   doc, scriptId, nummer (volgorde in het script), leesState() (de huidige v2-voortgang),
-//   acties: { antwoord(vraag, optieIndex), toonOpen(vraag), markeer(kaart, lines) }
+//   doc, scriptId, nummer (volgorde in het script), totaal (aantal vragen), leesState() (de huidige v2-voortgang),
+//   acties: { antwoord(vraag, optieIndex), toonOpen(vraag), markeer(kaart, lines), vorige(), volgende() }
 // De kaart bouwt zichzelf opnieuw op na een antwoord; een open vraag behoudt wat je al typde.
 export function bouwVraagKaart(vraag, ctx) {
   const { doc, scriptId, nummer, acties } = ctx;
@@ -88,7 +88,7 @@ export function bouwVraagKaart(vraag, ctx) {
 
   const kop = () => {
     const top = el(doc, 'div', 'qtop');
-    top.append(el(doc, 'h3', 'qnum', `Vraag ${nummer}`));
+    top.append(el(doc, 'h3', 'qnum', ctx.totaal ? `Vraag ${nummer} van ${ctx.totaal}` : `Vraag ${nummer}`));
     const rij = el(doc, 'span', 'row');
     const soort = el(doc, 'span', `kind ${vraag.type === 'mc' ? '' : vraag.type}`.trim());
     const pictogram = el(doc, 'span', `icoon ico-${vraag.type}`);
@@ -171,9 +171,33 @@ export function bouwVraagKaart(vraag, ctx) {
     return [tekstveld, plek];
   };
 
+  // Navigatie in de vragenbox: eenmaal gebouwd en bij elke opbouw van de kaart hergebruikt. De werkbank zet
+  // via kaart.navKnoppen aan of uit of er een vorige of volgende vraag is.
+  const navKnop = (tekst, icoon, voorop, actie) => {
+    const knop = el(doc, 'button', 'btn ghost qknop');
+    knop.type = 'button';
+    const pictogram = el(doc, 'span', `icoon ico-${icoon}`);
+    pictogram.setAttribute('aria-hidden', 'true');
+    if (voorop) knop.append(pictogram, tekst); else knop.append(tekst, pictogram);
+    knop.addEventListener('click', actie);
+    return knop;
+  };
+  const nav = el(doc, 'div', 'qnav');
+  nav.setAttribute('role', 'group');
+  nav.setAttribute('aria-label', 'Navigatie tussen vragen');
+  const vorigeKnop = navKnop('Vorige', 'vorige', true, () => acties.vorige?.());
+  const volgendeKnop = navKnop('Volgende', 'volgende', false, () => acties.volgende?.());
+  nav.append(vorigeKnop, volgendeKnop);
+  kaart.navKnoppen = { vorige: vorigeKnop, volgende: volgendeKnop };
+
+  // Twee vakken: links de ruimte voor antwoorden en uitleg, rechts de vragenbox met nummer, vraag en navigatie.
   function vul() {
     uitlegElement = null;
-    kaart.replaceChildren(kop(), el(doc, 'p', 'prompt', vraag.prompt), ...(vraag.type === 'open' ? vulOpenVraag() : vulKeuzevraag()));
+    const box = el(doc, 'div', 'qbox');
+    box.append(kop(), el(doc, 'p', 'prompt', vraag.prompt), nav);
+    const antwoorden = el(doc, 'div', 'qantwoord');
+    antwoorden.append(...(vraag.type === 'open' ? vulOpenVraag() : vulKeuzevraag()));
+    kaart.replaceChildren(box, antwoorden);
   }
   vul();
   return kaart;
@@ -307,15 +331,43 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
   // Alle kaarten worden bij het laden van een script een keer opgebouwd. Het filter "soort vraag" verbergt ze
   // alleen (hidden), zodat wat je in een open vraag typte blijft staan als je het filter wisselt.
   let legeVragen = null;
+
+  // Er staat steeds een vraag in beeld (data-huidig); de andere kaarten blijven opgebouwd maar verborgen, zodat
+  // wat je in een open vraag typte blijft staan. Vorige en volgende gaan alleen langs de vragen binnen het filter.
+  let huidigeVraag = 0;
+  const zichtbareIndexen = () => kaarten.map((k, i) => (k.hidden ? -1 : i)).filter((i) => i >= 0);
+  const toonVraag = (i, { focus = false } = {}) => {
+    huidigeVraag = i;
+    const zichtbaar = zichtbareIndexen();
+    const plek = zichtbaar.indexOf(i);
+    kaarten.forEach((kaart, j) => {
+      kaart.setAttribute('data-huidig', String(j === i));
+      kaart.navKnoppen.vorige.disabled = plek <= 0;
+      kaart.navKnoppen.volgende.disabled = plek < 0 || plek >= zichtbaar.length - 1;
+    });
+    // Het script licht de regels van de vraag in beeld op, ook als je nog niets hebt aangeklikt
+    markeerRegels(rijen, geladen?.meta.questions[i]?.lines ?? []);
+    if (focus && kaarten[i]) {
+      kaarten[i].setAttribute('tabindex', '-1');
+      kaarten[i].focus?.();
+    }
+  };
+  const naburigeVraag = (richting) => {
+    const zichtbaar = zichtbareIndexen();
+    const plek = zichtbaar.indexOf(huidigeVraag) + richting;
+    if (plek >= 0 && plek < zichtbaar.length) toonVraag(zichtbaar[plek], { focus: true });
+  };
+
   const pasTypefilterToe = () => {
     if (!geladen || !legeVragen) return;
     let zichtbaar = 0;
     for (const kaart of kaarten) {
-      kaart.hidden = Boolean(filters.type) && kaart.attributen['data-type'] !== filters.type;
+      kaart.hidden = Boolean(filters.type) && kaart.getAttribute('data-type') !== filters.type;
       if (!kaart.hidden) zichtbaar++;
     }
     legeVragen.hidden = zichtbaar > 0;
     markeer(null, []);
+    if (zichtbaar > 0) toonVraag(kaarten[huidigeVraag] && !kaarten[huidigeVraag].hidden ? huidigeVraag : zichtbareIndexen()[0]);
   };
 
   const renderVragen = () => {
@@ -331,10 +383,13 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
         renderChips(); // de voortgang op de chip en in de score meteen bijwerken
         renderScore();
       },
-      toonOpen: (vraag) => bewaar(registreerOpenGetoond(state, entry.id, vraag.id))
+      toonOpen: (vraag) => bewaar(registreerOpenGetoond(state, entry.id, vraag.id)),
+      vorige: () => naburigeVraag(-1),
+      volgende: () => naburigeVraag(1)
     };
+    huidigeVraag = 0;
     kaarten = meta.questions.map((vraag, i) => bouwVraagKaart(vraag, {
-      doc, scriptId: entry.id, nummer: i + 1, leesState: () => state, acties
+      doc, scriptId: entry.id, nummer: i + 1, totaal: meta.questions.length, leesState: () => state, acties
     }));
     legeVragen = el(doc, 'p', 'empty', 'Geen vragen van dit soort in dit script.');
     legeVragen.setAttribute('role', 'status');

@@ -129,29 +129,52 @@ a.kaart:hover { border-color: var(--accent); }
 
 /* Werkbank: filters, script met regelnummers, vragen */
 .werkbank { display: grid; gap: 14px; }
-.filters { display: grid; gap: 8px; }
+/* Bovenbalk: de drie filters naast elkaar (ze lopen door naar een volgende regel als het scherm smal is) */
+.filters { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+/* De scriptkeuze is compact: titel en voortgang. De tag en de samenvatting staan boven het script. */
+#scriptkeuze .chips { gap: 6px; }
+#scriptkeuze .chip { padding: 6px 12px; gap: 0; }
+#scriptkeuze .chip small { display: none; }
+/* Op een smal scherm is elke filtergroep en de scriptkeuze één rij die je zijwaarts schuift, zodat het script snel in beeld komt. */
+.wrap > *, .werkbank > * { min-width: 0; }
+@media (max-width: 700px) {
+  .filters { display: grid; gap: 8px; }
+  .filters .chips, #scriptkeuze .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .filters .chip, #scriptkeuze .chip { flex: none; white-space: nowrap; }
+}
 .chip.filter { padding: 5px 12px; font-size: .9rem; display: block; }
 .scorerij { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 1.6em; }
 .score { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-.bench { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 900px) { .bench { grid-template-columns: minmax(0, 1fr); } }
-.codepane { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
-@media (max-width: 900px) { .codepane { position: static; } }
+/* Onder elkaar: eerst het script over de volle breedte, daaronder de vraag. */
+.bench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.codepane { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
 .codehead { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
 .codekop-inhoud { display: grid; gap: 6px; }
 .codehead h2 { font-family: var(--f-display); font-size: 1.2rem; margin: 0; }
 .kopregel, .controle { margin: 0; color: var(--muted); font-size: .92rem; }
 .controle { font-size: .8rem; }
-.code { overflow-x: auto; background: var(--code-bg); border-radius: 0 0 10px 10px; padding-block: 10px; }
+/* Geen schuifbalk: een lange regel breekt af onder zijn eigen regelnummer, het hele script staat in beeld. */
+.code { background: var(--code-bg); border-radius: 0 0 10px 10px; padding-block: 10px; }
 .codetabel { border-collapse: collapse; font-family: var(--f-mono); font-size: .84rem; line-height: 1.6; width: 100%; }
-.codetabel td { padding: 0 14px 0 0; white-space: pre; vertical-align: top; }
-.codetabel td.n { width: 1%; text-align: right; color: var(--muted); padding-left: 12px; padding-right: 14px; user-select: none; font-variant-numeric: tabular-nums; }
+.codetabel td { padding: 0 14px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; vertical-align: top; }
+.codetabel td.n { width: 1%; white-space: nowrap; overflow-wrap: normal; text-align: right; color: var(--muted); padding-left: 12px; padding-right: 14px; user-select: none; font-variant-numeric: tabular-nums; }
 .codetabel tr.hl td { background: var(--hl); }
 
 .qs { display: grid; gap: 14px; min-width: 0; }
-.q { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
+/* Eén vraag tegelijk. Twee vakken naast elkaar en even breed: links ruimte voor antwoorden en uitleg,
+   rechts de vragenbox met nummer, vraag en navigatie. Op een smal scherm staat de vragenbox bovenaan. */
+.q { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 16px 24px; align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "antwoorden box"; }
+.q[data-huidig="false"] { display: none; }
 .q.active { border-color: var(--accent); }
+.qbox { grid-area: box; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.qantwoord { grid-area: antwoorden; display: grid; gap: 10px; align-content: start; min-width: 0; }
+@media (max-width: 900px) { .q { grid-template-columns: minmax(0, 1fr); grid-template-areas: "box" "antwoorden"; } }
+.qnav { display: flex; gap: 10px; justify-content: space-between; margin-top: 6px; }
+.qknop { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 18px; justify-self: auto; flex: 1 1 0; }
+.qnav .qknop:last-child { background: var(--accent); color: var(--panel); border: 1px solid var(--accent); }
+.qknop:disabled { opacity: .4; cursor: default; }
 .qtop { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
 .qnum { font-family: var(--f-display); font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .lines { font-family: var(--f-mono); font-size: .75rem; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 1px 9px; color: var(--accent); }
@@ -172,9 +195,7 @@ a.kaart:hover { border-color: var(--accent); }
 .expl strong { display: block; margin-bottom: 2px; }
 textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; }
 
-.qnum { margin: 0; }
-/* Op een breed scherm blijft het codeblok in beeld terwijl je door de vragen scrolt; een langer script scrolt dan binnen het blok. */
-@media (min-width: 901px) { .code { max-height: calc(100vh - 160px); overflow-y: auto; } }
+.qnum { margin: 0; font-size: 1rem; }
 
 /* Logo en iconen. De iconen zijn eigen SVG's in assets/img/icons en worden als masker getekend: ze krijgen
    dus de tekstkleur van het thema (licht en donker). Een onbekende ico-klasse toont niets. */
@@ -199,6 +220,8 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
 .ico-mc { --ico: url('/assets/img/icons/mc.svg'); background-color: currentColor; }
 .ico-bug { --ico: url('/assets/img/icons/bug.svg'); background-color: currentColor; }
 .ico-open { --ico: url('/assets/img/icons/open.svg'); background-color: currentColor; }
+.ico-vorige { --ico: url('/assets/img/icons/vorige.svg'); background-color: currentColor; }
+.ico-volgende { --ico: url('/assets/img/icons/volgende.svg'); background-color: currentColor; }
 .nav a { display: inline-flex; align-items: center; gap: 6px; }
 .kaart > .icoon { width: 1.9rem; height: 1.9rem; color: var(--accent); }
 .kaart.in-opbouw > .icoon { color: var(--muted); }

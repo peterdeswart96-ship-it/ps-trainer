@@ -27,6 +27,7 @@ function maakElement(tag) {
     },
     replaceChildren(...items) { this.kinderen = []; this.append(...items); },
     setAttribute(naam, waarde) { this.attributen[naam] = String(waarde); },
+    getAttribute(naam) { return naam in this.attributen ? this.attributen[naam] : null; },
     focus() { this.gefocust = (this.gefocust ?? 0) + 1; },
     addEventListener(soort, f) { (this.handlers[soort] ??= []).push(f); }
   };
@@ -277,7 +278,7 @@ test('werkbank: een vraag laat zijn regels oplichten bij muis, focus, klik en de
   const kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
   const lichtOp = () => rijen.map((r, i) => (r.className === 'hl' ? i + 1 : null)).filter(Boolean);
 
-  assert.deepEqual(lichtOp(), []);
+  assert.deepEqual(lichtOp(), [1], 'de eerste vraag staat in beeld en haar regel licht al op');
   trigger(kaarten[1], 'mouseenter');
   assert.deepEqual(lichtOp(), [2, 3]);
   assert.deepEqual(kaarten.map((k) => k.className), ['q', 'q active', 'q']);
@@ -294,6 +295,116 @@ test('werkbank: een vraag laat zijn regels oplichten bij muis, focus, klik en de
   assert.equal(regelknop.attributen['aria-label'], 'Licht regel 2–3 op in het script');
   klik(regelknop);
   assert.deepEqual(lichtOp(), [2, 3]);
+});
+
+// --- Een vraag tegelijk met vorige en volgende ---
+
+test('werkbank: één vraag tegelijk in beeld, met vorige en volgende; de regels volgen de vraag', async () => {
+  const p = await start();
+  const kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
+  const rijen = vindAlle(p.els.codetabel, (k) => k.tag === 'tr');
+  const huidig = () => kaarten.map((k) => k.attributen['data-huidig']);
+  const lichtOp = () => rijen.map((r, i) => (r.className === 'hl' ? i + 1 : null)).filter(Boolean);
+
+  assert.deepEqual(huidig(), ['true', 'false', 'false']);
+  assert.equal(kaarten[0].navKnoppen.vorige.disabled, true, 'bij de eerste vraag is er geen vorige');
+  assert.equal(kaarten[0].navKnoppen.volgende.disabled, false);
+
+  klik(kaarten[0].navKnoppen.volgende);
+  assert.deepEqual(huidig(), ['false', 'true', 'false']);
+  assert.deepEqual(lichtOp(), [2, 3], 'de regels van de vraag in beeld lichten op');
+  assert.equal(kaarten[1].gefocust, 1, 'de focus gaat naar de nieuwe vraag');
+  assert.equal(kaarten[1].navKnoppen.vorige.disabled, false);
+
+  klik(kaarten[1].navKnoppen.volgende);
+  assert.deepEqual(huidig(), ['false', 'false', 'true']);
+  assert.equal(kaarten[2].navKnoppen.volgende.disabled, true, 'bij de laatste vraag is er geen volgende');
+  assert.deepEqual(lichtOp(), [], 'een open vraag zonder regels laat niets oplichten');
+
+  klik(kaarten[2].navKnoppen.vorige);
+  assert.deepEqual(huidig(), ['false', 'true', 'false']);
+});
+
+test('werkbank: de navigatie in de vragenbox heeft tekst, pictogram en het vraagnummer', async () => {
+  const p = await start();
+  const kaart = vindAlle(p.els.vragen, (k) => k.tag === 'article')[0];
+  const box = vind(kaart, (k) => k.className === 'qbox');
+  assert.ok(box, 'de vragenbox bestaat');
+  assert.ok(vind(kaart, (k) => k.className === 'qantwoord'), 'het antwoordvak bestaat');
+  assert.equal(vind(box, (k) => k.className === 'qnum').textContent, 'Vraag 1 van 3');
+  const nav = vind(box, (k) => k.className === 'qnav');
+  assert.deepEqual(knoppen(nav).map((k) => tekstVan(k).trim()), ['Vorige', 'Volgende']);
+  assert.ok(vind(nav, (k) => k.className === 'icoon ico-vorige' && k.attributen['aria-hidden'] === 'true'));
+  assert.ok(vind(nav, (k) => k.className === 'icoon ico-volgende' && k.attributen['aria-hidden'] === 'true'));
+  assert.equal(vind(kaart, (k) => k.className === 'opts').tag, 'div');
+  assert.ok(vind(kaart, (k) => k.className === 'qantwoord').kinderen.includes(vind(kaart, (k) => k.className === 'opts')), 'de opties staan in het antwoordvak');
+  assert.equal(box.kinderen.includes(vind(kaart, (k) => k.className === 'opts')), false, 'en niet in de vragenbox');
+});
+
+test('productiecode gebruikt geen onderdelen die alleen in het nepdocument bestaan', () => {
+  // De fake DOM in deze test heeft eigen velden (attributen, handlers, kinderen, gefocust). In een echte browser
+  // bestaan die niet; een aanroep ervan in assets/js zou hier slagen en in productie een TypeError geven
+  // (zo was het filter "soort vraag" in de browser kapot terwijl de test groen was).
+  const map = join(root, 'assets', 'js');
+  for (const bestand of readdirSync(map).filter((b) => b.endsWith('.js'))) {
+    const bron = readFileSync(join(map, bestand), 'utf8');
+    assert.doesNotMatch(bron, /\.(attributen|handlers|kinderen|gefocust)\b/, `${bestand} gebruikt een onderdeel van het nepdocument`);
+  }
+});
+
+test('werkbank: een gegeven antwoord blijft staan als je naar de volgende vraag gaat en terug', async () => {
+  const p = await start();
+  const kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
+  klik(vindAlle(kaarten[0], (k) => isOptie(k))[0]); // eerste vraag: optie A is fout
+  klik(kaarten[0].navKnoppen.volgende);
+  klik(kaarten[1].navKnoppen.vorige);
+  assert.equal(kaarten[0].attributen['data-huidig'], 'true');
+  const opties = vindAlle(kaarten[0], (k) => isOptie(k));
+  assert.equal(opties.every((o) => o.disabled), true, 'de opties blijven vergrendeld');
+  assert.ok(opties[0].className.includes('wrong') && opties[1].className.includes('right'), 'goed en fout blijven zichtbaar');
+  assert.ok(vind(kaarten[0], (k) => k.className === 'expl no'), 'de uitleg staat er nog');
+});
+
+test('werkbank: een ander script kiezen en "opnieuw" zetten de vraag in beeld terug op de eerste', async () => {
+  const p = await start();
+  let kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
+  klik(kaarten[0].navKnoppen.volgende);
+  assert.equal(kaarten[1].attributen['data-huidig'], 'true');
+
+  klik(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').find((k) => tekstVan(k).includes('Titel b-gev')));
+  await wacht();
+  kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
+  assert.deepEqual(kaarten.map((k) => k.attributen['data-huidig']), ['true', 'false', 'false'], 'nieuw script: de eerste vraag');
+
+  klik(vindAlle(kaarten[0], (k) => isOptie(k))[0]);
+  klik(kaarten[0].navKnoppen.volgende);
+  assert.equal(kaarten[1].attributen['data-huidig'], 'true');
+  klik(knopMetTekst(p.els.score, 'opnieuw'));
+  kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
+  assert.deepEqual(kaarten.map((k) => k.attributen['data-huidig']), ['true', 'false', 'false'], 'na opnieuw: de eerste vraag');
+});
+
+test('werkbank: een filter zonder passende vragen laat geen vraag in beeld en houdt de pagina heel', async () => {
+  const GEEN_BUG = { ...GEGEVENS['a-basis'], meta: { ...GEGEVENS['a-basis'].meta, questions: GEGEVENS['a-basis'].meta.questions.filter((v) => v.type !== 'bug') } };
+  const p = await start({ haalScript: async () => GEEN_BUG });
+  klik(knopMetTekst(p.els.filters, 'Zoek de fout'));
+  assert.equal(zichtbareKaarten(p).length, 0);
+  klik(knopMetTekst(p.els.filters, 'Alle vragen'));
+  const kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
+  assert.equal(kaarten.filter((k) => k.attributen['data-huidig'] === 'true').length, 1, 'er is weer precies één vraag in beeld');
+});
+
+test('werkbank: het filter "soort vraag" houdt de vraag in beeld binnen het filter en zet vorige en volgende goed', async () => {
+  const p = await start();
+  const kaarten = vindAlle(p.els.vragen, (k) => k.tag === 'article');
+  klik(knopMetTekst(p.els.filters, 'Zoek de fout'));
+  assert.deepEqual(kaarten.map((k) => k.attributen['data-huidig']), ['false', 'true', 'false'], 'de zoek-de-foutvraag komt in beeld');
+  assert.equal(kaarten[1].navKnoppen.vorige.disabled, true, 'maar één vraag binnen het filter: geen vorige');
+  assert.equal(kaarten[1].navKnoppen.volgende.disabled, true, 'en geen volgende');
+  klik(knopMetTekst(p.els.filters, 'Alle vragen'));
+  assert.deepEqual(kaarten.map((k) => k.attributen['data-huidig']), ['false', 'true', 'false'], 'de vraag blijft staan als het filter weer weg is');
+  assert.equal(kaarten[1].navKnoppen.vorige.disabled, false);
+  assert.equal(kaarten[1].navKnoppen.volgende.disabled, false);
 });
 
 // --- Filters en scriptkeuze ---
@@ -313,7 +424,7 @@ test('werkbank: het filter "soort vraag" verbergt vragen en houdt het vraagnumme
   klik(knopMetTekst(p.els.filters, 'Zoek de fout'));
   const kaarten = zichtbareKaarten(p);
   assert.equal(kaarten.length, 1);
-  assert.equal(vind(kaarten[0], (k) => k.className === 'qnum').textContent, 'Vraag 2');
+  assert.equal(vind(kaarten[0], (k) => k.className === 'qnum').textContent, 'Vraag 2 van 3');
   assert.equal(vind(kaarten[0], (k) => k.className === 'qnum').tag, 'h3', 'elke vraag heeft een kop');
   assert.equal(p.urls.at(-1), '/oefenen/?script=a-basis&type=bug');
 
