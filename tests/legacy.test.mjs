@@ -17,8 +17,18 @@ const AFWIJKINGEN = [
   'graph-devices:1:option0',      // optie A is nu echt fout (-Days bestaat niet)
   'graph-devices:6:explanation',  // extra punt over $null -lt $grens
   'graph-users:3:explanation',    // v1 had links/rechts omgedraaid bij $null -eq (herstelfout, 11 oktober 2026)
-  'sharegate:5:explanation'       // tenant-to-tenant is buiten scope: on-premises naar SharePoint Online
+  'sharegate:5:explanation',      // tenant-to-tenant is buiten scope: on-premises naar SharePoint Online
+  'spo-sites:1:explanation',      // bij -Limit wordt SharingCapability niet gevuld; regel 4 haalt elke site opnieuw op
+  'spo-sites:3:explanation'       // de eenheid van StorageUsageCurrent is niet officieel bevestigd
 ];
+
+// Bewuste afwijkingen in de code zelf: <legacyId>: [oude regel uit v1, nieuwe regel]
+const CODE_AFWIJKINGEN = {
+  'spo-sites': [
+    '$sites = Get-SPOSite -Limit All -IncludePersonalSite $false',
+    '$sites = Get-SPOSite -Limit All -IncludePersonalSite $false | ForEach-Object { Get-SPOSite -Identity $_.Url }'
+  ]
+};
 
 // Scripts waaraan bij het omzetten een note is toegevoegd (v1 had er geen)
 const NIEUWE_NOTES = ['graph-devices', 'spo-sites'];
@@ -60,7 +70,13 @@ test('scripts en vragen komen overeen met v1, op de bewuste afwijkingen na', () 
 
   for (const v1 of SCRIPTS) {
     const { meta, code } = nieuw[v1.id];
-    assert.equal(code, v1.code + '\n', `${v1.id}: script.ps1 wijkt af van de v1-code`);
+    const afwijking = CODE_AFWIJKINGEN[v1.id];
+    let verwacht = v1.code + '\n';
+    if (afwijking) {
+      assert.ok(verwacht.includes(afwijking[0] + '\n'), `${v1.id}: de v1-regel voor de afwijking ontbreekt`);
+      verwacht = verwacht.replace(afwijking[0] + '\n', afwijking[1] + '\n');
+    }
+    assert.equal(code, verwacht, `${v1.id}: script.ps1 wijkt af van de v1-code`);
     assert.equal(meta.title, v1.title, `${v1.id}: titel`);
     assert.equal(meta.tag, v1.tag, `${v1.id}: tag`);
     assert.equal(meta.summary, v1.desc, `${v1.id}: summary`);
@@ -97,6 +113,15 @@ test('scripts en vragen komen overeen met v1, op de bewuste afwijkingen na', () 
   assert.match(nieuw.sharegate.meta.questions[5].explanation, /on-premises naar SharePoint Online/);
   assert.doesNotMatch(nieuw.sharegate.meta.questions[5].explanation, /tenant-to-tenant/);
   assert.match(nieuw['graph-users'].meta.questions[3].explanation, /lijst aan de linkerkant de lijst filtert/);
+  // De twee bewust aangepaste uitleggen van spo-sites zijn volledig vastgelegd
+  assert.equal(
+    nieuw['spo-sites'].meta.questions[1].explanation,
+    '`Get-SPOSite` geeft standaard maximaal 200 sites terug. Hetzelfde idee als `-All` bij Graph: zonder die parameter mis je stilletjes data. `-IncludePersonalSite $false` laat OneDrive-sites weg. Let op: bij `-Limit` worden volgens de documentatie sommige eigenschappen, zoals `SharingCapability`, niet gevuld. Daarom haalt het script elke site daarna opnieuw op: `ForEach-Object` voert het blok uit voor elke site uit de pipeline, en `$_` is de huidige site, dus `Get-SPOSite -Identity $_.Url` vraagt die ene site opnieuw op.'
+  );
+  assert.equal(
+    nieuw['spo-sites'].meta.questions[3].explanation,
+    '`StorageUsageCurrent` staat volgens communitybronnen in megabytes (de officiële pagina van `Get-SPOSite` noemt geen eenheid). Delen door 1024 geeft gigabytes; `[math]::Round(..., 1)` rondt af op één decimaal.'
+  );
 });
 
 test('v1-uitleg bevat na omzetting geen HTML meer', () => {
