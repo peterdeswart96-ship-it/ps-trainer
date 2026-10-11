@@ -1,0 +1,131 @@
+{
+  "id": "migraties-delta-migratie",
+  "title": "Delta-migratie met SPMT",
+  "topic": "migraties",
+  "level": "gevorderd",
+  "tag": "SPMT-module · wijzigt doel",
+  "summary": "Draait op de cut-over-dag een tweede migratie die alleen bestanden meeneemt die sinds de eerste run zijn gewijzigd.",
+  "risk": "write",
+  "modules": [
+    "Microsoft.SharePoint.MigrationTool.PowerShell"
+  ],
+  "note": "De cmdlets en parameters zijn vergeleken met de Microsoft Learn-documentatie van de SPMT-module, maar het script is niet uitgevoerd: de module is hier niet geinstalleerd. De module werkt volgens de documentatie in Windows PowerShell 5.x. De documentatie beschrijft niet duidelijk wat er gebeurt met bestanden die al in het doel staan en die opnieuw worden aangeboden, en of een tweede run alleen het verschil kopieert. Dit script beperkt de run met een datumgrens en laat de module extra controlerondes doen; test het gedrag met een kleine map voordat je het gebruikt. In de JSON-definitie van een taak bestaat volgens de documentatie ook een instelling EnableIncremental; die wordt hier niet gebruikt.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        6,
+        7
+      ],
+      "prompt": "Wat betekent [Parameter(Mandatory)] bij $EersteRun?",
+      "options": [
+        "De parameter heeft een vaste waarde, die je tijdens het uitvoeren van het script niet kunt veranderen",
+        "Start je het script zonder -EersteRun, dan vraagt PowerShell er alsnog om voordat het verdergaat",
+        "De parameter wordt automatisch gevuld met de huidige datum en tijd van de computer",
+        "De parameter is optioneel en wordt zonder waarschuwing genegeerd als je hem weglaat"
+      ],
+      "answer": 1,
+      "explanation": "`Mandatory` maakt een parameter verplicht. Bij `[datetime]` zet PowerShell een opgegeven tekst om naar een datum en tijd, bijvoorbeeld `-EersteRun '2026-10-01 18:00'`. Hier is het bewust verplicht: de datum van de eerste run is nodig om te bepalen wat er is veranderd, en een standaardwaarde zou een stille fout kunnen veroorzaken."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        12
+      ],
+      "prompt": "Wat doet -EnableMultiRound $true volgens de documentatie van Register-SPMTMigration?",
+      "options": [
+        "De migratie draait tegelijk op meerdere servers, zodat grote hoeveelheden sneller worden verwerkt",
+        "De migratie gebruikt meerdere accounts, zodat SharePoint Online de verbindingen minder snel afknijpt",
+        "De migratie verdeelt de bestanden over meerdere bibliotheken, zodat geen enkele bibliotheek te groot wordt",
+        "De migratie doet maximaal vijf controlerondes op nieuwe wijzigingen of toevoegingen sinds de vorige ronde"
+      ],
+      "answer": 3,
+      "explanation": "De standaardwaarde is uit: dan doet de migratie een controleronde om te zien of er sinds de vorige run iets is bijgekomen of veranderd. Met `$true` zijn dat er volgens de documentatie maximaal vijf. Dat past bij een cut-over, waarbij gebruikers tijdens de migratie nog bestanden aanpassen. Het is een hulp en geen garantie: na afloop blijft de validatie nodig."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        12
+      ],
+      "prompt": "Wat doet -MigrateFilesModifiedAfter $EersteRun.AddHours(-1), en waarom een uur eerder?",
+      "options": [
+        "Het neemt alleen bestanden mee die na dat moment zijn gewijzigd; het uur marge vangt wijzigingen rond of tijdens de eerste run op",
+        "Het neemt alleen bestanden mee die voor dat moment zijn gewijzigd, zodat de oudste bestanden als eerste gaan",
+        "Het wacht een uur voordat de migratie start, voor het geval iemand nog bestanden zit op te slaan",
+        "Het wijzigt de aanmaakdatum van de bestanden in SharePoint naar dat tijdstip, zodat ze als nieuw gelden"
+      ],
+      "answer": 0,
+      "explanation": "De parameter beperkt de migratie op wijzigingsdatum. `AddHours(-1)` is een methode van het datumobject en trekt een uur af. Bestanden die tijdens de eerste run zijn gewijzigd nadat ze waren gescand, of een klokverschil tussen de computers, kunnen anders net buiten de grens vallen. De marge maakt de run iets groter dan strikt nodig; dat is een bewuste keuze, en geen fout."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bron",
+      "lines": [
+        7,
+        12
+      ],
+      "prompt": "De eerste migratie draaide drie weken geleden. Op de cut-over-dag geef je als -EersteRun de datum van vandaag op. Wat is het gevolg?",
+      "options": [
+        "Alle bestanden worden opnieuw gekopieerd, omdat de opgegeven datum later is dan de eerste run",
+        "Er gebeurt niets, want PowerShell weigert een datum van vandaag als begin van een migratie",
+        "Alleen bestanden die vandaag zijn gewijzigd gaan mee, dus wijzigingen van de afgelopen drie weken ontbreken",
+        "Het script zoekt zelf de datum van de eerste run op in het logboek van de SPMT-sessie"
+      ],
+      "answer": 2,
+      "explanation": "De datumgrens bepaalt wat meegaat. Is die te laat, dan ontbreken wijzigingen tussen de eerste run en die grens in SharePoint, en je merkt dat pas in de validatie. Gebruik het moment waarop de eerste run begon, en noteer dat tijdstip altijd. Het script zoekt het niet zelf op."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        14,
+        16
+      ],
+      "prompt": "Welke regel schrijft in SharePoint Online, en wat blijft ongewijzigd?",
+      "options": [
+        "Regel 14, Add-SPMTTask, schrijft in SharePoint en leegt daarna de share",
+        "Regel 12, Register-SPMTMigration, schrijft in SharePoint en laat de bibliotheek zelf ongemoeid",
+        "Regel 21, Unregister-SPMTMigration, schrijft in SharePoint en laat de taak daarna bestaan",
+        "Regel 16, Start-SPMTMigration, schrijft in de doelbibliotheek en leest de share alleen"
+      ],
+      "answer": 3,
+      "explanation": "`Register-SPMTMigration` en `Add-SPMTTask` bereiden voor, `Start-SPMTMigration` zet het kopiëren in gang. SPMT leest de bron en schrijft naar het doel. Wat er gebeurt met een bestand dat al in het doel staat en opnieuw wordt aangeboden, beschrijft de documentatie niet duidelijk. Test dat met een kleine map."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        18,
+        19
+      ],
+      "prompt": "Wat vertelt $sessie.StatusOfTasks na afloop, en wat vertelt het niet?",
+      "options": [
+        "Het geeft elk bestand dat is gewijzigd sinds de eerste run, met de datum van de wijziging",
+        "De status per taak, volgens de documentatie onder meer aantallen en foutmeldingen; geen bewijs dat het doel gelijk is aan de bron",
+        "Een vergelijking tussen bron en doel, met een lijst van de bestanden die nog verschillen",
+        "Het tijdstip waarop de volgende delta-run moet starten, zodat er geen wijzigingen ontbreken"
+      ],
+      "answer": 1,
+      "explanation": "De status van een taak noemt volgens de documentatie onder meer aantallen gescande, gefilterde, gemigreerde en mislukte bestanden en foutmeldingen. Dat is wat SPMT zelf heeft gedaan, niet een onafhankelijke controle. Voor die controle draai je daarna het script voor de validatie na de migratie."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "De documentatie zegt niet precies wat een tweede run doet met bestanden die al in het doel staan. Hoe zou je dat uitzoeken, en wat regel je voor de cut-over-dag?",
+      "explanation": "Bijvoorbeeld: (1) maak een testmap met een paar bestanden, migreer die, wijzig er een paar en draai de delta; kijk in SharePoint of alleen de gewijzigde bestanden een nieuwe versie hebben, of alles is overschreven; (2) noteer het starttijdstip van de eerste run, want dat is de datumgrens; (3) zet de bron op alleen-lezen op het moment van de cut-over, zodat er geen wijzigingen meer bijkomen; (4) vergelijk het gedrag met `-OnContentItemExists IncrementalUpdate` in het ShareGate-script, dat dit expliciet regelt; (5) controleer na afloop met het script voor de validatie na de migratie; (6) in de JSON-definitie van een taak bestaat volgens de documentatie een instelling `EnableIncremental`; zoek op wat die doet voordat je kiest tussen de aanpakken."
+    }
+  ]
+}
