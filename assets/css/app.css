@@ -269,7 +269,7 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-entra-id: #0f6cbd; --p-entra-id: #bfe3ff;
   --st-mc: #2e7d32; --sp-mc: #bfe8b8;
   --st-bug: #8a6d00; --sp-bug: #fbe48a;
-  --st-open: #7b3fb8; --sp-open: #e3cdfa;
+  --st-open: #7d62a3; --sp-open: #e8dff3;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
@@ -279,7 +279,7 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
   --st-mc: #7fd67f; --sp-mc: #2f6b31;
   --st-bug: #f2c94c; --sp-bug: #7a5f00;
-  --st-open: #c9a0ff; --sp-open: #5b2f91;
+  --st-open: #b8a2d8; --sp-open: #4d3b70;
 } }
 :root[data-theme="dark"] {
   --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
@@ -289,7 +289,7 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
   --st-mc: #7fd67f; --sp-mc: #2f6b31;
   --st-bug: #f2c94c; --sp-bug: #7a5f00;
-  --st-open: #c9a0ff; --sp-open: #5b2f91;
+  --st-open: #b8a2d8; --sp-open: #4d3b70;
 }
 .kaart { --tint: var(--accent); --pastel: var(--accent-soft); border: 1.5px solid var(--tint); }
 @supports (background: color-mix(in srgb, red 40%, transparent)) {
