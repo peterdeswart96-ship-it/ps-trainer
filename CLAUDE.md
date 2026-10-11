@@ -73,6 +73,6 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
 - [x] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7)
 - [x] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten
-- [x] `feature/startpagina-en-werkbank`: gedeelde basis, woordenboekpagina, startpagina en werkbank (visuele controle in een browser door Peter nog nodig)
-- [ ] `feature/deploy`: `deploy.yml`, `tools/build-site.mjs`, `DEPLOY.md` en tests staan klaar (in uitvoering). Nog te doen door Peter, in deze volgorde (zie `DEPLOY.md`): DNS-record in TransIP, Pages inschakelen met bron GitHub Actions en eigen domein instellen, dan de pull request met `deploy.yml` mergen en de controle na livegang doen
+- [x] `feature/startpagina-en-werkbank`: gedeelde basis, woordenboekpagina, startpagina en werkbank (visueel gecontroleerd op de livesite: desktop en telefoon, licht en donker)
+- [x] `feature/deploy`: `deploy.yml`, `tools/build-site.mjs`, `DEPLOY.md` en tests; DNS, Pages en eigen domein ingesteld; PR 12 gemerged op 11 oktober 2026, site live op https://ps-trainer.pdscloud.nl/
 - [ ] Inhoud: Migraties, SharePoint, Foundry, Purview (elk eigen feature-branch)
