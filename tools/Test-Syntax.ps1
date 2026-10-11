@@ -12,10 +12,16 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Pad = (Join-Path (Split-Path -Parent $PSScriptRoot) 'data/scripts')
+    [string]$Pad
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Standaard: data/scripts in de repo. Dit staat bewust hier en niet als standaardwaarde in param():
+# in Windows PowerShell 5.1 is $PSScriptRoot daar leeg.
+if (-not $Pad) {
+    $Pad = Join-Path (Split-Path -Parent $PSScriptRoot) 'data/scripts'
+}
 
 $bestanden = @()
 if (Test-Path -LiteralPath $Pad -PathType Container) {

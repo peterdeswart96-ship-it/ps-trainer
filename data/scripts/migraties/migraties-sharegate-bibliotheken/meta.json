@@ -1,0 +1,112 @@
+{
+  "id": "migraties-sharegate-bibliotheken",
+  "legacyId": "sharegate",
+  "title": "Migratie met ShareGate",
+  "topic": "migraties",
+  "level": "gevorderd",
+  "tag": "ShareGate-module · wijzigt doel",
+  "summary": "Kopieert bibliotheken volgens een CSV-plan, met incrementele updates en een rapport per bibliotheek.",
+  "risk": "write",
+  "modules": [
+    "Sharegate"
+  ],
+  "note": "Werkt alleen met ShareGate Migrate geïnstalleerd. Controleer de exacte parameters in de ShareGate-documentatie; dit voorbeeld is om te leren lezen.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        3
+      ],
+      "prompt": "Wat geeft Import-Csv terug?",
+      "options": [
+        "Eén lange tekst",
+        "Per regel in de CSV een object, met de kolomkoppen als eigenschappen",
+        "Een Excel-bestand",
+        "Alleen de eerste regel"
+      ],
+      "answer": 1,
+      "explanation": "Daarom kun je verderop `$regel.Bron` en `$regel.Bibliotheek` schrijven. Alles na `#` op regel 3 is commentaar en wordt niet uitgevoerd."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        4
+      ],
+      "prompt": "Wat betekent -OnContentItemExists IncrementalUpdate?",
+      "options": [
+        "Bestaande bestanden worden altijd overschreven",
+        "Bestaande bestanden worden overgeslagen, ook als ze zijn gewijzigd",
+        "Alleen nieuwe of sinds de vorige keer gewijzigde items worden gekopieerd",
+        "Het doel wordt eerst leeggemaakt"
+      ],
+      "answer": 2,
+      "explanation": "Dit is de delta-migratie: eerst de bulk kopiëren, op de cut-over-dag het script nog een keer draaien en dan gaat alleen het verschil over. Precies het verhaal uit je migratiefases."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        7,
+        8
+      ],
+      "prompt": "Wat doet de schakelaar -Browser?",
+      "options": [
+        "Opent de site in een tabblad om te bekijken",
+        "Laat je inloggen via een browservenster, zodat MFA en moderne authenticatie werken",
+        "Gebruikt de inloggegevens van de browser zonder te vragen",
+        "Schakelt de webversie van ShareGate in"
+      ],
+      "answer": 1,
+      "explanation": "Moderne authenticatie met MFA loopt via een browserprompt. Bij een grote migratie werk je vaak met een apart migratieaccount met tijdelijke rechten."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        14
+      ],
+      "prompt": "Waarom staat er $( ) rond $regel.Bibliotheek in de bestandsnaam?",
+      "options": [
+        "Om de waarde in hoofdletters te zetten",
+        "Zonder $( ) vult PowerShell in een string alleen $regel in, en zet \".Bibliotheek\" er letterlijk achter",
+        "Om speciale tekens te verwijderen",
+        "Het is optioneel"
+      ],
+      "answer": 1,
+      "explanation": "In een string met dubbele aanhalingstekens wordt alleen een simpele variabele ingevuld. Wil je een eigenschap of een berekening, dan heb je de subexpressie `$( )` nodig. Dezelfde constructie zag je in de andere scripts bij `$($apparaat.DisplayName)`."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        13
+      ],
+      "prompt": "Welk deel van dit script verandert iets?",
+      "options": [
+        "Regel 3, Import-Csv",
+        "Regel 7, Connect-Site",
+        "Regel 13, Copy-Content, in de doelsite",
+        "Regel 14, Export-Report, in de bronsite"
+      ],
+      "answer": 2,
+      "explanation": "Alleen `Copy-Content` schrijft, en wel in de doelomgeving. De bron wordt alleen gelezen. `Export-Report` schrijft een lokaal Excel-bestand."
+    },
+    {
+      "id": "q6",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Wat zou je toevoegen om dit robuuster te maken voor een echte klantmigratie?",
+      "explanation": "Bijvoorbeeld: (1) eerst testen met één regel in de CSV; (2) `try/catch` rond elke regel, zodat één mislukte bibliotheek de rest niet stopt; (3) controleren of `Get-List` echt iets vond voordat je kopieert; (4) een logregel per bibliotheek met aantallen geslaagd, waarschuwingen en fouten; (5) gebruikers- en groepsmapping toevoegen bij een migratie van SharePoint on-premises naar SharePoint Online."
+    }
+  ]
+}

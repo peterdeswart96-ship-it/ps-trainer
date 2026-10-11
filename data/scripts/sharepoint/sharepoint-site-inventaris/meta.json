@@ -1,0 +1,138 @@
+{
+  "id": "sharepoint-site-inventaris",
+  "legacyId": "spo-sites",
+  "title": "SharePoint-sites inventariseren",
+  "topic": "sharepoint",
+  "level": "basis",
+  "tag": "SharePoint Online · alleen lezen",
+  "summary": "Overzicht van sites met eigenaar, opslag en deelinstelling. Dit is stap 1 van elke migratie of opschoonactie.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Volgens de documentatie van Get-SPOSite worden bij -Limit of -Filter sommige eigenschappen, waaronder SharingCapability, mogelijk niet gevuld. Controleer dit in een eigen tenant, net als de eenheid (MB) van StorageUsageCurrent.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Connect-SPOService (-Url), Get-SPOSite (-Limit All, standaard 200, -IncludePersonalSite) en Set-SPOSite (waarden van SharingCapability). Open punten: eenheid van StorageUsageCurrent en of SharingCapability gevuld is bij -Limit."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        2
+      ],
+      "prompt": "Waarom eindigt de URL op -admin.sharepoint.com?",
+      "options": [
+        "Dat is een typfout",
+        "Connect-SPOService verbindt met het SharePoint admin center, niet met een gewone site",
+        "Het zorgt voor een veiliger verbinding",
+        "Alleen nodig voor OneDrive"
+      ],
+      "answer": 1,
+      "explanation": "De SharePoint Online Management Shell werkt op tenantniveau, dus via de admin-URL. Voor werk binnen één site (lijsten, bestanden) gebruik je eerder PnP PowerShell met `Connect-PnPOnline` en de URL van die site."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        4
+      ],
+      "prompt": "Wat gebeurt er als je -Limit All weglaat?",
+      "options": [
+        "Je krijgt een fout",
+        "Je krijgt alleen de eerste 200 sites",
+        "Je krijgt alleen je eigen sites",
+        "Er verandert niets"
+      ],
+      "answer": 1,
+      "explanation": "`Get-SPOSite` geeft standaard maximaal 200 sites terug. Hetzelfde idee als `-All` bij Graph: zonder die parameter mis je stilletjes data. `-IncludePersonalSite $false` laat OneDrive-sites weg."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "prompt": "Wat staat er na regel 14 in $rapport?",
+      "options": [
+        "Alleen de laatste site",
+        "Een lijst met één eigen object per site, met vijf eigenschappen",
+        "Een tekstbestand",
+        "Niets; foreach geeft geen output"
+      ],
+      "answer": 1,
+      "explanation": "Alles wat binnen de `foreach` wordt \"uitgespuugd\" komt in `$rapport`. `[PSCustomObject]@{...}` maakt per site een object met de kolommen die jij kiest. Dit patroon zie je heel vaak in rapportagescripts."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        10
+      ],
+      "prompt": "Waarom wordt StorageUsageCurrent door 1024 gedeeld?",
+      "options": [
+        "Om bytes naar MB om te rekenen",
+        "Omdat de waarde in MB is en je GB wilt",
+        "Om af te ronden",
+        "Om het percentage te berekenen"
+      ],
+      "answer": 1,
+      "explanation": "`StorageUsageCurrent` staat in megabytes. Delen door 1024 geeft gigabytes; `[math]::Round(..., 1)` rondt af op één decimaal."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        16
+      ],
+      "prompt": "Welke sites blijven over na het filter op regel 16?",
+      "options": [
+        "Sites zonder extern delen",
+        "Sites waar alleen bestaande gasten mogen meekijken",
+        "Sites met de ruimste instelling: delen met iedereen, ook via anonieme links",
+        "Sites zonder eigenaar"
+      ],
+      "answer": 2,
+      "explanation": "`ExternalUserAndGuestSharing` is het hoogste niveau (\"Iedereen\"). Voor een security officer is dit een mooi voorbeeld: grote sites die anoniem gedeeld kunnen worden, wil je als eerste bekijken."
+    },
+    {
+      "id": "q6",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        18
+      ],
+      "prompt": "Je wilt het resultaat ook naar een CSV schrijven en plakt | Export-Csv achter regel 18. Het bestand bevat onzin. Waarom?",
+      "options": [
+        "Export-Csv werkt niet met SharePoint-data",
+        "Format-Table zet de objecten om in opmaakinstructies; daarna is de data weg. Format-* hoort altijd als allerlaatste stap",
+        "-AutoSize is niet compatibel met CSV",
+        "Sort-Object moet na Export-Csv"
+      ],
+      "answer": 1,
+      "explanation": "`Format-Table` en `Format-List` zijn alleen voor het scherm. Vervang regel 18 door `Export-Csv -Path .\\sites.csv -NoTypeInformation`, of gebruik beide in aparte regels."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Hoe gebruik je dit script bij de voorbereiding van een migratie?",
+      "explanation": "Als inventarisatie: hoeveel sites en hoeveel data (planning en duur), wie de eigenaren zijn (aanspreekpunten en wie moet testen), welke sites lang niet zijn gewijzigd (kandidaten om te archiveren in plaats van te migreren), en welke sites ruim gedeeld worden (eerst rechten opschonen). Dat is precies de 80% voorbereiding die bij een migratie hoort."
+    }
+  ]
+}

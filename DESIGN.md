@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.4 (11 oktober 2026), definitief. Wijziging t.o.v. 1.3: de integratietak `develop` vervalt; alles gaat via feature-branches en pull requests naar `main`; `validate.yml` draait op push naar `feature/**` en pull requests naar `main`. Bijgewerkt (stap 5c): runner vastgezet op `ubuntu-24.04` en de acties op `actions/checkout@v7` en `actions/setup-node@v7`. Geen open vragen.
+Status: versie 1.5 (11 oktober 2026), definitief. Wijziging t.o.v. 1.4: het woordenboekschema is vastgelegd (paragraaf 4.2, `schema/dictionary.schema.json`: groepen met `id`, `name` en items; unieke `term`), de overname van v1-voortgang is uitgewerkt (paragraaf 4.3: onbekende tijd, alleen scripts met `legacyId`, zuivere functie in `assets/js/progress.js`) en de v1-bron staat in `legacy/`. De 4 omgezette scripts hebben 27 vragen (niet 26). Geen open vragen.
 
 ## 1. Besluiten
 
@@ -68,6 +68,8 @@ ps-trainer/
 ├─ agent/instructions.md          Instructies van de PS Coach, onder versiebeheer
 ├─ api/                           Azure Function (vanaf 2.2)
 ├─ schema/script.schema.json      JSON Schema voor meta.json
+├─ schema/dictionary.schema.json  JSON Schema voor dictionary.json
+├─ legacy/ps-leestrainer-v1.html  De v1-bron van de omzetting; wordt niet gepubliceerd (buiten de deploy-allowlist)
 ├─ tools/
 │  ├─ build-index.mjs             Bouwt data/index.json uit alle meta.json-bestanden
 │  ├─ validate.mjs                Controleert alle meta.json tegen het schema en regelnummers tegen de .ps1
@@ -78,7 +80,7 @@ ps-trainer/
 │  └─ smoke.mjs                   Rooktest: alle pagina's geven HTTP 200 en index.json is geldig
 ├─ .nvmrc                         De vaste Node-versie (zie 7.1)
 ├─ .npmrc                         engine-strict=true (npm weigert installeren bij een verkeerde Node-versie)
-├─ package.json                   Scripts (dev, validate, smoke) en "engines" voor de Node-versie
+├─ package.json                   Scripts (dev, build-index, validate, test, syntax, smoke) en "engines" voor de Node-versie
 ├─ .github/workflows/             validate.yml en deploy.yml
 ├─ CLAUDE.md  DEFINE.md  DESIGN.md  DEPLOY.md
 ```
@@ -133,7 +135,7 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 ### 4.2 Overige bestanden
 
 - **`topics.json`:** per onderwerp `id`, `name`, `summary` en `order`. De status (`live` of `in-opbouw`) staat hier niet, maar wordt door `build-index.mjs` berekend: `live` bij minstens één script, anders `in-opbouw`. Een onderwerp zonder scripts toont "nog in opbouw" in plaats van een lege lijst.
-- **`dictionary.json`:** groepen met items (`term`, `explanation`, `example`, `risk`, optioneel `topics`). Dezelfde data voedt het woordenboek en de flashcards.
+- **`dictionary.json`:** een lijst groepen, elk met `id` (kebab-case, uniek), `name` en `items`. Een item heeft `term`, `explanation`, `example` (platte tekst, geen opmaak), `risk` (`read`, `write` of `neutral`) en optioneel `topics` (lijst onderwerp-id's). De `term` is uniek in het hele bestand, want de flashcards gebruiken hem als sleutel (`cards`). Schema: `schema/dictionary.schema.json`; `validate.mjs` controleert schema, unieke groep-id's en unieke termen. Dezelfde data voedt het woordenboek en de flashcards.
 - **`index.json`** (gebouwd in CI, niet in git): per script de velden uit `meta.json` behalve de vragen, plus het aantal vragen per type (`counts`) en het pad naar de scriptmap. Per onderwerp komen `scriptCount` en de berekende `status` erbij. De startpagina en filters gebruiken alleen dit bestand.
 
 ### 4.3 Voortgang in de browser (2.0 en 2.1)
@@ -151,7 +153,7 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 }
 ```
 
-- **Overname van v1:** bij het eerste bezoek leest de pagina de oude sleutel `ps-leestrainer-v1` (formaat `<legacyId>:<index>`) en zet die om naar `<id>:q<index+1>`. Daarom blijven de vraag-volgorde en `legacyId` van de 4 bestaande scripts gelijk.
+- **Overname van v1:** bij het eerste bezoek leest de pagina de oude sleutel `ps-leestrainer-v1` (formaat `<legacyId>:<index>`) en zet die om naar `<id>:q<index+1>`. Daarom blijven de vraag-volgorde en `legacyId` van de 4 bestaande scripts gelijk. De overname staat als zuivere functie `migreerV1()` in `assets/js/progress.js` (testbaar zonder browser). v1 bewaarde geen tijd bij een antwoord; overgenomen antwoorden krijgen daarom de bewust oude tijd `1970-01-01T00:00:00Z` ("onbekend"), zodat een echt antwoord bij het samenvoegen in 2.3 altijd wint. `correct` wordt bepaald met het `answer` uit het `meta.json` van scripts met een `legacyId` (alleen de 4 uit v1; dat aantal groeit nooit). Bestaande v2-voortgang wordt niet overschreven en de v1-sleutel blijft staan.
 - **Klaar voor 2.3:** elk antwoord heeft een tijdstempel, zodat voortgang later per antwoord samengevoegd kan worden (nieuwste wint) in plaats van het hele bestand te overschrijven.
 - Alle toegang tot `localStorage` zit in `try/catch` (zoals in v1). Zonder opslag werkt de site gewoon, alleen zonder voortgang.
 
@@ -182,7 +184,7 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 
 | Stap | Release | Wat |
 | --- | --- | --- |
-| JSON-controle | 2.0 | `validate.mjs`: elk `meta.json` tegen het schema; unieke `id`'s; `lines` binnen het script; precies één correct antwoord bij `mc` en `bug`; alle onderwerpen en niveaus geldig. |
+| JSON-controle | 2.0 | `validate.mjs`: elk `meta.json` tegen het schema; `dictionary.json` tegen het woordenboekschema met unieke termen; unieke `id`'s; `lines` binnen het script; precies één correct antwoord bij `mc` en `bug`; alle onderwerpen en niveaus geldig. |
 | Syntaxcheck | 2.0 | `Test-Syntax.ps1` leest elk `script.ps1` met de PowerShell-parser en faalt bij syntaxfouten. Let op: scripts met een bewuste fout (functie 9) moeten syntactisch wel kloppen. |
 | Cmdlet-controle | zodra de eerste scripts er staan | Haalt met de PowerShell-AST alle cmdlets en parameters uit de scripts en toetst ze tegen de geïnstalleerde modules (Microsoft.Graph, PnP.PowerShell, Az, ExchangeOnlineManagement; waar mogelijk op een Windows-runner). Modules die niet te installeren zijn (SPMT, ShareGate) blijven `nog_te_controleren`. Dit vangt verzonnen cmdlets en parameters, de grootste kans op fouten. |
 | Indexbouw | 2.0 | `build-index.mjs` maakt `data/index.json` voor de gedeployde site. |
@@ -289,7 +291,7 @@ Elke feature-branch gaat vanaf `main` en wordt via een pull request naar `main` 
 Kleine stappen, elk op een eigen feature-branch en elk met mijn akkoord vóór de volgende:
 
 1. `feature/repo-en-validatie`: repo-indeling, `.nvmrc` en `package.json` met `engines` (paragraaf 7.1), schema, `validate.mjs`, `Test-Syntax.ps1`, `dev-server.mjs`, `smoke.mjs`, workflow `validate.yml`.
-2. `feature/omzetten-v1`: de 4 scripts, 26 vragen en het woordenboek uit v1 omzetten naar `.ps1`, `meta.json` en `dictionary.json`; v1-voortgang overnemen.
+2. `feature/omzetten-v1`: de 4 scripts, 27 vragen en het woordenboek uit v1 omzetten naar `.ps1`, `meta.json` en `dictionary.json`; v1-voortgang overnemen.
 3. `feature/startpagina-en-werkbank`: startpagina met onderwerpkaarten, oefenpagina met filters, woordenboekpagina, "nog in opbouw", waarschuwing bij `nog_te_controleren`.
 4. `feature/deploy`: `deploy.yml`, DNS, eerste livegang van een lege maar werkende 2.0.
 5. `feature/inhoud-migraties`, `...-sharepoint`, `...-foundry`, `...-purview`: de nieuwe scripts per onderwerp, elk met een eigen live-moment. Ik controleer elk script voordat het naar `main` gaat.

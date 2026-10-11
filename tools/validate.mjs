@@ -1,7 +1,11 @@
 // Controleert alle oefenscripts: elk meta.json tegen het schema, plus de regels die een
 // schema niet kan uitdrukken (mapnamen, dubbele id's, regelnummers, antwoord-index).
+// Controleert ook het woordenboek (data/dictionary.json) tegen schema/dictionary.schema.json,
+// met unieke termen en unieke groep-id's.
 //
-// Gebruik:  node tools/validate.mjs [map]      (standaard: data/scripts)
+// Gebruik:  node tools/validate.mjs [map] [woordenboek]
+//           (standaard: data/scripts en data/dictionary.json; het standaardwoordenboek wordt
+//            alleen gecontroleerd als er geen map is opgegeven, en moet dan bestaan)
 // Indeling: <map>/<onderwerp>/<id>/meta.json en script.ps1
 // Exitcode: 1 bij fouten, anders 0. Waarschuwingen veroorzaken nooit exitcode 1.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -11,6 +15,13 @@ import Ajv from 'ajv';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const scriptsMap = resolve(process.argv[2] ?? join(root, 'data', 'scripts'));
+// Het woordenboek: expliciet opgegeven (dan moet het bestaan), of het standaardbestand als dat er is.
+const woordenboekArg = process.argv[3];
+const woordenboekPad = woordenboekArg
+  ? resolve(woordenboekArg)
+  : process.argv[2] === undefined
+    ? join(root, 'data', 'dictionary.json') // standaard verplicht: ontbreekt het, dan is dat een fout
+    : null;
 
 // Cmdlet-werkwoorden die iets wijzigen; bij risk "read" geeft dat een waarschuwing.
 const SCHRIJF_CMDLET = /(?<![\w-])(?:Set|Update|Remove|Disable|Enable|Add|Grant|Revoke|Copy|Move)-[A-Za-z]\w*/g;
@@ -26,6 +37,7 @@ const waarschuw = (bestand, bericht) => waarschuwingen.push(`WAARSCHUWING  ${pad
 // Strict-modus van Ajv staat aan (standaard): onbekende schema-sleutels en type-unions worden gemeld.
 const ajv = new Ajv({ allErrors: true, strict: true });
 const valideer = ajv.compile(JSON.parse(readFileSync(join(root, 'schema', 'script.schema.json'), 'utf8')));
+const valideerWoordenboek = ajv.compile(JSON.parse(readFileSync(join(root, 'schema', 'dictionary.schema.json'), 'utf8')));
 
 function schemaMelding(e) {
   const waar = e.instancePath || '(hele bestand)';
@@ -169,11 +181,47 @@ function controleerScript(map, onderwerp, mapNaam) {
   }
 }
 
+// Woordenboek: schema, daarna unieke groep-id's en unieke termen (de term is de sleutel voor flashcards).
+let woordenboekRegel = null;
+if (woordenboekPad !== null) {
+  let woordenboek = null;
+  if (!existsSync(woordenboekPad)) {
+    fout(woordenboekPad, 'bestand ontbreekt');
+  } else {
+    try {
+      woordenboek = JSON.parse(readFileSync(woordenboekPad, 'utf8'));
+    } catch (e) {
+      fout(woordenboekPad, `JSON is ongeldig: ${e.message}`);
+    }
+  }
+  if (woordenboek !== null) {
+    if (!valideerWoordenboek(woordenboek)) {
+      for (const e of valideerWoordenboek.errors) fout(woordenboekPad, schemaMelding(e));
+    } else {
+      const groepIds = new Set();
+      const termen = new Set();
+      let aantalItems = 0;
+      for (const groep of woordenboek) {
+        if (groepIds.has(groep.id)) fout(woordenboekPad, `dubbel groep-id '${groep.id}'`);
+        groepIds.add(groep.id);
+        for (const item of groep.items) {
+          aantalItems++;
+          // Hoofdletterongevoelig: de flashcards gebruiken de term als sleutel
+          if (termen.has(item.term.toLowerCase())) fout(woordenboekPad, `dubbele term '${item.term}' (in groep '${groep.id}')`);
+          termen.add(item.term.toLowerCase());
+        }
+      }
+      woordenboekRegel = `Woordenboek: ${aantalItems} items in ${woordenboek.length} groepen`;
+    }
+  }
+}
+
 // Uitvoer
 if (aantalScripts === 0) {
   waarschuwingen.push(`WAARSCHUWING  ${pad(scriptsMap)}: geen scripts gevonden`);
 }
 for (const regel of fouten) console.error(regel);
 for (const regel of waarschuwingen) console.log(regel);
+if (woordenboekRegel !== null) console.log(woordenboekRegel);
 console.log(`Samenvatting: ${aantalScripts} scripts, ${fouten.length} fouten, ${waarschuwingen.length} waarschuwingen`);
 process.exit(fouten.length > 0 ? 1 : 0);

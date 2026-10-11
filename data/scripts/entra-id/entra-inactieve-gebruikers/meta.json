@@ -1,0 +1,134 @@
+{
+  "id": "entra-inactieve-gebruikers",
+  "legacyId": "graph-users",
+  "title": "Inactieve gebruikers",
+  "topic": "entra-id",
+  "level": "basis",
+  "tag": "Microsoft Graph · alleen lezen",
+  "summary": "Rapport van ingeschakelde accounts die 90 dagen niet hebben ingelogd. Typisch voor een opschoonactie na een ISO 27001-audit.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Graph.Authentication",
+    "Microsoft.Graph.Users"
+  ],
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-11",
+    "source": "Microsoft Learn: Connect-MgGraph (-Scopes), Get-MgUser (-All, -Property), signInActivity-resource en List users voorbeeld 11 (AuditLog.Read.All, Entra ID P1/P2), Export-Csv (-Path, -NoTypeInformation, -Encoding UTF8)"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        2
+      ],
+      "prompt": "Waarom vraagt het script om twee scopes?",
+      "options": [
+        "De eerste is om te lezen, de tweede om te schrijven",
+        "User.Read.All voor de gebruikers, AuditLog.Read.All omdat aanmeldgegevens (SignInActivity) onder auditlogs vallen",
+        "AuditLog.Read.All is nodig voor MFA",
+        "Het is dubbelop; één scope is genoeg"
+      ],
+      "answer": 1,
+      "explanation": "Zonder `AuditLog.Read.All` blijft `SignInActivity` leeg of krijg je een fout. Beide scopes zijn leesrechten; er wordt niets gewijzigd."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        4
+      ],
+      "prompt": "Wat staat er na regel 4 in $grens?",
+      "options": [
+        "Het getal 90",
+        "Een datum en tijd van 90 dagen geleden",
+        "Een datum 90 dagen in de toekomst",
+        "Het aantal dagen sinds de laatste login"
+      ],
+      "answer": 1,
+      "explanation": "`Get-Date` geeft nu; `.AddDays(-90)` telt er min 90 dagen bij op. Het resultaat is een `[datetime]`-object dat je verderop vergelijkt."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "prompt": "Wat is $_ binnen het Where-Object-blok?",
+      "options": [
+        "Alle gebruikers tegelijk",
+        "De gebruiker die op dat moment door de pipeline komt",
+        "De laatste fout",
+        "Een lege variabele"
+      ],
+      "answer": 1,
+      "explanation": "`Where-Object` bekijkt de objecten één voor één. `$_` (of `$PSItem`) is steeds het huidige object. Alleen als het blok `$true` oplevert, gaat de gebruiker door."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        10
+      ],
+      "prompt": "Waarom staat er een aparte controle op $null?",
+      "options": [
+        "Om fouten te onderdrukken",
+        "Om gebruikers mee te nemen die nog nooit hebben ingelogd, want die hebben geen datum",
+        "Om uitgeschakelde accounts over te slaan",
+        "Het is overbodig"
+      ],
+      "answer": 1,
+      "explanation": "Een account dat nooit heeft ingelogd heeft geen `LastSignInDateTime`. Die wil je juist in het rapport. `$null` staat links van `-eq`: dat is de aanbevolen schrijfwijze, omdat `-eq` bij een lijst aan de linkerkant de lijst filtert in plaats van te vergelijken, en je dan onverwachte uitkomsten krijgt."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        16
+      ],
+      "prompt": "Wat doet @{ Name = ...; Expression = { ... } } in Select-Object?",
+      "options": [
+        "Het maakt een nieuwe variabele aan",
+        "Het maakt een berekende kolom: een nieuwe eigenschap met een eigen naam en waarde",
+        "Het filtert de gebruikers",
+        "Het sorteert de kolommen"
+      ],
+      "answer": 1,
+      "explanation": "Dit heet een **calculated property**. De datum zit diep in `SignInActivity`; zo haal je hem naar boven als kolom `LaatsteLogin`, die `Sort-Object` en `Export-Csv` daarna kunnen gebruiken."
+    },
+    {
+      "id": "q6",
+      "type": "bug",
+      "step": "bron",
+      "lines": [
+        6
+      ],
+      "prompt": "De tenant heeft 2.000 gebruikers, maar het rapport kijkt maar naar een deel ervan. Waar zit de fout?",
+      "options": [
+        "Where-Object filtert te streng",
+        "Get-MgUser mist -All, waardoor alleen de eerste pagina resultaten wordt opgehaald",
+        "Export-Csv kapt het bestand af",
+        "De scope User.Read.All is te beperkt"
+      ],
+      "answer": 1,
+      "explanation": "Graph werkt met pagina's. Zonder `-All` haalt `Get-MgUser` alleen de eerste pagina op. Hetzelfde patroon zie je bij `Get-SPOSite -Limit All` en `Get-MgDevice -All`. Dit is een klassieke valkuil om in een gesprek te noemen."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Wat verandert er in de tenant als je dit script draait?",
+      "explanation": "Niets. Elke stap leest of verwerkt alleen: `Connect`, `Get`, `Where`, `Select`, `Sort`, `Export` naar een lokaal bestand. Er staat geen `Set-`, `Update-`, `New-` of `Remove-` in. Kijk bij elk onbekend script eerst naar die werkwoorden."
+    }
+  ]
+}

@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.7, akkoord).
-- `DESIGN.md`: hoe (versie 1.4, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.5, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 
 ## Werkwijze (verplicht)
@@ -70,7 +70,7 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] Pull request feature/repo-en-validatie naar main (Peter)
 - [x] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
 - [ ] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7) (in uitvoering)
-- [ ] `feature/omzetten-v1`: 4 scripts, 26 vragen en woordenboek uit v1 omzetten
+- [ ] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten (in uitvoering: omzetting, woordenboekschema, `migreerV1()` en regressietest staan klaar; wacht op review en akkoord)
 - [ ] `feature/startpagina-en-werkbank`
 - [ ] `feature/deploy` (`deploy.yml`, DNS, eerste livegang)
 - [ ] Inhoud: Migraties, SharePoint, Foundry, Purview (elk eigen feature-branch)
