@@ -14,36 +14,34 @@ export const WOORDENBOEK_RISICO_LABELS = { read: 'leest', write: 'wijzigt', neut
 // --- URL-parameters ---
 
 // Leest de parameters van een pagina en geeft alleen geldige waarden terug (anders null of '').
-//   ?script=<id>  vast voor de PS Coach; verder optioneel: &topic=, &level=, &type= (werkbank) en ?q= (woordenboek)
+//   ?script=<id>  vast voor de PS Coach; verder optioneel: &topic=, &type= (werkbank) en ?q= (woordenboek).
+//   Een oude &level= wordt genegeerd: de werkbank heeft geen niveaufilter meer.
 export function leesParams(zoektekst, { topics = [] } = {}) {
   const p = new URLSearchParams(zoektekst);
   const script = p.get('script');
   const topic = p.get('topic');
-  const level = p.get('level');
   const type = p.get('type');
   return {
     script: script && /^[a-z0-9-]+$/.test(script) ? script : null,
     topic: topic && topics.includes(topic) ? topic : null,
-    level: NIVEAUS.includes(level) ? level : null,
     type: VRAAGTYPES.includes(type) ? type : null,
     q: (p.get('q') ?? '').slice(0, 100)
   };
 }
 
 // Bouwt de werkbank-URL. ?script= blijft altijd eerst staan (vaste URL voor de PS Coach).
-export function werkbankUrl(scriptId, { topic = null, level = null, type = null } = {}) {
+export function werkbankUrl(scriptId, { topic = null, type = null } = {}) {
   const p = new URLSearchParams({ script: scriptId });
   if (topic) p.set('topic', topic);
-  if (level) p.set('level', level);
   if (type) p.set('type', type);
   return `/oefenen/?${p}`;
 }
 
 // --- Filteren ---
 
-// Scripts voor de chips bovenin: onderwerp en niveau (ontbrekend filter = alles).
-export function filterScripts(scripts, { topic = null, level = null } = {}) {
-  return scripts.filter((s) => (!topic || s.topic === topic) && (!level || s.level === level));
+// Scripts voor de chips bovenin: alleen op onderwerp (ontbrekend filter = alles).
+export function filterScripts(scripts, { topic = null } = {}) {
+  return scripts.filter((s) => !topic || s.topic === topic);
 }
 
 // Het standaardscript uit een lijst: het laagste niveau eerst, en bij gelijk niveau eerst een script dat

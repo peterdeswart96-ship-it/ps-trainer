@@ -413,6 +413,8 @@ test('kleuren: elk onderwerp heeft een felle en een pastelkleur voor licht en do
     assert.deepEqual(alles.slice(per, per * 2), alles.slice(per * 2), 'het donkere thema via de media-query en via data-theme moeten gelijk zijn');
   }
   for (const onderwerp of onderwerpen) assert.match(css, new RegExp(`\\.kaart\\[data-onderwerp="${onderwerp}"\\]\\s*\\{`), `kleurregel voor ${onderwerp} ontbreekt`);
+  // De onderwerpknoppen in het filter van de werkbank hebben per onderwerp een eigen regel (zonder regel: accentkleur)
+  for (const onderwerp of onderwerpen) assert.match(css, new RegExp(`\\.chip\\.filter\\[data-onderwerp="${onderwerp}"\\]\\s*\\{[^}]*--tint:\\s*var\\(--p-${onderwerp}\\)[^}]*--rand:\\s*var\\(--t-${onderwerp}\\)`), `kleurregel voor de filterknop van ${onderwerp} ontbreekt of wijst naar de verkeerde kleur`);
 });
 
 test('kleuren: tekst op de tegel (40% pastel over de achtergrond) haalt 4,5:1 en icoon en rand 3:1, in licht en donker', () => {

@@ -1,6 +1,6 @@
 # DEFINE – PowerShell Leestrainer
 
-Status: versie 0.7 (11 oktober 2026), akkoord van Peter op 11 oktober 2026. Wijzigingen t.o.v. 0.6: omvang release 2.0 bevestigd, geen ShareGate-toegang vastgelegd, Foundry-scripts omvatten zowel beheer als aanmaken. Geen open vragen meer.
+Status: versie 0.8 (11 oktober 2026). Wijziging t.o.v. 0.7, op verzoek van Peter: de werkbank filtert niet meer op niveau, alleen op onderwerp en soort vraag (het niveau blijft wel een eigenschap van elk script). Eerdere wijzigingen (0.7, akkoord van Peter op 11 oktober 2026), t.o.v. 0.6: omvang release 2.0 bevestigd, geen ShareGate-toegang vastgelegd, Foundry-scripts omvatten zowel beheer als aanmaken. Geen open vragen meer.
 
 ## Besluiten
 
@@ -49,7 +49,7 @@ Tweede doel: tijdens het bouwen Foundry, Azure Functions, Entra ID-authenticatie
 | --- | --- | --- | --- |
 | 1 | Meer scripts: Migraties, SharePoint, Foundry, Purview, Entra ID | Website | JSON-bestanden |
 | 2 | Moeilijkheidsniveaus: basis, gevorderd, expert | Website | Veld in JSON |
-| 3 | Filteren op onderwerp, niveau en soort vraag | Website | – |
+| 3 | Filteren op onderwerp en soort vraag | Website | – |
 | 4 | Flashcards van het woordenboek | Website | – |
 | 5 | Examenmodus met tijd en eindscore | Website | – |
 | 6 | Herhaal je fouten | Website | Voortgang opslaan |
