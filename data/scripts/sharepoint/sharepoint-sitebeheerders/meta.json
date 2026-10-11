@@ -1,0 +1,131 @@
+{
+  "id": "sharepoint-sitebeheerders",
+  "title": "Sitebeheerders per site",
+  "topic": "sharepoint",
+  "level": "basis",
+  "tag": "Get-SPOUser · geneste lus · alleen lezen",
+  "summary": "Zoekt per site wie sitebeheerder is en telt bij hoeveel sites elk account beheerder is.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. De officiële pagina van Get-SPOUser noemt de eigenschap IsSiteAdmin niet; of ze zo heet, is dus niet bevestigd. Controleer met Get-SPOUser -Site <url> | Get-Member welke eigenschappen jouw versie teruggeeft. Volgens de documentatie moet je SharePoint-beheerder én sitebeheerder van de bevraagde site zijn.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-SPOUser (-Site, -Limit, standaard 500 gebruikers, All voor alle, vereiste beheerrechten) en Get-SPOSite. Open punt: de eigenschap IsSiteAdmin staat niet in de officiële documentatie."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        10
+      ],
+      "prompt": "Wat doet -Limit All bij Get-SPOUser, en wat gebeurt er zonder?",
+      "options": [
+        "Zonder -Limit All geeft de cmdlet alleen de beheerders terug, met -Limit All alle gebruikers van de site",
+        "Zonder -Limit All krijg je maximaal 500 gebruikers per site (documentatie); met All alle gebruikers",
+        "-Limit All zet de cmdlet in een modus waarin hij ook de groepen van een site toont, zonder limiet",
+        "-Limit All is verplicht; zonder die parameter geeft de cmdlet een foutmelding en stopt het script"
+      ],
+      "answer": 1,
+      "explanation": "Volgens de documentatie levert `Get-SPOUser` standaard 500 gebruikers per site. In een grote site kan een beheerder daarbuiten vallen, en dan mis je hem stilletjes. `-Limit All` haalt alles op."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        10
+      ],
+      "prompt": "Wat geeft Get-SPOUser -Site $site.Url -Limit All terug?",
+      "options": [
+        "Alleen de sitebeheerders van die site, dus het filter op de volgende regel is eigenlijk overbodig",
+        "Alle gebruikers van alle sites in de tenant, ongeacht welke site je bij -Site opgeeft",
+        "Alleen de eigenaar van de site, zoals die ook in de eigenschap Owner van Get-SPOSite staat",
+        "De gebruikers en beveiligingsgroepen van die ene site, beheerders en leden door elkaar"
+      ],
+      "answer": 3,
+      "explanation": "De documentatie zegt dat de cmdlet gebruikers of beveiligingsgroepen teruggeeft. Het filter op de volgende regel is dus nodig om alleen de beheerders over te houden. `$site.Url` is het adres van de site waar de buitenste `foreach` op dat moment mee bezig is."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        11
+      ],
+      "prompt": "Wat doet Where-Object { $_.IsSiteAdmin } zonder vergelijkingsoperator?",
+      "options": [
+        "Het telt hoeveel accounts er een eigenschap IsSiteAdmin hebben en meldt dat getal",
+        "Het controleert of de eigenschap IsSiteAdmin bestaat, ongeacht de waarde die ze heeft",
+        "Het laat de accounts door waarvoor IsSiteAdmin waar is, en houdt alle andere tegen",
+        "Het geeft een foutmelding, want Where-Object heeft altijd een operator als -eq nodig"
+      ],
+      "answer": 2,
+      "explanation": "Staat er geen operator, dan beoordeelt `Where-Object` de waarde zelf: `$true` gaat door, `$false` of leeg niet. Bij een echte waar/onwaar-eigenschap is dat dezelfde uitkomst als `$_.IsSiteAdmin -eq $true`."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        11
+      ],
+      "prompt": "In jouw versie van de module heet de eigenschap anders dan IsSiteAdmin. Wat zie je na het draaien van het script?",
+      "options": [
+        "Geen uitvoer en geen foutmelding: een ontbrekende eigenschap is leeg en wordt weggefilterd",
+        "Een foutmelding over een onbekende eigenschap op regel 11, en het script stopt direct",
+        "Alle gebruikers van alle sites, omdat het filter bij een onbekende eigenschap niets tegenhoudt",
+        "Alleen de beheerders van de eerste site, omdat de lus bij een fout na de eerste site afbreekt"
+      ],
+      "answer": 0,
+      "explanation": "PowerShell geeft geen fout als je een eigenschap vraagt die niet bestaat: de waarde is gewoon leeg. Het filter laat dan niets door, en je ziet helemaal geen uitvoer, alsof er nergens beheerders zijn. Controleer daarom altijd eerst met `Get-Member` welke eigenschappen een cmdlet teruggeeft, vooral als de documentatie ze niet noemt."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        9,
+        10,
+        12,
+        13
+      ],
+      "prompt": "Waarom staan op regel 13 zowel $site.Url als $_.LoginName?",
+      "options": [
+        "$_ en $site verwijzen naar hetzelfde object; het script gebruikt twee schrijfwijzen voor de leesbaarheid",
+        "$_ is de huidige site en $site is het account dat de lus op dat moment verwerkt",
+        "$site is de huidige site uit de buitenste foreach; $_ is binnen ForEach-Object het huidige account",
+        "$site is een parameter van het script, en $_ is een tijdelijke variabele die PowerShell zelf maakt"
+      ],
+      "answer": 2,
+      "explanation": "In een geneste constructie heeft elke laag een eigen \"huidig object\". De buitenste `foreach ($site in $sites)` geeft de naam `$site` aan de huidige site. In het blok van `ForEach-Object` is `$_` het huidige item dat uit de pipeline komt, dus het huidige account. Zo kan één regel gegevens van beide niveaus combineren."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        17
+      ],
+      "prompt": "Wat laat regel 17 zien, en waarom staat Format-Table helemaal aan het eind?",
+      "options": [
+        "Per account het aantal sites waar hij beheerder is, het hoogste eerst; Format-Table is voor het scherm",
+        "Per site het aantal beheerders; Format-Table staat achteraan omdat het de kolommen sorteert",
+        "Een lijst met alle gebruikers van alle sites; Format-Table staat achteraan omdat het filtert op beheerders",
+        "De naam van het account met de meeste rechten; Format-Table staat achteraan om één regel te tonen"
+      ],
+      "answer": 0,
+      "explanation": "`Group-Object Beheerder` maakt per account een groep, en `Count` is het aantal sites waarvoor dat account beheerder is. `Sort-Object Count -Descending` zet de meeste bovenaan. Een account dat overal beheerder is, is een goede kandidaat om te controleren. `Format-Table` maakt opmaak voor het scherm en hoort daarom altijd als laatste, anders kun je het resultaat niet meer exporteren."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Dit script wijzigt niets. Waarom is het toch zinvol om het regelmatig te draaien, en wat zou je met de uitkomst doen?",
+      "explanation": "Sitebeheerders hebben veel rechten, en dat zijn precies de accounts waar fouten ontstaan: collega's die zijn vertrokken, accounts die op heel veel sites beheerder zijn, of sites zonder een eigenaar die nog bestaat. Bijvoorbeeld: (1) controleer de accounts bovenaan de lijst: horen ze overal beheerder te zijn; (2) zoek sites zonder actieve beheerder; (3) vergelijk met de lijst van actieve medewerkers; (4) bewaar de uitvoer per datum, zodat je veranderingen ziet. Let op: de documentatie vereist dat je behalve SharePoint-beheerder ook sitebeheerder van de bevraagde site bent. Ben je dat niet, dan kan de cmdlet een fout geven of sites missen; controleer de uitvoer en de foutmeldingen."
+    }
+  ]
+}
