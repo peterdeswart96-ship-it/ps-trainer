@@ -1,0 +1,134 @@
+{
+  "id": "sharepoint-beheerder-toevoegen",
+  "title": "Sitebeheerder toevoegen met droge run",
+  "topic": "sharepoint",
+  "level": "gevorderd",
+  "tag": "Set-SPOUser · try/catch · wijzigt doel",
+  "summary": "Voegt een account toe als sitebeheerder op de sites uit een CSV, standaard als droge run en pas met -Uitvoeren echt.",
+  "risk": "write",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. Volgens de documentatie van Set-SPOUser moet je minstens SharePoint-beheerder zijn en wordt de cmdlet niet ondersteund met GDAP. De cmdlet heeft geen -WhatIf of -Confirm; de droge run is daarom een eigen schakelaar. De documentatie spreekt van het aanpassen van een bestaande gebruiker; of het account al op de site moet voorkomen voordat je het beheerder maakt, is niet uitdrukkelijk beschreven. Of een mislukte aanroep een afbrekende of niet-afbrekende fout geeft, hangt van de fout af; daarom staat er -ErrorAction Stop. De terugweg met -IsSiteCollectionAdmin $false is een afleiding uit de documentatie (\"toevoegen of verwijderen\") en niet getest; randgevallen zoals de primaire eigenaar of de laatste beheerder zijn niet beschreven.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Set-SPOUser (-Site, -LoginName, -IsSiteCollectionAdmin, geen -WhatIf of -Confirm, SharePoint-beheerder vereist, niet met GDAP). Open punten: of het account al op de site moet bestaan, het gedrag bij fouten, en of -IsSiteCollectionAdmin $false het beheerderschap altijd weer weghaalt."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        6,
+        14
+      ],
+      "prompt": "Waarom heeft het script een schakelaar -Uitvoeren, en wat gebeurt er zonder?",
+      "options": [
+        "Omdat Set-SPOUser alleen werkt met een schakelaar; zonder -Uitvoeren geeft het script een foutmelding",
+        "Set-SPOUser heeft geen -WhatIf; zonder -Uitvoeren meldt het script alleen wat het zou doen",
+        "Om het script sneller te maken; zonder -Uitvoeren worden de sites in één aanroep verwerkt",
+        "Omdat de CSV anders niet wordt gelezen; zonder -Uitvoeren stopt het script na de verbinding"
+      ],
+      "answer": 1,
+      "explanation": "De documentatie van `Set-SPOUser` noemt geen `-WhatIf` of `-Confirm`, dus je kunt de cmdlet zelf niet \"droog\" draaien. Een eigen schakelaar lost dat op: zonder `-Uitvoeren` toont het script alleen wat het zou doen. De standaard wijzigt dus niets en je kiest bewust om het echt te doen. Let op: de droge run controleert niet of de site of het account bestaat; hij toont alleen wat het script zou proberen."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        11,
+        13
+      ],
+      "prompt": "Wat is $site in de foreach op regel 13, en waar komt .Url vandaan?",
+      "options": [
+        "Een tekst per regel van het bestand; .Url is de lengte van de regel in het bestand",
+        "Een site-object uit SharePoint; .Url komt uit Get-SPOSite en wordt hier opnieuw opgevraagd",
+        "Een hashtable met sites; .Url is de sleutel waarmee het script de waarde opzoekt",
+        "Een object per regel van de CSV; .Url is de waarde uit de kolom Url van de kopregel"
+      ],
+      "answer": 3,
+      "explanation": "`Import-Csv` leest de eerste regel als kopregel en maakt per volgende regel een object met die kolomnamen als eigenschappen. Heet de kolom `Url`, dan geeft `$site.Url` het adres van die rij. Heet de kolom anders, dan is `$site.Url` leeg en gaat het script met een lege waarde aan de slag."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        16
+      ],
+      "prompt": "Waarom staat er $true achter -IsSiteCollectionAdmin, en wat zou $false doen?",
+      "options": [
+        "Het is een parameter met een waar/onwaar-waarde; met $false verwijder je de beheerder weer",
+        "Het is een schakelaar zonder waarde; $true staat er alleen voor de leesbaarheid en doet niets",
+        "Het geeft aan dat de gebruiker moet bestaan; met $false maakt het script de gebruiker aan",
+        "Het bepaalt of de wijziging wordt bevestigd; met $false wordt er niets gewijzigd (droge run)"
+      ],
+      "answer": 0,
+      "explanation": "`-IsSiteCollectionAdmin` is een Boolean met een waarde, geen schakelaar. De documentatie zegt dat `Set-SPOUser` een gebruiker als sitebeheerder kan toevoegen of verwijderen. Met `$true` voeg je toe. Met `$false` hoort het beheerderschap weer te verdwijnen: de documentatie zegt alleen dat de cmdlet een beheerder kan toevoegen of verwijderen, dus dat is een afleiding die je eerst test. Randgevallen, zoals de primaire eigenaar of de laatste beheerder, staan niet beschreven."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        16,
+        17,
+        20
+      ],
+      "prompt": "Je haalt -ErrorAction Stop weg en Set-SPOUser geeft voor één site een niet-afbrekende fout. Wat zie je?",
+      "options": [
+        "Het script stopt bij die site met een foutmelding en gaat niet verder met de volgende sites",
+        "De catch meldt \"Mislukt op ...\" voor die site; zonder -ErrorAction Stop maakt dat geen verschil",
+        "De fout verschijnt in beeld, maar de catch draait niet en het script meldt toch \"Toegevoegd\"",
+        "Niets: een niet-afbrekende fout wordt door PowerShell altijd stilgehouden en nergens getoond"
+      ],
+      "answer": 2,
+      "explanation": "Een `catch` vangt alleen afbrekende fouten. Een niet-afbrekende fout laat de cmdlet doorlopen, dus de regel `Write-Host \"Toegevoegd: ...\"` volgt gewoon, en je leest \"Toegevoegd\" terwijl het misging. `-ErrorAction Stop` maakt van elke fout een afbrekende fout, zodat de `catch` draait. Getest in Windows PowerShell 5.1 en PowerShell 7 met een nagebootste cmdlet."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        16,
+        24
+      ],
+      "prompt": "Welke regel wijzigt iets in SharePoint Online, en wanneer?",
+      "options": [
+        "Regel 9, Connect-SPOService, omdat de verbinding rechten toevoegt zodra het script start",
+        "Regel 11, Import-Csv, omdat het de beheerder in elke site uit de CSV opneemt, direct na het inlezen",
+        "Regel 24, Write-Host, omdat de droge run de wijziging al klaarzet voor de volgende keer",
+        "Regel 16, Set-SPOUser, en alleen met -Uitvoeren; zonder die schakelaar verandert er niets"
+      ],
+      "answer": 3,
+      "explanation": "Alleen `Set-SPOUser` schrijft. De regel staat in het `if ($Uitvoeren)`-blok, dus zonder de schakelaar loopt het script alleen door de `else`-tak en print het wat het zou doen. Je moet minstens SharePoint-beheerder zijn om de cmdlet te draaien."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        20,
+        22
+      ],
+      "prompt": "Wat meldt het script voor een site waar Set-SPOUser faalt, en gaat het dan door?",
+      "options": [
+        "Een waarschuwing \"Mislukt op ...\" met de foutmelding; de lus gaat verder met de volgende site",
+        "Een melding \"Toegevoegd\" omdat de volgende regel toch wordt uitgevoerd, gevolgd door de foutmelding",
+        "Een foutmelding en daarna stopt het hele script, zodat je niet per ongeluk verder gaat",
+        "Niets: Write-Warning schrijft alleen naar een logbestand dat je zelf moet openen"
+      ],
+      "answer": 0,
+      "explanation": "De `catch` vangt de fout, `Write-Warning` toont \"Mislukt op ...\" met de reden, en de `foreach` gaat gewoon door met de volgende site. Zo stopt één kapotte site de rest niet. Let op: de waarschuwing staat alleen op het scherm. Wil je achteraf zien wat er gebeurd is, schrijf de meldingen dan ook naar een bestand."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Wat regel je voordat je dit script met -Uitvoeren op echte sites draait, en hoe draai je het terug?",
+      "explanation": "Bijvoorbeeld: (1) draai eerst zonder `-Uitvoeren` en lees de lijst na; (2) test met één site; (3) laat iemand anders de lijst en het account goedkeuren, want sitebeheerder is een zware rol; (4) schrijf het resultaat naar een logbestand; (5) controleer achteraf met het script voor sitebeheerders; (6) de terugweg is waarschijnlijk dezelfde cmdlet met `-IsSiteCollectionAdmin $false`, maar test dat eerst: de documentatie beschrijft het alleen als \"toevoegen of verwijderen\", en tussendoor kan al iets zijn gebeurd. Let op de beperkingen uit de documentatie: je moet minstens SharePoint-beheerder zijn, de cmdlet wordt niet ondersteund met GDAP, en de documentatie spreekt van het aanpassen van een bestaande gebruiker. Test dus eerst of het account op de site moet bestaan."
+    }
+  ]
+}
