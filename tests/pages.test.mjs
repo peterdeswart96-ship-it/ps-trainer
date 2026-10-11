@@ -17,7 +17,7 @@ import { bouwIndex } from '../tools/build-index.mjs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Mappen op het hoogste niveau die geen pagina's zijn
-const GEEN_PAGINA = new Set(['.git', '.github', 'node_modules', 'assets', 'data', 'schema', 'tests', 'tools', 'legacy', 'api', 'agent']);
+const GEEN_PAGINA = new Set(['.git', '.github', 'node_modules', 'assets', 'data', 'schema', 'tests', 'tools', 'legacy', 'api', 'agent', '_site']);
 
 // Alle pagina's als URL-pad: '/' voor index.html en '/<map>/' voor <map>/index.html
 function vindPaginas() {

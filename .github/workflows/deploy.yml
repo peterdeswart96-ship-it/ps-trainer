@@ -1,0 +1,92 @@
+# Deploy: zet de site op GitHub Pages (ps-trainer.pdscloud.nl). Draait alleen op een push naar main, dus op het
+# moment dat Peter een pull request merget (of handmatig via "Run workflow" om opnieuw te publiceren).
+# Eerst wordt alles opnieuw gecontroleerd (zelfde stappen als de workflow "Validatie"), daarna wordt alleen de
+# allowlist van sitebestanden gebouwd (tools/build-site.mjs), op het pakket zelf getest en gepubliceerd.
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# De bouwjob mag alleen lezen. De deployjob krijgt hieronder zijn eigen, extra rechten.
+permissions:
+  contents: read
+
+# Maximaal een deploy tegelijk, en een lopende deploy nooit afbreken (anders kan een halve site live staan).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  bouwen:
+    runs-on: ubuntu-24.04   # vastgezet, zie validate.yml
+    timeout-minutes: 10
+    steps:
+      - name: Code ophalen
+        uses: actions/checkout@v7
+
+      # Node in de versie uit .nvmrc (nooit een los versienummer, 'latest' of 'lts/*': zie CLAUDE.md).
+      - name: Node installeren
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Versies tonen
+        run: |
+          node -v
+          npm -v
+
+      - name: Pakketten installeren
+        run: npm ci
+
+      # Extra veiligheid: dezelfde controles als bij een pull request, ook op het merge-moment zelf.
+      - name: Inhoud valideren
+        run: npm run validate
+
+      - name: Tests draaien
+        run: npm test
+
+      - name: PowerShell-versie tonen
+        run: pwsh -Version
+
+      - name: PowerShell-syntax controleren
+        run: npm run syntax
+
+      - name: Rooktest op de repo
+        run: npm run smoke
+
+      # Bouwt _site: alleen de toegestane sitebestanden en een verse data/index.json (geen tests, tools,
+      # DESIGN.md, CLAUDE.md, package.json, .github of legacy).
+      - name: Sitepakket bouwen
+        run: npm run build-site
+
+      # Test het pakket zoals het gepubliceerd wordt: elke pagina en elk bestand waarnaar ze verwijzen moet laden.
+      - name: Rooktest op het sitepakket
+        run: npm run smoke-site
+
+      # Verpakt _site voor GitHub Pages. Bestanden die met een punt beginnen worden standaard niet meegenomen.
+      - name: Pakket uploaden
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  publiceren:
+    needs: bouwen
+    # Alleen vanaf main, ook bij een handmatige start
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # De rechten die GitHub Pages nodig heeft om te publiceren: alleen deze job krijgt ze.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publiceren op GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

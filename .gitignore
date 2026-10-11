@@ -16,3 +16,6 @@ local.settings.json
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Het gepubliceerde sitepakket (tools/build-site.mjs): wordt altijd opnieuw gebouwd
+_site/
