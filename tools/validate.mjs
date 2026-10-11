@@ -42,17 +42,17 @@ function aantalRegels(tekst) {
   return tekst.replace(/\r?\n$/, '').split(/\r?\n/).length;
 }
 
-// Vervangt PowerShell-commentaar (# en <# #>) door spaties, zodat alleen echte code overblijft.
-// Houdt rekening met tekst tussen aanhalingstekens. Here-strings worden niet apart herkend.
-function zonderCommentaar(tekst) {
+// Vervangt PowerShell-commentaar (# en <# #>) en de inhoud van tekst tussen aanhalingstekens
+// door spaties, zodat alleen echte code overblijft. Here-strings worden niet apart herkend.
+function zonderCommentaarEnTekst(tekst) {
   let uit = '';
   let aanhaling = null;
   for (let i = 0; i < tekst.length; i++) {
     const c = tekst[i];
     if (aanhaling) {
-      if (aanhaling === '"' && c === '`') { uit += c + (tekst[++i] ?? ''); continue; }
+      if (aanhaling === '"' && c === '`') { uit += tekst[i + 1] === undefined ? ' ' : '  '; i++; continue; }
+      uit += c === aanhaling || c === '\r' || c === '\n' ? c : ' ';
       if (c === aanhaling) aanhaling = null;
-      uit += c;
     } else if (c === '<' && tekst[i + 1] === '#') {
       const eind = tekst.indexOf('#>', i + 2);
       const stuk = tekst.slice(i, eind === -1 ? tekst.length : eind + 2);
@@ -162,7 +162,7 @@ function controleerScript(map, onderwerp, mapNaam) {
     waarschuw(psPad, `bevat niet-ASCII-tekens (eerste op regel ${regelMetNietAscii + 1}); Windows PowerShell 5.1 leest UTF-8 zonder BOM als ANSI`);
   }
   if (meta.risk === 'read') {
-    const gevonden = [...new Set(zonderCommentaar(code).match(SCHRIJF_CMDLET) ?? [])];
+    const gevonden = [...new Set(zonderCommentaarEnTekst(code).match(SCHRIJF_CMDLET) ?? [])];
     if (gevonden.length > 0) {
       waarschuw(psPad, `risk is 'read', maar het script bevat wijzigende cmdlets: ${gevonden.join(', ')}`);
     }

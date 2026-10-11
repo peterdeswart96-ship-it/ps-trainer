@@ -10,6 +10,7 @@
   "scripts": {
     "check-node": "node tools/check-node.mjs",
     "validate": "node tools/check-node.mjs && node tools/validate.mjs",
+    "syntax": "node tools/check-node.mjs && pwsh -NoProfile -File tools/Test-Syntax.ps1",
     "test": "node tools/check-node.mjs && node --test tests/validate.test.mjs"
   },
   "devDependencies": {

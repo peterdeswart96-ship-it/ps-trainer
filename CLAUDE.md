@@ -53,7 +53,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 - [x] Repo `peterdeswart96-ship-it/ps-trainer` met `main` en `develop`
 - [x] Feature-branch `feature/repo-en-validatie` aangemaakt
 - [x] `.gitattributes`, `.gitignore`, `.npmrc`, `.nvmrc`, `package.json`, `tools/check-node.mjs`
-- [ ] Stap 3: `schema/script.schema.json`, `tools/validate.mjs`, testfixtures en tests
+- [x] Stap 3: `schema/script.schema.json`, `tools/validate.mjs`, testfixtures en tests
 - [ ] Stap 4: `tools/Test-Syntax.ps1`, `tools/build-index.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs`
 - [ ] Stap 5: workflow `validate.yml`
 - [ ] `feature/omzetten-v1`: 4 scripts, 26 vragen en woordenboek uit v1 omzetten
