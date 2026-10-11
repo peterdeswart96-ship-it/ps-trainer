@@ -1,0 +1,101 @@
+/* Gedeelde stijl voor alle pagina's, gebaseerd op v1: kleurvariabelen, licht en donker
+   (prefers-color-scheme plus handmatige keuze via data-theme), lettertypen via Google Fonts.
+   Paginaspecifieke stijl (werkbank, woordenboek, startpagina) komt in latere stappen onderaan. */
+
+:root {
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --ink: #18202c;
+  --muted: #5b6577;
+  --line: #d9dee7;
+  --accent: #2d55c4;
+  --accent-soft: #e4ebfb;
+  --code-bg: #f8f9fc;
+  --hl: #fff3c4;
+  --ok: #1f7a4d;
+  --ok-soft: #dff2e8;
+  --bad: #b3372b;
+  --bad-soft: #f8e1de;
+  --warn: #9a5b00;
+  --warn-soft: #fbeccf;
+  --tok-cmd: #2d55c4;
+  --tok-var: #8a3fa8;
+  --tok-str: #a0521c;
+  --tok-com: #636e80;
+  --tok-par: #1f7a6d;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151c; --panel: #181e27; --ink: #e6eaf1; --muted: #9aa5b6; --line: #2a3342;
+  --accent: #7d9cf0; --accent-soft: #1f2a44; --code-bg: #141a22; --hl: #3a3417;
+  --ok: #5cc28d; --ok-soft: #173327; --bad: #ef8a7e; --bad-soft: #3a1d1a; --warn: #e3b05a; --warn-soft: #3a2c12;
+  --tok-cmd: #8fb0ff; --tok-var: #d29bea; --tok-str: #e6a46f; --tok-com: #7f8a9c; --tok-par: #6fd0c0;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11151c; --panel: #181e27; --ink: #e6eaf1; --muted: #9aa5b6; --line: #2a3342;
+  --accent: #7d9cf0; --accent-soft: #1f2a44; --code-bg: #141a22; --hl: #3a3417;
+  --ok: #5cc28d; --ok-soft: #173327; --bad: #ef8a7e; --bad-soft: #3a1d1a; --warn: #e3b05a; --warn-soft: #3a2c12;
+  --tok-cmd: #8fb0ff; --tok-var: #d29bea; --tok-str: #e6a46f; --tok-com: #7f8a9c; --tok-par: #6fd0c0;
+  color-scheme: dark }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 64px; display: grid; gap: 20px; }
+
+/* Toegankelijkheid */
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.skip { position: absolute; left: -9999px; top: 0; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 14px; z-index: 10; }
+.skip:focus { left: 12px; top: 12px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Kop met titel, navigatie en themaknop */
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 62ch; }
+.kopacties { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.nav a { font-family: var(--f-display); font-weight: 500; font-size: 1.05rem; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; padding: 6px 2px; }
+.nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.nav a:hover { color: var(--ink); }
+.themaknop { background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: .85rem; color: var(--muted); }
+.themaknop:hover { border-color: var(--accent); color: var(--ink); }
+
+/* Leesmethode: de vijf stappen */
+.method { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9rem; }
+.method .lbl { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); margin-right: 4px; }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; }
+.step span { font-family: var(--f-mono); color: var(--accent); margin-right: 6px; font-size: .8rem; }
+
+/* Chips (filters en scriptkeuze) */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; text-align: left; display: grid; gap: 2px; min-width: 0; }
+.chip small { color: var(--muted); font-size: .8rem; }
+.chip[aria-pressed="true"], .chip[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.chip .prog { font-family: var(--f-mono); font-size: .75rem; color: var(--accent); }
+
+/* Knoppen */
+.btn { background: var(--accent); color: var(--panel); border: 0; border-radius: 8px; padding: 7px 14px; font-weight: 600; justify-self: start; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Labels en meldingen */
+.risk { font-size: .72rem; border-radius: 999px; padding: 1px 8px; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .05em; }
+.risk.read { background: var(--ok-soft); color: var(--ok); }
+.risk.write { background: var(--bad-soft); color: var(--bad); }
+.risk.neutral { background: var(--accent-soft); color: var(--accent); }
+.waarschuwing { background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 8px 12px; font-size: .9rem; }
+.fout { background: var(--bad-soft); color: var(--bad); border-radius: 6px; padding: 8px 12px; }
+.empty { color: var(--muted); }
+code.i { font-family: var(--f-mono); font-size: .86em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+/* Syntaxkleuring (zie assets/js/highlight.js) */
+.t-cmd { color: var(--tok-cmd); font-weight: 600; } .t-var { color: var(--tok-var); } .t-str { color: var(--tok-str); }
+.t-com { color: var(--tok-com); font-style: italic; } .t-par { color: var(--tok-par); }
+
+footer { color: var(--muted); font-size: .85rem; max-width: 80ch; }
+@media (prefers-reduced-motion: no-preference) { .chip, .btn, .themaknop { transition: border-color .15s, background .15s; } }

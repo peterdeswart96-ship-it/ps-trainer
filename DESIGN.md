@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.5 (11 oktober 2026), definitief. Wijziging t.o.v. 1.4: het woordenboekschema is vastgelegd (paragraaf 4.2, `schema/dictionary.schema.json`: groepen met `id`, `name` en items; unieke `term`), de overname van v1-voortgang is uitgewerkt (paragraaf 4.3: onbekende tijd, alleen scripts met `legacyId`, zuivere functie in `assets/js/progress.js`) en de v1-bron staat in `legacy/`. De 4 omgezette scripts hebben 27 vragen (niet 26). Geen open vragen.
+Status: versie 1.6 (11 oktober 2026), definitief. Wijziging t.o.v. 1.5: de werkbank (`/oefenen/`) krijgt optionele filterparameters `topic`, `level` en `type` naast het vaste `?script=` (paragraaf 5), met vastgelegde regels voor welk script opent en wat de filters doen; de lege onderwerpen (Foundry, Purview) zijn "nog in opbouw" en niet klikbaar; de gedeelde webmodules bouwen alles met DOM-elementen en `textContent`. Geen open vragen.
 
 ## 1. Besluiten
 
@@ -153,7 +153,7 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 }
 ```
 
-- **Overname van v1:** bij het eerste bezoek leest de pagina de oude sleutel `ps-leestrainer-v1` (formaat `<legacyId>:<index>`) en zet die om naar `<id>:q<index+1>`. Daarom blijven de vraag-volgorde en `legacyId` van de 4 bestaande scripts gelijk. De overname staat als zuivere functie `migreerV1()` in `assets/js/progress.js` (testbaar zonder browser). v1 bewaarde geen tijd bij een antwoord; overgenomen antwoorden krijgen daarom de bewust oude tijd `1970-01-01T00:00:00Z` ("onbekend"), zodat een echt antwoord bij het samenvoegen in 2.3 altijd wint. `correct` wordt bepaald met het `answer` uit het `meta.json` van scripts met een `legacyId` (alleen de 4 uit v1; dat aantal groeit nooit). Bestaande v2-voortgang wordt niet overschreven en de v1-sleutel blijft staan.
+- **Overname van v1:** bij het eerste bezoek leest de pagina de oude sleutel `ps-leestrainer-v1` (formaat `<legacyId>:<index>`) en zet die om naar `<id>:q<index+1>`. Daarom blijven de vraag-volgorde en `legacyId` van de 4 bestaande scripts gelijk. De overname staat als zuivere functie `migreerV1()` in `assets/js/progress.js` (testbaar zonder browser). v1 bewaarde geen tijd bij een antwoord; overgenomen antwoorden krijgen daarom de bewust oude tijd `1970-01-01T00:00:00Z` ("onbekend"), zodat een echt antwoord bij het samenvoegen in 2.3 altijd wint. `correct` wordt bepaald met het `answer` uit het `meta.json` van scripts met een `legacyId` (alleen de 4 uit v1; dat aantal groeit nooit). Bestaande v2-voortgang wordt niet overschreven en de v1-sleutel blijft staan. Een pagina die voortgang bewaart handelt eerst de overname af, want zodra `ps-trainer-v2` bestaat wordt v1 niet meer overgenomen. De themakeuze staat apart in `ps-trainer-thema` (`light` of `dark`; zonder keuze volgt de pagina het systeem) en wordt door `assets/js/theme-init.js` (een klassiek script in `<head>`) voor de eerste weergave gezet, tegen een flits van het verkeerde thema.
 - **Klaar voor 2.3:** elk antwoord heeft een tijdstempel, zodat voortgang later per antwoord samengevoegd kan worden (nieuwste wint) in plaats van het hele bestand te overschrijven.
 - Alle toegang tot `localStorage` zit in `try/catch` (zoals in v1). Zonder opslag werkt de site gewoon, alleen zonder voortgang.
 
@@ -177,6 +177,8 @@ Een nieuw oefenscript toevoegen betekent een nieuwe map met `script.ps1` en `met
 | Examen | `https://ps-trainer.pdscloud.nl/examen/?topic=<id>&level=<niveau>` |
 | Flashcards | `https://ps-trainer.pdscloud.nl/flashcards/?topic=<id>` |
 | Woordenboek | `https://ps-trainer.pdscloud.nl/woordenboek/?q=<term>` |
+
+**Filters op de werkbank (optioneel, wijzigen de vaste URL niet):** `/oefenen/?script=<id>` blijft ongewijzigd; daarachter mogen `&topic=<onderwerp>`, `&level=<niveau>` en `&type=<mc|bug|open>`. Onderwerp en niveau bepalen welke scripts als chips bovenin staan; "soort vraag" bepaalt welke vragen binnen het script zichtbaar zijn. Ongeldige waarden worden genegeerd. Zonder `?script=` (of met een onbekend id) opent het eerste script volgens de volgorde in de index (onderwerp, niveau, id), eerst binnen de filters. Onderwerpen zonder scripts (status "in-opbouw") staan als niet-klikbare kaart met "nog in opbouw" op de startpagina.
 
 **Uiterlijk en toegankelijkheid:** het huidige ontwerp blijft (kleurvariabelen, licht en donker via `prefers-color-scheme` plus een handmatige keuze, IBM Plex en Source Sans). Elke vraagkaart is met het toetsenbord te bedienen, kleur is nooit het enige signaal (goed/fout krijgt ook tekst), en animaties respecteren `prefers-reduced-motion`.
 
