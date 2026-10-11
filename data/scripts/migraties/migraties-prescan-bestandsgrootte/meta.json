@@ -1,0 +1,132 @@
+{
+  "id": "migraties-prescan-bestandsgrootte",
+  "title": "Pre-scan: bestandsgrootte",
+  "topic": "migraties",
+  "level": "basis",
+  "tag": "Group-Object · alleen lezen",
+  "summary": "Zoekt op een fileshare naar te grote bestanden en maakt een overzicht van aantal en totale grootte per map op het hoogste niveau.",
+  "risk": "read",
+  "modules": [],
+  "note": "De standaardwaarde van 250 GB voor een enkel bestand komt uit documentatie die niet is nagelopen. Controleer de actuele limiet in de Microsoft-documentatie (\"Restrictions and limitations in OneDrive and SharePoint\") voordat je op de uitslag vertrouwt.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        3
+      ],
+      "prompt": "Wat verandert er als je het script aanroept met -MaxGB 100?",
+      "options": [
+        "Het script stopt na 100 bestanden",
+        "Het script scant maximaal 100 GB aan data",
+        "Het script maakt bestanden kleiner dan 100 GB kleiner",
+        "Het script meldt bestanden groter dan 100 GB als te groot, in plaats van groter dan 250 GB"
+      ],
+      "answer": 3,
+      "explanation": "`-MaxGB` is alleen de grens voor wat als te groot telt. Het overzicht per map verandert niet. Het type `[double]` laat ook een kommagetal toe, zoals `-MaxGB 0.5`."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        6
+      ],
+      "prompt": "Get-ChildItem geeft bestandsobjecten terug. In welke eenheid staat de eigenschap Length?",
+      "options": [
+        "In kilobytes",
+        "In bytes",
+        "In megabytes",
+        "In tekens van de bestandsnaam"
+      ],
+      "answer": 1,
+      "explanation": "`Length` van een bestand is het aantal bytes. Daarom deelt het script verderop door `1GB` om gigabytes te krijgen."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        8
+      ],
+      "prompt": "Wat is 1GB in $MaxGB * 1GB?",
+      "options": [
+        "De tekst \"1GB\", die PowerShell als woord achter het getal plakt",
+        "Een variabele die je zelf moet vullen voordat het script draait",
+        "Een getal: PowerShell rekent KB, MB en GB achter een getal om naar bytes",
+        "Een cmdlet die de beschikbare ruimte op de schijf van de share opvraagt"
+      ],
+      "answer": 2,
+      "explanation": "`1GB` is een gewoon getal, namelijk 1073741824 (1024 x 1024 x 1024). Zo vergelijk je `Length` in bytes met een grens in gigabytes, zonder zelf lange getallen te typen. Let op: dit is de binaire GB, een beetje groter dan 1 miljard."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "prompt": "Wat doet Group-Object op regel 11 met de bestanden?",
+      "options": [
+        "Het maakt een groep per map op het hoogste niveau, met Name, Count en de bestanden in Group",
+        "Het sorteert alle bestanden op grootte, van groot naar klein, en geeft ze in die volgorde door",
+        "Het telt alle bestanden van de share bij elkaar op en geeft daarvan één getal terug",
+        "Het kopieert de bestanden per map naar een nieuwe locatie op de schijf"
+      ],
+      "answer": 0,
+      "explanation": "Het scriptblok tussen `{ }` bepaalt de sleutel: het eerste deel van het pad na de share. Alle bestanden met dezelfde sleutel komen in een groep. Daarna maakt `ForEach-Object` van elke groep een rij met `Name`, `Count` en de som van `Length` via `Measure-Object`."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        11,
+        14
+      ],
+      "prompt": "Er staan twee bestanden direct in de hoofdmap van de share, niet in een submap. Welke waarde krijgt de kolom Map in grootte-per-map.csv voor die bestanden?",
+      "options": [
+        "De naam van de share",
+        "De bestandsnaam van elk bestand, op een eigen regel",
+        "Leeg: beide bestanden komen samen op een regel met een lege Map",
+        "De bestanden worden niet meegeteld"
+      ],
+      "answer": 2,
+      "explanation": "Voor een bestand in de hoofdmap is het pad na de share leeg, dus de sleutel is een lege tekst. Beide bestanden vormen samen een groep zonder naam. De regel staat gewoon in de CSV, alleen met een lege `Map`. Wil je dat netjes tonen, dan vervang je de lege naam door bijvoorbeeld `(hoofdmap)`."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        20,
+        21
+      ],
+      "prompt": "Welke bestanden schrijft dit script?",
+      "options": [
+        "Het kopieert de te grote bestanden naar de huidige map",
+        "Twee CSV-bestanden in de huidige map: grootte-per-map.csv en te-grote-bestanden.csv",
+        "Het verwijdert de te grote bestanden van de share",
+        "Het schrijft niets weg, alleen tekst op het scherm"
+      ],
+      "answer": 1,
+      "explanation": "Alleen de twee `Export-Csv`-regels schrijven, en alleen lokaal. Bestaande bestanden met dezelfde naam worden overschreven. De share en SharePoint blijven ongewijzigd."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je draait het script en er zijn geen te grote bestanden. Wat zie je in te-grote-bestanden.csv, en wat zou je beter kunnen doen voordat je dit in een rapport gebruikt?",
+      "explanation": "Er is niets om te exporteren, dus het bestand is leeg: er staat zelfs geen kopregel in (in Windows PowerShell 5.1 hooguit een onzichtbaar BOM-teken van 3 bytes). Je ziet dat dus niet terug als \"geslaagd, niets gevonden\". Beter is dat het script dat zelf meldt, bijvoorbeeld met een `if` rond `Export-Csv` en een duidelijke regel in `Write-Host`. Bedenk ook dat de grootte alleen niet genoeg is: het aantal bestanden bepaalt vaak meer van de migratietijd dan het totaal in GB, en de limiet in de `note` moet je nog in de documentatie controleren."
+    }
+  ]
+}
