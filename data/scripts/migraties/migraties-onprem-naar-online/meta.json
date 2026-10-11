@@ -9,7 +9,7 @@
   "modules": [
     "Microsoft.SharePoint.MigrationTool.PowerShell"
   ],
-  "note": "De cmdlets en parameters zijn vergeleken met de Microsoft Learn-documentatie van de SPMT-module, maar het script is niet uitgevoerd: de module is hier niet geinstalleerd. De module werkt volgens de documentatie in Windows PowerShell 5.x. De documentatie van -SharePointSourceCredential noemt SharePoint 2013; controleer welke bronversies worden ondersteund. Of Start-SPMTMigration zonder -NoShow wacht tot de migratie klaar is, en welke eigenschappen StatusOfTasks precies bevat, moet met de geinstalleerde module worden nagegaan.",
+  "note": "De cmdlets en parameters zijn vergeleken met de Microsoft Learn-documentatie van de SPMT-module, maar het script is niet uitgevoerd: de module is hier niet geinstalleerd. De module werkt volgens de documentatie in Windows PowerShell 5.x. De documentatie noemt als ondersteunde bronnen SharePoint Server 2010, 2013, 2016 en 2019. Subscription Edition staat er niet bij en de pagina zegt er niets over; de beschrijving van -SharePointSourceCredential noemt alleen SharePoint 2013 als voorbeeld. Of Start-SPMTMigration zonder -NoShow wacht tot de migratie klaar is, en welke eigenschappen StatusOfTasks precies bevat, moet met de geinstalleerde module worden nagegaan.",
   "check": {
     "status": "nog_te_controleren"
   },
@@ -125,7 +125,7 @@
       "type": "open",
       "step": "wijziging",
       "prompt": "Dit script migreert een hele site in een keer. Wat zou je regelen of controleren voordat je het zonder -AlleenScannen op productie draait?",
-      "explanation": "Bijvoorbeeld: (1) eerst met `-AlleenScannen` draaien en de scanresultaten doornemen; (2) gebruikers en rechten: de documentatie noemt `-AutomaticUserMapping`, `-UserMappingFile` en `-PreserveUserPermissionsForSharePointSource`; controleer of het account in het doel bestaat en of rechten zo mogen overkomen; (3) werkstromen en aanpassingen: de documentatie kent `-MigrationType` met `WORKFLOW` of `CONTENT` en `-DefaultFlowOwnerEmail`, wat erop wijst dat werkstromen apart worden gemigreerd; zoek na hoe dat in jouw situatie werkt; (4) welke lijsten je wilt overslaan, en welke bronversie wordt ondersteund; (5) een testmigratie van een kleine site naar een testsite, en daarna de validatie na de migratie; (6) een account met alleen de rechten die nodig zijn, en niet een beheerder voor alles."
+      "explanation": "Bijvoorbeeld: (1) eerst met `-AlleenScannen` draaien en de scanresultaten doornemen; (2) gebruikers en rechten: de documentatie noemt `-AutomaticUserMapping`, `-UserMappingFile` en `-PreserveUserPermissionsForSharePointSource`; controleer of het account in het doel bestaat en of rechten zo mogen overkomen; (3) werkstromen en aanpassingen: de documentatie kent `-MigrationType` met `WORKFLOW` of `CONTENT` en `-DefaultFlowOwnerEmail`, wat erop wijst dat werkstromen apart worden gemigreerd; zoek na hoe dat in jouw situatie werkt; (4) welke lijsten je wilt overslaan, en of je bronversie ondersteund wordt (volgens de documentatie SharePoint Server 2010, 2013, 2016 en 2019); (5) een testmigratie van een kleine site naar een testsite, en daarna de validatie na de migratie; (6) een account met alleen de rechten die nodig zijn, en niet een beheerder voor alles."
     }
   ]
 }

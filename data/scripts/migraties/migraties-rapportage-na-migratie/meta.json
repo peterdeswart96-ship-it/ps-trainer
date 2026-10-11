@@ -9,7 +9,7 @@
   "modules": [
     "PnP.PowerShell"
   ],
-  "note": "Niet uitgevoerd tegen een echte tenant. Controleer in de PnP.PowerShell-documentatie de parameters van Connect-PnPOnline (vooral -ClientId bij interactief inloggen) en Get-PnPListItem (-PageSize), en de eigenschappen FileSystemObjectType en FileRef, voordat je dit gebruikt. De vergelijking is getest met nagebootste cmdlets; bij grote bibliotheken kan Compare-Object traag zijn.",
+  "note": "Niet uitgevoerd tegen een echte tenant. Volgens de PnP-documentatie bestaat Get-PnPListItem met -List en -PageSize (het aantal items per paginaverzoek), en is -ClientId bij Connect-PnPOnline -Interactive in de praktijk nodig sinds 9 september 2024. PnP.PowerShell vereist PowerShell 7.4 of hoger en draait dus niet in Windows PowerShell 5.1, terwijl SPMT juist alleen daar werkt. FileSystemObjectType staat in de CSOM-documentatie. De veldnaam FileRef is in geen enkele officiele pagina teruggevonden; controleer die in een testtenant. De vergelijking is getest met nagebootste cmdlets; bij grote bibliotheken kan Compare-Object traag zijn.",
   "check": {
     "status": "nog_te_controleren"
   },

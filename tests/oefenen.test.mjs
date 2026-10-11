@@ -79,7 +79,7 @@ const meta = (id, topic, level, status, extra = {}) => ({
   ...extra
 });
 const GEGEVENS = {
-  'a-basis': { meta: meta('a-basis', 'eerste', 'basis', 'gecontroleerd'), code: "Connect-Thing -Naam 'x'\n\n$a = Get-Thing\nWrite-Output $a\n" },
+  'a-basis': { meta: meta('a-basis', 'eerste', 'basis', 'gecontroleerd', { note: 'Opmerking die bij een gecontroleerd script niet getoond wordt.' }), code: "Connect-Thing -Naam 'x'\n\n$a = Get-Thing\nWrite-Output $a\n" },
   'b-gev': { meta: meta('b-gev', 'tweede', 'gevorderd', 'nog_te_controleren', { note: 'Let op deze opmerking.', risk: 'write' }), code: 'Set-Thing -Force\nGet-Thing\nRemove-Thing\n' },
   'c-basis': { meta: meta('c-basis', 'tweede', 'basis', 'gecontroleerd'), code: 'Get-Date\nGet-Date\nGet-Date\n' }
 };
@@ -148,7 +148,9 @@ test('werkbank: zonder ?script= opent het eerste script van de index; filters, k
   assert.equal(vindAlle(p.els.vragen, (k) => k.tag === 'article').length, 3);
   assert.equal(vind(p.els.codekop, (k) => k.tag === 'h2').textContent, 'Titel a-basis');
   assert.match(tekstVan(p.els.codekop), /Gecontroleerd op 2026-10-11 · bron: Bron X/);
+  // Een gecontroleerd script toont geen enkele waarschuwing, ook niet de note
   assert.equal(vind(p.els.codekop, (k) => k.className === 'waarschuwing'), undefined);
+  assert.doesNotMatch(tekstVan(p.els.codekop), /Opmerking die bij een gecontroleerd script niet getoond wordt/);
   assert.equal(p.els.melding.kinderen.length, 0);
 });
 
