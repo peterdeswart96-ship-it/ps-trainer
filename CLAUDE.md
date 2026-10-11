@@ -16,7 +16,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 3. **Eén stap tegelijk.** Na elke stap: laat zien wat er is gewijzigd, voer de controles uit, en wacht op Peters akkoord vóór je commit of verdergaat.
 4. Lever altijd **volledige bestanden**, nooit instructies om losse regels te vervangen.
 5. Branches: `main` = productie (beschermd), `feature/*` = werk. Er is geen `develop`. Maak feature-branches vanaf `main` en lever wijzigingen via een pull request naar `main`.
-6. **Nooit mergen naar `main`, nooit pushen naar `main`, zonder Peters expliciete akkoord.** Peter merget zelf in GitHub nadat het groene vinkje van "Validatie" er staat; die Merge-klik is zijn akkoord. Claude Code maakt nooit zelf een merge en pusht nooit naar `main`.
+6. **Nooit pushen naar `main`, en nooit mergen naar `main` zonder Peters expliciete opdracht per pull request.** Standaard merget Peter zelf in GitHub nadat het groene vinkje van "Validatie" er staat; die Merge-klik is zijn akkoord. Claude Code merget alleen als Peter dat voor die ene pull request uitdrukkelijk opdraagt (bijvoorbeeld "merge PR 3") en alleen als de check "Validatie" groen is (controleer met `gh pr checks`). Een opdracht geldt voor één pull request, nooit voor latere; nooit auto-merge. Claude Code pusht nooit rechtstreeks naar `main`.
 7. Commitberichten in het Nederlands, kort en beschrijvend.
 8. Na elke push: herinner Peter eraan te wachten op het **groene vinkje** in GitHub Actions voordat hij test.
 9. Werkomgeving is Windows met PowerShell. Geef PowerShell-commando's, geen bash. Zips voor handmatige deploys met Windows-`tar` (volledig pad met `C:/`), niet met `Compress-Archive`.
@@ -25,8 +25,8 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van waarheid; het Claude Project en de skill `project-intelligence-pipeline` worden niet gebruikt.
 - **Documenten:** `DEFINE.md` en `DESIGN.md` in de repo zijn leidend. Verandert een ontwerpbesluit, werk het document dan zelf bij (versie verhogen en een korte statusregel bovenaan) en meld dat expliciet aan Peter.
 - **Onafhankelijke review:** voordat je een stap als klaar meldt, laat je een aparte subagent met schone context de wijziging beoordelen op correctheid, regressies en tegenstrijdigheden met `DESIGN.md` en `CLAUDE.md`. Neem de bevindingen eerlijk op in je melding, ook als de review iets afkeurt. Voor scripts met cmdlets en parameters: markeer alles wat je niet zeker weet als `nog_te_controleren`.
-- **Stoppunten (Peter geeft akkoord):** elke commit, elke push, elke pull request, elke merge, en alles met Azure-resources, kosten, DNS of livegang. Mergen en pushen naar `main` doet Claude Code nooit zelf.
-- **Pull requests:** die maak je na Peters akkoord zelf met de GitHub CLI (`gh pr create`), nooit met auto-merge. Peter merget zelf.
+- **Stoppunten (Peter geeft akkoord):** elke commit, elke push, elke pull request, elke merge, en alles met Azure-resources, kosten, DNS of livegang. Pushen naar `main` doet Claude Code nooit; mergen alleen na Peters expliciete opdracht per pull request (zie werkwijzepunt 6).
+- **Pull requests:** die maak je na Peters akkoord zelf met de GitHub CLI (`gh pr create`), nooit met auto-merge. Peter merget zelf, tenzij hij uitdrukkelijk opdraagt een bepaalde pull request te mergen (werkwijzepunt 6).
 
 ## Node-versie (op deze plek is het vijf keer misgegaan, wees precies)
 - Begin elke sessie met `node -v` en `git branch --show-current`. Stop en meld het als de Node-hoofdversie niet gelijk is aan `.nvmrc`.
