@@ -1,0 +1,132 @@
+{
+  "id": "sharepoint-externe-gebruikers",
+  "title": "Externe gebruikers per organisatie",
+  "topic": "sharepoint",
+  "level": "gevorderd",
+  "tag": "Get-SPOExternalUser · paginering · alleen lezen",
+  "summary": "Haalt alle externe gebruikers pagina voor pagina op en telt per e-maildomein hoeveel gasten er zijn.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. De documentatie van Get-SPOExternalUser beschrijft de parameters, maar noemt de eigenschappen van de teruggegeven objecten niet; alleen de beschrijving van -SortOrder noemt een eigenschap Email. Controleer met Get-SPOExternalUser -PageSize 1 | Get-Member welke eigenschappen jouw versie teruggeeft. Een gast zonder Email laat het script op regel 20 een fout geven. De documentatie beschrijft -Position als nulgebaseerde index, maar noemt Position 2 met PageSize 2 in een voorbeeld \"de derde pagina\"; controleer in een eigen tenant of de pagina-indeling klopt.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-SPOExternalUser (-Position vanaf 0, -PageSize hooguit 50, -SiteUrl, zonder -SiteUrl alle sites). Open punt: de eigenschap Email van het resultaat staat niet in de documentatie van de uitvoer."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        8
+      ],
+      "prompt": "Waarom staat $paginagrootte op 50 en niet op bijvoorbeeld 500?",
+      "options": [
+        "Omdat 50 de standaardwaarde is; een hogere waarde geeft alleen een waarschuwing, maar werkt wel",
+        "Omdat PowerShell zelf nooit meer dan 50 objecten tegelijk in een variabele kan bewaren",
+        "Volgens de documentatie moet -PageSize hooguit 50 zijn, dus 50 is het maximum per aanroep",
+        "Omdat de cmdlet bij een grotere waarde alleen de gebruikers van de eerste site teruggeeft"
+      ],
+      "answer": 2,
+      "explanation": "De documentatie zegt: de waarde van `-PageSize` moet kleiner dan of gelijk aan 50 zijn. Wil je alle gasten, dan haal je ze dus in stukken van maximaal 50 op, en dat is wat de lus doet. De documentatie noemt geen standaardwaarde."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        13,
+        14,
+        15
+      ],
+      "prompt": "Wat doet @parameters op regel 15, en wanneer zit SiteUrl erin?",
+      "options": [
+        "Het geeft de sleutels als benoemde parameters door; SiteUrl zit er alleen in als je -SiteUrl geeft",
+        "Het geeft de hele hashtable als één argument door, en SiteUrl zit er altijd in met een lege waarde",
+        "Het maakt een kopie van de hashtable, zodat de lus de oorspronkelijke waarden niet kan overschrijven",
+        "Het zet de hashtable om in tekst, en SiteUrl zit erin zodra het script voor een site is gestart"
+      ],
+      "answer": 0,
+      "explanation": "Dit heet splatting: met `@` in plaats van `$` worden de sleutels van een hashtable losse parameters, dus `Position` en `PageSize` (en eventueel `SiteUrl`). Zo hoef je de aanroep niet twee keer te schrijven. Zonder `-SiteUrl` geeft de cmdlet volgens de documentatie de externe gebruikers van alle sites."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        17,
+        18
+      ],
+      "prompt": "Waarom stopt de lus als $pagina.Count kleiner is dan $paginagrootte?",
+      "options": [
+        "Omdat de cmdlet dan een fout heeft gegeven en er daarna niets meer is om op te halen, dus stopt het script",
+        "Omdat $positie dan groter is dan het aantal sites, en de lus daarom per site afloopt zonder verder te gaan",
+        "Omdat PowerShell een do-while-lus na een onvolledige pagina altijd automatisch afbreekt",
+        "Een pagina die niet vol is, was de laatste; de lus gaat dus door zolang een pagina vol is"
+      ],
+      "answer": 3,
+      "explanation": "De cmdlet geeft maximaal `-PageSize` gebruikers terug. Het script gaat ervan uit dat een pagina die niet vol is de laatste is; dat staat niet uitdrukkelijk in de documentatie. Is een pagina vol, dan kan er nog een volgende komen, dus `$positie` gaat met het aantal opgehaalde gebruikers omhoog en de lus draait opnieuw."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        17
+      ],
+      "prompt": "Je vervangt regel 17 door $positie += 1. Wat is het gevolg voor het resultaat?",
+      "options": [
+        "Hetzelfde resultaat, want de cmdlet houdt zelf bij welke gebruikers hij al heeft teruggegeven",
+        "Een foutmelding bij de tweede aanroep, omdat -Position alleen veelvouden van de paginagrootte accepteert",
+        "Veel gebruikers komen meerdere keren in de lijst en de aantallen per domein zijn te hoog",
+        "Het script haalt alleen de eerste pagina op en stopt daarna zonder foutmelding"
+      ],
+      "answer": 2,
+      "explanation": "`-Position` is de nulgebaseerde positie van de eerste gebruiker in de gesorteerde lijst. Met `+= 1` begint elke volgende pagina maar één plek verder, dus bijna dezelfde 50 gebruikers komen steeds opnieuw binnen en worden dubbel meegeteld. Het script geeft geen foutmelding; de uitkomst klopt alleen niet. Daarom hoort er het aantal werkelijk opgehaalde gebruikers bij."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        20
+      ],
+      "prompt": "Wat laat regel 20 zien, en wat doet { $_.Email.Split('@')[-1] } achter Group-Object?",
+      "options": [
+        "Per gast het volledige e-mailadres; het scriptblok knipt het adres in stukken voor de uitvoer",
+        "Per e-maildomein het aantal gasten, grootste eerst; het scriptblok pakt het deel na de @ als groep",
+        "Het aantal gasten per site, het grootste eerst; het scriptblok zoekt de site die bij het adres hoort",
+        "Per gast of het e-mailadres geldig is; het scriptblok controleert of er een @ in het adres staat"
+      ],
+      "answer": 1,
+      "explanation": "`Split('@')` knipt het adres bij de `@`, en `[-1]` pakt het laatste stuk, het domein. `Group-Object` maakt met dat scriptblok als sleutel een groep per domein, `Count` is het aantal gasten. Zo zie je bij welke externe organisaties de meeste gasten horen. Dit leest `Email`; die eigenschap staat niet in de uitvoerdocumentatie."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        6,
+        20
+      ],
+      "prompt": "Wat wijzigt dit script in SharePoint Online?",
+      "options": [
+        "Het verwijdert gasten die geen e-mailadres hebben en meldt dat in de tabel",
+        "Het blokkeert gasten van domeinen waar meer dan tien gasten bij horen en meldt de domeinnamen",
+        "Het trekt de uitnodigingen in van gasten die hun uitnodiging nog niet hebben geaccepteerd",
+        "Niets: het verbindt, leest de externe gebruikers pagina voor pagina en toont een overzicht"
+      ],
+      "answer": 3,
+      "explanation": "Er staat geen `Remove-SPOExternalUser` of andere schrijfcmdlet in het script. Alleen `Get-SPOExternalUser` leest, en `Format-Table` toont het resultaat. Het script wijzigt niets in de tenant. Let wel: het haalt de gasten van alle sites op, en dat kan bij veel gasten even duren."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Je ziet dat bij één organisatie veel gasten horen. Wat zou je daarna uitzoeken, en wat doe je niet meteen?",
+      "explanation": "Eerst uitzoeken of die gasten nog nodig zijn: bij welke sites horen ze (draai het script per site met `-SiteUrl`), wie heeft ze uitgenodigd en wanneer zijn ze voor het laatst gebruikt. Die laatste twee staan niet in de documentatie van deze cmdlet; zoek ze in andere bronnen, bijvoorbeeld in de auditlogs. De documentatie noemt ook de parameter `-ShowOnlyUsersWithAcceptingAccountNotMatchInvitedAccount`, waarmee je gasten ziet die hun uitnodiging met een ander account hebben geaccepteerd; dat is een goede controle. Verwijderen kan met `Remove-SPOExternalUser`, maar dat is een schrijfactie die je niet meteen doet: bevestig eerst met de eigenaar van de site. Controleer met `Get-Member` welke eigenschappen een gast heeft (naast `Email`), want de documentatie noemt ze niet."
+    }
+  ]
+}
