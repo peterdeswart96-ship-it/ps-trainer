@@ -5,6 +5,12 @@ import { kiesScript, laadIndex, laadMeta, NIVEAUS, werkbankUrl } from './data.js
 import { laadVoortgang, standaardOpslag, voortgangOnderwerp } from './progress.js';
 import { initThema } from './theme.js';
 
+// Onderwerpen met een officieel Microsoft-icoon (assets/img/microsoft, zie BRON.md): de volledige productnaam staat erbij.
+export const OFFICIELE_ICONEN = {
+  foundry: { bestand: 'foundry.svg', naam: 'Microsoft Foundry' },
+  'entra-id': { bestand: 'entra-id.svg', naam: 'Microsoft Entra ID' }
+};
+
 const meervoud = (n, enkel, meer) => `${n} ${n === 1 ? enkel : meer}`;
 
 // "2 scripts · 1 basis, 1 gevorderd · 1 nog te controleren"
@@ -49,9 +55,25 @@ export function bouwKaarten(index, state, doc = globalThis.document) {
     const tekst = metId(element(doc, 'p', 'kaarttekst', onderwerp.summary), 'tekst');
     // Het pictogram van het onderwerp (ico-<id> in app.css); alleen voor een veilig id, anders geen pictogram.
     if (/^[a-z0-9-]+$/.test(onderwerp.id)) {
-      const pictogram = element(doc, 'span', `icoon ico-${onderwerp.id}`);
-      pictogram.setAttribute('aria-hidden', 'true');
-      kaart.append(pictogram);
+      if (Object.hasOwn(OFFICIELE_ICONEN, onderwerp.id)) {
+        // Het officiële icoon blijft ongewijzigd (een gewone afbeelding, geen masker) met de productnaam ernaast.
+        const { bestand, naam } = OFFICIELE_ICONEN[onderwerp.id];
+        const afbeelding = element(doc, 'img', 'msicoon');
+        afbeelding.setAttribute('src', `/assets/img/microsoft/${bestand}`);
+        afbeelding.setAttribute('alt', '');
+        afbeelding.setAttribute('width', '32');
+        afbeelding.setAttribute('height', '32');
+        // De lichte achtergrond (donker thema) zit op de wrapper; het icoon zelf krijgt geen achtergrond, rand of vorm.
+        const plaat = element(doc, 'span', 'msplaat');
+        plaat.append(afbeelding);
+        const rij = element(doc, 'div', 'merkrij');
+        rij.append(plaat, element(doc, 'span', 'productnaam', naam));
+        kaart.append(rij);
+      } else {
+        const pictogram = element(doc, 'span', `icoon ico-${onderwerp.id}`);
+        pictogram.setAttribute('aria-hidden', 'true');
+        kaart.append(pictogram);
+      }
       kaart.setAttribute('data-onderwerp', onderwerp.id); // de kleur van het onderwerp (app.css)
     }
     kaart.append(naam, tekst);

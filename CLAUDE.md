@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.7, akkoord).
-- `DESIGN.md`: hoe (versie 1.9, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.10, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 
 ## Werkwijze (verplicht)
@@ -57,6 +57,7 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - Vaste URL's (`/oefenen/?script=`, `/examen/`, `/flashcards/`, `/woordenboek/`) mogen niet veranderen zonder de agentinstructies aan te passen.
 - Elke nieuwe pagina wordt toegevoegd aan `PAGINAS` in `tools/smoke.mjs`, anders test de rooktest haar niet.
 - De lokale server (`tools/server.mjs`) geeft 404 voor dotfiles (`.env`, `.git/`) en `node_modules`; alleen `/.well-known/` is toegestaan.
+- Officiële Microsoft-iconen staan alleen in `assets/img/microsoft`, **ongewijzigd** en met de volledige productnaam erbij (zie `BRON.md` daar). Nooit voor het eigen product (daarom heeft de site een eigen `>_`-logo) en nooit in marketing. Een nieuw icoon: download het bij de officiële bron, voeg het toe aan `bron.json` en `OFFICIELE_ICONEN` in `assets/js/start.js`.
 - Bij `feature/deploy` wordt alleen een allowlist van sitebestanden gepubliceerd (`index.html`, pagina-mappen, `assets/`, `data/`, `schema/`, `CNAME`). Nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/` of andere repo-bestanden publiceren.
 
 ## Voortgang Develop (release 2.0) – houd dit bij

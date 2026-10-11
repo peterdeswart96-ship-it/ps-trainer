@@ -6,3 +6,5 @@
 *.md text eol=lf
 *.mjs text eol=lf
 *.yml text eol=lf
+# Officiele Microsoft-iconen: ongewijzigd laten (geen regeleinde-omzetting)
+assets/img/microsoft/*.svg -text
