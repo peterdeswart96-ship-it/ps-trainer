@@ -150,6 +150,11 @@ test('werkbank: zonder ?script= opent het eerste script van de index; filters, k
   assert.deepEqual(knoppen(onderwerpGroep).map((k) => k.attributen['data-onderwerp'] ?? null), [null, 'eerste', 'tweede']);
   const typeGroep = vind(p.els.filters, (k) => k.attributen['aria-label'] === 'Soort vraag');
   assert.equal(knoppen(typeGroep).some((k) => 'data-onderwerp' in k.attributen), false);
+  // Elk soort vraag draagt zijn soort (voor de pastelkleur) en de groep staat rechts; "Alle vragen" draagt niets
+  assert.deepEqual(knoppen(typeGroep).map((k) => k.attributen['data-soort'] ?? null), [null, 'mc', 'bug', 'open']);
+  assert.equal(typeGroep.className, 'chips rechts');
+  // Elke scripttegel draagt het onderwerp van zijn script, zodat hij dezelfde kleur krijgt als de onderwerpknop
+  assert.deepEqual(knoppen(p.els.scriptkeuze).map((k) => k.attributen['data-onderwerp']), ['eerste', 'tweede', 'tweede']);
   assert.equal(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').length, 3);
   assert.equal(vindAlle(p.els.codetabel, (k) => k.tag === 'tr').length, 4);
   assert.equal(vindAlle(p.els.vragen, (k) => k.tag === 'article').length, 3);
