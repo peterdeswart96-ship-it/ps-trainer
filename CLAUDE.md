@@ -21,6 +21,13 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 8. Na elke push: herinner Peter eraan te wachten op het **groene vinkje** in GitHub Actions voordat hij test.
 9. Werkomgeving is Windows met PowerShell. Geef PowerShell-commando's, geen bash. Zips voor handmatige deploys met Windows-`tar` (volledig pad met `C:/`), niet met `Compress-Archive`.
 
+## Werkwijze in VS Code
+Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van waarheid; het Claude Project en de skill `project-intelligence-pipeline` worden niet gebruikt.
+- **Documenten:** `DEFINE.md` en `DESIGN.md` in de repo zijn leidend. Verandert een ontwerpbesluit, werk het document dan zelf bij (versie verhogen en een korte statusregel bovenaan) en meld dat expliciet aan Peter.
+- **Onafhankelijke review:** voordat je een stap als klaar meldt, laat je een aparte subagent met schone context de wijziging beoordelen op correctheid, regressies en tegenstrijdigheden met `DESIGN.md` en `CLAUDE.md`. Neem de bevindingen eerlijk op in je melding, ook als de review iets afkeurt. Voor scripts met cmdlets en parameters: markeer alles wat je niet zeker weet als `nog_te_controleren`.
+- **Stoppunten (Peter geeft akkoord):** elke commit, elke push, elke pull request, elke merge, en alles met Azure-resources, kosten, DNS of livegang. Mergen en pushen naar `main` doet Claude Code nooit zelf.
+- **Pull requests:** die maak je na Peters akkoord zelf met de GitHub CLI (`gh pr create`), nooit met auto-merge. Peter merget zelf.
+
 ## Node-versie (op deze plek is het vijf keer misgegaan, wees precies)
 - Begin elke sessie met `node -v` en `git branch --show-current`. Stop en meld het als de Node-hoofdversie niet gelijk is aan `.nvmrc`.
 - **Tooling (repo-root):** Node 24, vastgelegd in `.nvmrc`. Elk npm-script begint met `tools/check-node.mjs`, want npm controleert `engines` alleen bij installeren.
@@ -60,8 +67,9 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 - [x] Stap 4a: `tools/Test-Syntax.ps1` en uitgebreide validatietests
 - [x] Stap 4b: `data/topics.json`, `tools/build-index.mjs`, `tools/server.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs` en `tests/tools.test.mjs`
 - [x] Stap 5: server blokkeert dotfiles, workflow `.github/workflows/validate.yml`, branchstrategie zonder `develop`
-- [ ] Pull request feature/repo-en-validatie naar main (Peter)
-- [ ] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
+- [x] Pull request feature/repo-en-validatie naar main (Peter)
+- [x] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
+- [ ] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7) (in uitvoering)
 - [ ] `feature/omzetten-v1`: 4 scripts, 26 vragen en woordenboek uit v1 omzetten
 - [ ] `feature/startpagina-en-werkbank`
 - [ ] `feature/deploy` (`deploy.yml`, DNS, eerste livegang)
