@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bouwIndex, schrijfIndex } from './build-index.mjs';
+import { OFFICIELE_ICONEN } from '../assets/js/start.js';
 import { startServer } from './server.mjs';
 
 const PAGINAS = ['/', '/oefenen/', '/woordenboek/'];
@@ -72,6 +73,15 @@ try {
       if (!Array.isArray(index.scripts)) mislukt('index.json bevat geen lijst scripts');
       if (!Array.isArray(index.topics)) mislukt('index.json bevat geen lijst topics');
     }
+  }
+
+  // De officiële Microsoft-iconen worden pas in de browser aan de tegels toegevoegd (start.js), dus staan ze niet in de HTML.
+  for (const { bestand } of Object.values(OFFICIELE_ICONEN)) {
+    const pad = `/assets/img/microsoft/${bestand}`;
+    const icoon = await fetch(basis + pad);
+    if (icoon.status !== 200) mislukt(`${pad} gaf HTTP ${icoon.status}`);
+    else if (!(icoon.headers.get('content-type') ?? '').startsWith('image/svg+xml')) mislukt(`${pad} heeft een onverwacht type: ${icoon.headers.get('content-type')}`);
+    else console.log(`OK  200  ${pad}`);
   }
 } catch (e) {
   mislukt(e.message);

@@ -195,9 +195,7 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
 .ico-boek { --ico: url('/assets/img/icons/boek.svg'); background-color: currentColor; }
 .ico-migraties { --ico: url('/assets/img/icons/migraties.svg'); background-color: currentColor; }
 .ico-sharepoint { --ico: url('/assets/img/icons/sharepoint.svg'); background-color: currentColor; }
-.ico-foundry { --ico: url('/assets/img/icons/foundry.svg'); background-color: currentColor; }
 .ico-purview { --ico: url('/assets/img/icons/purview.svg'); background-color: currentColor; }
-.ico-entra-id { --ico: url('/assets/img/icons/entra-id.svg'); background-color: currentColor; }
 .ico-mc { --ico: url('/assets/img/icons/mc.svg'); background-color: currentColor; }
 .ico-bug { --ico: url('/assets/img/icons/bug.svg'); background-color: currentColor; }
 .ico-open { --ico: url('/assets/img/icons/open.svg'); background-color: currentColor; }
@@ -212,23 +210,23 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
 :root {
   --t-migraties: #c25a00; --p-migraties: #ffcf9e;
   --t-sharepoint: #0b7a75; --p-sharepoint: #a8e6df;
-  --t-foundry: #6a3fd6; --p-foundry: #d3c4ff;
+  --t-foundry: #4a43c9; --p-foundry: #cfd1ff;
   --t-purview: #c42b63; --p-purview: #ffc2d6;
-  --t-entra-id: #1f64d6; --p-entra-id: #bcd7ff;
+  --t-entra-id: #0f6cbd; --p-entra-id: #bfe3ff;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
   --t-sharepoint: #4fd6cd; --p-sharepoint: #0f6c68;
-  --t-foundry: #b49bff; --p-foundry: #6a42d0;
+  --t-foundry: #a5a6ff; --p-foundry: #4141b5;
   --t-purview: #ff7fa8; --p-purview: #b22f5e;
-  --t-entra-id: #7fb0ff; --p-entra-id: #2a62c4;
+  --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
 } }
 :root[data-theme="dark"] {
   --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
   --t-sharepoint: #4fd6cd; --p-sharepoint: #0f6c68;
-  --t-foundry: #b49bff; --p-foundry: #6a42d0;
+  --t-foundry: #a5a6ff; --p-foundry: #4141b5;
   --t-purview: #ff7fa8; --p-purview: #b22f5e;
-  --t-entra-id: #7fb0ff; --p-entra-id: #2a62c4;
+  --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
 }
 .kaart { --tint: var(--accent); --pastel: var(--accent-soft); border: 1.5px solid var(--tint); }
 @supports (background: color-mix(in srgb, red 40%, transparent)) {
@@ -246,3 +244,14 @@ a.kaart:hover { border-color: var(--tint); box-shadow: 0 0 0 1px var(--tint); }
 @media (forced-colors: active) {
   .icoon[class*="ico-"] { background-color: CanvasText; forced-color-adjust: none; }
 }
+
+/* Officiële Microsoft-iconen op de tegels (ongewijzigd, met de volledige productnaam ernaast; zie assets/img/microsoft/BRON.md) */
+.merkrij { display: flex; align-items: center; gap: 10px; }
+.msicoon { width: 2rem; height: 2rem; flex: none; }
+.productnaam { font-family: var(--f-display); font-size: .85rem; letter-spacing: .02em; color: var(--muted); }
+/* In het donkere thema staat het (donkere) icoon op een lichte achtergrond, zodat het zichtbaar blijft; het icoon zelf blijft ongewijzigd. */
+:root { --ms-achter: transparent; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ms-achter: rgba(255, 255, 255, 0.92); } }
+:root[data-theme="dark"] { --ms-achter: rgba(255, 255, 255, 0.92); }
+.msplaat { display: inline-flex; flex: none; background: var(--ms-achter); border-radius: 7px; padding: 2px; }
+.msplaat .msicoon { display: block; }
