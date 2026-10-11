@@ -1,0 +1,131 @@
+{
+  "id": "sharepoint-opslag-per-site",
+  "title": "Opslag per site",
+  "topic": "sharepoint",
+  "level": "basis",
+  "tag": "Get-SPOSite · berekende eigenschappen · alleen lezen",
+  "summary": "Toont de sites die de meeste opslag gebruiken, met gebruikte ruimte, quotum en percentage vol.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. De documentatie van Set-SPOSite noemt de quotumwaarde in megabytes; voor StorageUsageCurrent bevestigen alleen communitybronnen dat het ook megabytes zijn; de pagina van Get-SPOSite noemt de eigenschap maar geeft geen eenheid. Controleer dat met een echte tenant voordat je op de uitslag vertrouwt. In PowerShell 7 moet de module worden geladen met Import-Module Microsoft.Online.SharePoint.PowerShell -UseWindowsPowerShell.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Connect-SPOService (-Url), Get-SPOSite (-Limit All, standaard 200, -IncludePersonalSite) en Set-SPOSite (-StorageQuota in megabytes). Open punt: eenheid van StorageUsageCurrent."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        3,
+        15
+      ],
+      "prompt": "Wat bepaalt de parameter $Top, en waar wordt hij gebruikt?",
+      "options": [
+        "Het aantal sites dat Get-SPOSite uit SharePoint ophaalt; hij wordt gebruikt op regel 8 van het script",
+        "Het aantal sites in de uitvoer, de grootste eerst; gebruikt bij Select-Object -First",
+        "Het aantal tenants waarmee het script achter elkaar verbinding maakt, met een pauze ertussen",
+        "Het percentage waarboven een site als vol geldt en in het rapport wordt gemarkeerd"
+      ],
+      "answer": 1,
+      "explanation": "`[int]$Top = 10` is een geheel getal met standaardwaarde 10. Het script haalt alle sites op en sorteert ze; pas op regel 15 houdt `Select-Object -First $Top` de grootste over. Wil je de top 25, dan start je het script met `-Top 25`."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        8
+      ],
+      "prompt": "Wat gebeurt er als je -Limit All weglaat uit Get-SPOSite?",
+      "options": [
+        "Alleen de eerste 200 sites komen terug, de standaard volgens de documentatie",
+        "Er komen geen sites terug, want -Limit is verplicht bij het ophalen van alle sites",
+        "Alle sites komen terug, want ophalen zonder grens is de standaard van deze cmdlet",
+        "Alleen de sites waarvan je zelf eigenaar bent, omdat je geen grens opgeeft"
+      ],
+      "answer": 0,
+      "explanation": "Volgens de documentatie is de standaardwaarde van `-Limit` 200. In een grote tenant mis je zonder `-Limit All` dus sites, zonder dat je een foutmelding krijgt. `-IncludePersonalSite $false` sluit OneDrive-sites uit; dat is ook de standaard. Het staat hier expliciet, zodat het leesbaar is."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        11,
+        12
+      ],
+      "prompt": "Waarom wordt StorageUsageCurrent gedeeld door 1024?",
+      "options": [
+        "Om bytes om te zetten in kilobytes, zodat de getallen leesbaar blijven in de tabel",
+        "Om het getal af te ronden op een geheel aantal gigabytes in plaats van op een decimaal",
+        "Om megabytes om te zetten in gigabytes; de waarde komt volgens de bronnen in MB binnen",
+        "Om het percentage van het quotum uit te rekenen zonder de quotumwaarde nodig te hebben"
+      ],
+      "answer": 2,
+      "explanation": "De documentatie van `Set-SPOSite` noemt het quotum in megabytes, en communitybronnen noemen ook `StorageUsageCurrent` zo. Deel je door 1024, dan krijg je gigabytes. Controleer die eenheid met een echte tenant, want de officiële pagina van `Get-SPOSite` noemt de eigenschap wel, maar geeft geen eenheid. `[math]::Round(..., 1)` rondt het resultaat af op een decimaal."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        13
+      ],
+      "prompt": "Een site heeft quotum 0. Wat zie je in PercentageVol als de if StorageQuota -gt 0 ontbreekt?",
+      "options": [
+        "Een rode foutmelding \"Attempted to divide by zero\" en het script stopt met de uitvoer",
+        "Een lege waarde bij die site, zonder foutmelding; de rest van de tabel staat er gewoon",
+        "Het getal 0, want delen door nul levert in PowerShell altijd nul op, zonder fout",
+        "Het getal oneindig, want PowerShell rekent bij delen door nul met oneindig als uitkomst"
+      ],
+      "answer": 1,
+      "explanation": "Een fout in een berekende eigenschap wordt door `Select-Object` stil ingeslikt: de eigenschap blijft leeg en je ziet geen melding. Daarom staat de `if` er: het script kiest 0 als er geen quotum is. Dit is een goede reden om bij berekende eigenschappen de uitkomst te controleren en niet alleen te kijken of er een foutmelding is."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        15
+      ],
+      "prompt": "Wat zou er veranderen als je Select-Object -First $Top voor Sort-Object zet?",
+      "options": [
+        "Er verandert niets, want de volgorde van de cmdlets in een pipeline maakt niet uit",
+        "Het script geeft een foutmelding, want Sort-Object mag alleen vooraan in een pipeline staan",
+        "Je krijgt nog steeds de grootste sites, maar het script is dan sneller klaar",
+        "Je neemt de eerste sites uit de ruwe lijst en sorteert alleen die; niet per se de grootste"
+      ],
+      "answer": 3,
+      "explanation": "Een pipeline werkt van links naar rechts. Neem je eerst de eerste tien, dan sorteer je alleen die tien. Eerst sorteren en dan `-First` geeft de grootste sites. Dit is een veelgemaakte fout bij het maken van een top-lijst."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        6,
+        15
+      ],
+      "prompt": "Wat wijzigt dit script in SharePoint Online?",
+      "options": [
+        "Niets: Connect-SPOService opent alleen een sessie en de rest leest en toont gegevens",
+        "Het verkleint het quotum van de sites die bijna vol zijn, zodat ze geen ruimte verspillen",
+        "Het verwijdert bestanden van de grootste sites, tot ze weer onder het quotum zitten",
+        "Het zet sites die vol zijn op alleen-lezen, zodat er geen nieuwe bestanden bij komen"
+      ],
+      "answer": 0,
+      "explanation": "Er staat geen `Set-`, `Remove-` of `New-` cmdlet in het script. `Connect-SPOService` opent een sessie met het beheercentrum, `Get-SPOSite` leest, en `Format-Table` toont het resultaat. Het is dus veilig om op een productietenant te draaien."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt deze tabel opslaan en naar je beheerder mailen. Waarom werkt het niet om het resultaat van regel 15 te exporteren, en wat zou je aanpassen?",
+      "explanation": "`Format-Table` maakt geen gegevens maar opmaakobjecten, bedoeld voor het scherm. Stuur je die door naar `Export-Csv`, dan krijg je onbruikbare uitvoer. Zet `Format-Table` daarom altijd als laatste stap en exporteer eerder: `$opslag | Sort-Object GebruiktGB -Descending | Export-Csv -Path .\\opslag.csv -NoTypeInformation`. Verder: (1) controleer de eenheid van `StorageUsageCurrent` met een echte tenant; (2) overweeg ook een kolom met het type site, zodat je Teams-sites van communicatiesites kunt scheiden; (3) in PowerShell 7 laad je de module met `-UseWindowsPowerShell`."
+    }
+  ]
+}
