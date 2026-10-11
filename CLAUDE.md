@@ -14,20 +14,20 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 ## Werkwijze (verplicht)
 1. Antwoord in het Nederlands. Code, cmdlets en technische termen blijven Engels.
 2. Peter is geen developer: leg bij elk bestand dat je maakt of wijzigt kort uit wat het doet en waarom.
-3. **Eén stap tegelijk.** Na elke stap: laat zien wat er is gewijzigd, voer de controles uit, en wacht op Peters akkoord vóór je commit of verdergaat.
+3. **Eén stap tegelijk.** Na elke stap: laat zien wat er is gewijzigd, voer de controles uit en laat de onafhankelijke review doen. Commit, push, pull request en merge doe je daarna zelf (zie punt 6), zonder daarvoor om akkoord te vragen. Wacht wel op Peters akkoord voordat je een volgende stap begint die iets nieuws beslist: de scope, de lijst met scripts van een onderwerp of een ontwerpbesluit.
 4. Lever altijd **volledige bestanden**, nooit instructies om losse regels te vervangen.
 5. Branches: `main` = productie (beschermd), `feature/*` = werk. Er is geen `develop`. Maak feature-branches vanaf `main` en lever wijzigingen via een pull request naar `main`.
-6. **Nooit pushen naar `main`, en nooit mergen naar `main` zonder Peters expliciete opdracht per pull request.** Standaard merget Peter zelf in GitHub nadat het groene vinkje van "Validatie" er staat; die Merge-klik is zijn akkoord. Claude Code merget alleen als Peter dat voor die ene pull request uitdrukkelijk opdraagt (bijvoorbeeld "merge PR 3") en alleen als de check "Validatie" groen is (controleer met `gh pr checks`). Een opdracht geldt voor één pull request, nooit voor latere; nooit auto-merge. Claude Code pusht nooit rechtstreeks naar `main`.
+6. **Nooit rechtstreeks pushen naar `main`.** Wijzigingen gaan via een pull request, en Claude Code merget die zelf met `gh pr merge` (squash) zodra de check "Validatie" groen is (wacht erop met `gh pr checks --watch` en controleer het resultaat) en de onafhankelijke review is verwerkt. Is de check rood of is een bevinding niet verwerkt, dan merge je niet maar meld je dat aan Peter. Nooit forceren, nooit `--admin`, nooit de branch-protectie omzeilen en nooit auto-merge (`--auto`). Let op: een merge naar `main` gaat direct live (`deploy.yml`). Peter mag een merge altijd zelf doen of een pull request tegenhouden.
 7. Commitberichten in het Nederlands, kort en beschrijvend.
-8. Na elke push: herinner Peter eraan te wachten op het **groene vinkje** in GitHub Actions voordat hij test.
+8. Na elke push: wacht zelf op het **groene vinkje** in GitHub Actions en meld de uitkomst aan Peter. Peter hoeft niet meer te wachten voordat hij test.
 9. Werkomgeving is Windows met PowerShell. Geef PowerShell-commando's, geen bash. Zips voor handmatige deploys met Windows-`tar` (volledig pad met `C:/`), niet met `Compress-Archive`.
 
 ## Werkwijze in VS Code
 Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van waarheid; het Claude Project en de skill `project-intelligence-pipeline` worden niet gebruikt.
 - **Documenten:** `DEFINE.md` en `DESIGN.md` in de repo zijn leidend. Verandert een ontwerpbesluit, werk het document dan zelf bij (versie verhogen en een korte statusregel bovenaan) en meld dat expliciet aan Peter.
 - **Onafhankelijke review:** voordat je een stap als klaar meldt, laat je een aparte subagent met schone context de wijziging beoordelen op correctheid, regressies en tegenstrijdigheden met `DESIGN.md` en `CLAUDE.md`. Neem de bevindingen eerlijk op in je melding, ook als de review iets afkeurt. Voor scripts met cmdlets en parameters: markeer alles wat je niet zeker weet als `nog_te_controleren`.
-- **Stoppunten (Peter geeft akkoord):** elke commit, elke push, elke pull request, elke merge, en alles met Azure-resources, kosten, DNS of livegang. Pushen naar `main` doet Claude Code nooit; mergen alleen na Peters expliciete opdracht per pull request (zie werkwijzepunt 6).
-- **Pull requests:** die maak je na Peters akkoord zelf met de GitHub CLI (`gh pr create`), nooit met auto-merge. Peter merget zelf, tenzij hij uitdrukkelijk opdraagt een bepaalde pull request te mergen (werkwijzepunt 6).
+- **Stoppunten (Peter geeft akkoord):** alles met Azure-resources, kosten, DNS of het in gebruik nemen van een nieuw domein of een nieuwe omgeving, en een volgende stap die de scope, de scriptlijst of een ontwerpbesluit bepaalt (werkwijzepunt 3). Commit, push, pull request en merge naar `main` via een pull request zijn **geen** stoppunt meer (werkwijzepunt 6). Rechtstreeks pushen naar `main` doet Claude Code nooit.
+- **Pull requests:** die maak je zelf met de GitHub CLI (`gh pr create`) en merge je zelf na de groene check (werkwijzepunt 6), nooit met auto-merge.
 
 ## Node-versie (op deze plek is het vijf keer misgegaan, wees precies)
 - Begin elke sessie met `node -v` en `git branch --show-current`. Stop en meld het als de Node-hoofdversie niet gelijk is aan `.nvmrc`.
