@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Leer PowerShell-scripts voor Microsoft 365 en Azure lezen: wat doet het script, wat wijzigt het en waar zitten de valkuilen.">
+<title>PowerShell Leestrainer</title>
+<script src="/assets/js/theme-init.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+<a class="skip" href="#inhoud">Naar de inhoud</a>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>PowerShell Leestrainer</h1>
+      <p class="sub">Leer scripts voor Microsoft 365 en Azure lezen: wat doet het, wat wijzigt het en waar zitten de valkuilen. Probeer eerst zelf, kijk daarna pas naar het antwoord.</p>
+    </div>
+    <div class="kopacties">
+      <nav class="nav" aria-label="Hoofdmenu">
+        <a href="/" aria-current="page">Start</a>
+        <a href="/oefenen/">Oefenscripts</a>
+        <a href="/woordenboek/">Woordenboek</a>
+      </nav>
+      <button type="button" class="themaknop" id="thema-knop">Donker thema</button>
+    </div>
+  </header>
+
+  <main id="inhoud" class="startinhoud" tabindex="-1">
+    <div class="method">
+      <span class="lbl" id="methode-label">Leesmethode</span>
+      <ol class="stappen" role="list" aria-labelledby="methode-label">
+        <li class="step"><span aria-hidden="true">1</span>Parameters</li>
+        <li class="step"><span aria-hidden="true">2</span>Bron</li>
+        <li class="step"><span aria-hidden="true">3</span>Bewerking</li>
+        <li class="step"><span aria-hidden="true">4</span>Wijziging</li>
+        <li class="step"><span aria-hidden="true">5</span>Uitvoer</li>
+      </ol>
+    </div>
+
+    <section aria-labelledby="onderwerpen-kop">
+      <h2 id="onderwerpen-kop">Onderwerpen</h2>
+      <div id="kaarten"><noscript><p class="fout">Voor deze pagina is JavaScript nodig.</p></noscript></div>
+    </section>
+  </main>
+
+  <footer>Scripts worden nooit uitgevoerd: je leest ze alleen. De voorbeelden gebruiken <code class="i">contoso</code> en bevatten geen echte tenantgegevens. Controleer cmdlets en parameters altijd met <code class="i">Get-Help &lt;cmdlet&gt; -Examples</code> of de documentatie voordat je iets in productie draait.</footer>
+</div>
+<script type="module" src="/assets/js/start.js"></script>
+</body>
+</html>

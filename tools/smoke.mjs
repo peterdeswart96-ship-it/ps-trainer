@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { bouwIndex, schrijfIndex } from './build-index.mjs';
 import { startServer } from './server.mjs';
 
-const PAGINAS = ['/woordenboek/'];
+const PAGINAS = ['/', '/woordenboek/'];
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = mkdtempSync(join(tmpdir(), 'ps-trainer-smoke-'));
