@@ -53,6 +53,11 @@ try {
         const bron = await fetch(basis + bronPad);
         if (bron.status !== 200) { mislukt(`${door} verwijst naar ${bronPad}: HTTP ${bron.status}`); continue; }
         console.log(`OK  200  ${bronPad} (door ${door})`);
+        // Een stijlblad verwijst met url(...) naar afbeeldingen (de iconen als masker): ook die moeten bestaan.
+        if ((bron.headers.get('content-type') ?? '').startsWith('text/css')) {
+          const css = await bron.text();
+          for (const m of css.matchAll(/url\(\s*['"]?(\/(?!\/)[^'")\s]+)['"]?\s*\)/g)) wachtrij.push({ pad: m[1], door: bronPad });
+        }
         if ((bron.headers.get('content-type') ?? '').startsWith('text/javascript')) {
           const code = await bron.text();
           for (const m of code.matchAll(/(?:import|export)\b[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]/g)) {

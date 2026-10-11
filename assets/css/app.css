@@ -175,3 +175,74 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
 .qnum { margin: 0; }
 /* Op een breed scherm blijft het codeblok in beeld terwijl je door de vragen scrolt; een langer script scrolt dan binnen het blok. */
 @media (min-width: 901px) { .code { max-height: calc(100vh - 160px); overflow-y: auto; } }
+
+/* Logo en iconen. De iconen zijn eigen SVG's in assets/img/icons en worden als masker getekend: ze krijgen
+   dus de tekstkleur van het thema (licht en donker). Een onbekende ico-klasse toont niets. */
+.logo { width: 28px; height: 28px; border-radius: 7px; flex: none; }
+.merk { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--f-display); font-weight: 500; color: var(--muted); text-decoration: none; }
+.merk:hover { color: var(--ink); }
+.merkkop { display: flex; align-items: center; gap: 12px; }
+.merkkop .logo { width: 44px; height: 44px; border-radius: 10px; }
+.icoon { display: inline-block; width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+.icoon[class*="ico-"] {
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-image: var(--ico); mask-image: var(--ico);
+}
+.ico-home { --ico: url('/assets/img/icons/home.svg'); background-color: currentColor; }
+.ico-terminal { --ico: url('/assets/img/icons/terminal.svg'); background-color: currentColor; }
+.ico-boek { --ico: url('/assets/img/icons/boek.svg'); background-color: currentColor; }
+.ico-migraties { --ico: url('/assets/img/icons/migraties.svg'); background-color: currentColor; }
+.ico-sharepoint { --ico: url('/assets/img/icons/sharepoint.svg'); background-color: currentColor; }
+.ico-foundry { --ico: url('/assets/img/icons/foundry.svg'); background-color: currentColor; }
+.ico-purview { --ico: url('/assets/img/icons/purview.svg'); background-color: currentColor; }
+.ico-entra-id { --ico: url('/assets/img/icons/entra-id.svg'); background-color: currentColor; }
+.ico-mc { --ico: url('/assets/img/icons/mc.svg'); background-color: currentColor; }
+.ico-bug { --ico: url('/assets/img/icons/bug.svg'); background-color: currentColor; }
+.ico-open { --ico: url('/assets/img/icons/open.svg'); background-color: currentColor; }
+.nav a { display: inline-flex; align-items: center; gap: 6px; }
+.kaart > .icoon { width: 1.9rem; height: 1.9rem; color: var(--accent); }
+.kaart.in-opbouw > .icoon { color: var(--muted); }
+.kind .icoon { margin-right: 4px; }
+
+/* Onderwerpkleuren voor de tegels op de startpagina. Per onderwerp een felle kleur (--t-, voor icoon en rand)
+   en een pastelkleur (--p-, de tegel zelf met 40% dekking). Licht en donker hebben eigen waarden; het contrast
+   met de tekst is gecontroleerd (zie tests/pages.test.mjs). Een onderwerp zonder eigen kleur gebruikt de accentkleur. */
+:root {
+  --t-migraties: #c25a00; --p-migraties: #ffcf9e;
+  --t-sharepoint: #0b7a75; --p-sharepoint: #a8e6df;
+  --t-foundry: #6a3fd6; --p-foundry: #d3c4ff;
+  --t-purview: #c42b63; --p-purview: #ffc2d6;
+  --t-entra-id: #1f64d6; --p-entra-id: #bcd7ff;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
+  --t-sharepoint: #4fd6cd; --p-sharepoint: #0f6c68;
+  --t-foundry: #b49bff; --p-foundry: #6a42d0;
+  --t-purview: #ff7fa8; --p-purview: #b22f5e;
+  --t-entra-id: #7fb0ff; --p-entra-id: #2a62c4;
+} }
+:root[data-theme="dark"] {
+  --t-migraties: #ff9d4d; --p-migraties: #8f4c10;
+  --t-sharepoint: #4fd6cd; --p-sharepoint: #0f6c68;
+  --t-foundry: #b49bff; --p-foundry: #6a42d0;
+  --t-purview: #ff7fa8; --p-purview: #b22f5e;
+  --t-entra-id: #7fb0ff; --p-entra-id: #2a62c4;
+}
+.kaart { --tint: var(--accent); --pastel: var(--accent-soft); border: 1.5px solid var(--tint); }
+@supports (background: color-mix(in srgb, red 40%, transparent)) {
+  .kaart { background: color-mix(in srgb, var(--pastel) 40%, transparent); }
+}
+.kaart[data-onderwerp="migraties"] { --tint: var(--t-migraties); --pastel: var(--p-migraties); }
+.kaart[data-onderwerp="sharepoint"] { --tint: var(--t-sharepoint); --pastel: var(--p-sharepoint); }
+.kaart[data-onderwerp="foundry"] { --tint: var(--t-foundry); --pastel: var(--p-foundry); }
+.kaart[data-onderwerp="purview"] { --tint: var(--t-purview); --pastel: var(--p-purview); }
+.kaart[data-onderwerp="entra-id"] { --tint: var(--t-entra-id); --pastel: var(--p-entra-id); }
+.kaart > .icoon, .kaart.in-opbouw > .icoon { color: var(--tint); }
+a.kaart:hover { border-color: var(--tint); box-shadow: 0 0 0 1px var(--tint); }
+
+/* Hoog contrast (forced-colors) overschrijft kleuren: dan tekenen de iconen in de tekstkleur van het systeem. */
+@media (forced-colors: active) {
+  .icoon[class*="ico-"] { background-color: CanvasText; forced-color-adjust: none; }
+}

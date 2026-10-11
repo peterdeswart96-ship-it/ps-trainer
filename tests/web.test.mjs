@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { parseMarkdownLite, renderMarkdownLite } from '../assets/js/markdown-lite.js';
 import { tokenizeLine, renderLine } from '../assets/js/highlight.js';
 import {
-  filterScripts, filterVragen, haalJson, kiesScript, laadScript, leesParams, regelLabel,
+  filterScripts, filterVragen, haalJson, kiesScript, laadScript, leesParams, regelLabel, standaardScript,
   scriptRegels, werkbankUrl, zoekWoordenboek
 } from '../assets/js/data.js';
 import {
@@ -131,11 +131,11 @@ test('data: filters op scripts en vragen', () => {
   assert.equal(filterVragen(vragen, null).length, 3);
 });
 
-test('data: kiesScript neemt ?script= als dat bestaat, anders het eerste script (binnen de filters)', () => {
+test('data: kiesScript neemt ?script= als dat bestaat, anders het standaardscript (binnen de filters)', () => {
   assert.equal(kiesScript(scripts, 'b-gevorderd').id, 'b-gevorderd');
   assert.equal(kiesScript(scripts, null).id, 'a-basis');
   assert.equal(kiesScript(scripts, 'bestaat-niet').id, 'a-basis');
-  assert.equal(kiesScript(scripts, null, { topic: 'sharepoint' }).id, 'b-gevorderd');
+  assert.equal(kiesScript(scripts, null, { topic: 'sharepoint' }).id, 'c-basis', 'het basisscript gaat voor het gevorderde');
   assert.equal(kiesScript(scripts, null, { topic: 'foundry' }).id, 'a-basis');
   assert.equal(kiesScript([], null), null);
 });
@@ -413,4 +413,42 @@ test('initThema: een ongeldige opgeslagen waarde wordt genegeerd en het systeemt
   initThema(p.doc, p.win, p.opslag);
   assert.equal(p.root.dataset.theme, undefined);
   assert.equal(p.attributen['aria-pressed'], 'true');
+});
+
+test('data: standaardScript kiest het laagste niveau, dan een gecontroleerd script, dan de indexvolgorde', () => {
+  const gec = { status: 'gecontroleerd' };
+  const nog = { status: 'nog_te_controleren' };
+  const lijst = [
+    { id: 'migratie-gev', level: 'gevorderd', check: nog },
+    { id: 'sp-basis-nog', level: 'basis', check: nog },
+    { id: 'entra-basis-gec', level: 'basis', check: gec },
+    { id: 'entra-gev-gec', level: 'gevorderd', check: gec },
+    { id: 'expert', level: 'expert', check: gec }
+  ];
+  assert.equal(standaardScript(lijst).id, 'entra-basis-gec', 'basis gaat voor, en daarbinnen het gecontroleerde script');
+  assert.equal(standaardScript(lijst.slice(0, 2)).id, 'sp-basis-nog', 'zonder gecontroleerd script telt alleen het niveau');
+  assert.equal(standaardScript([lijst[0], lijst[3]]).id, 'entra-gev-gec');
+  assert.equal(standaardScript([{ id: 'x', level: 'basis' }, { id: 'y', level: 'basis' }]).id, 'x', 'gelijk: indexvolgorde; ontbrekende check telt als niet gecontroleerd');
+  assert.equal(standaardScript([{ id: 'raar', level: 'onbekend' }, { id: 'expert', level: 'expert' }]).id, 'expert', 'een onbekend niveau komt laatst');
+  assert.equal(standaardScript([]), null);
+});
+
+test('data: kiesScript zonder ?script= gebruikt het standaardscript, binnen de filters en daarbuiten', () => {
+  const lijst = [
+    { id: 'a-gev', topic: 'a', level: 'gevorderd', check: { status: 'nog_te_controleren' } },
+    { id: 'b-basis-nog', topic: 'b', level: 'basis', check: { status: 'nog_te_controleren' } },
+    { id: 'c-basis-gec', topic: 'c', level: 'basis', check: { status: 'gecontroleerd' } }
+  ];
+  assert.equal(kiesScript(lijst, null).id, 'c-basis-gec');
+  assert.equal(kiesScript(lijst, null, { topic: 'a' }).id, 'a-gev');
+  assert.equal(kiesScript(lijst, null, { level: 'basis' }).id, 'c-basis-gec');
+  assert.equal(kiesScript(lijst, null, { topic: 'bestaat-niet' }).id, 'c-basis-gec', 'geen script binnen de filters: terug naar het standaardscript');
+  assert.equal(kiesScript(lijst, 'a-gev').id, 'a-gev', 'een bestaand ?script= wint altijd');
+});
+
+test('data: met de echte index is het standaardscript een gecontroleerd basisscript', () => {
+  const { index } = bouwIndex({ scriptsMap: join(root, 'data', 'scripts'), topicsBestand: join(root, 'data', 'topics.json') });
+  const gekozen = kiesScript(index.scripts, null);
+  assert.equal(gekozen.level, 'basis');
+  assert.equal(gekozen.check.status, 'gecontroleerd');
 });

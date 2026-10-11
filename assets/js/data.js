@@ -46,11 +46,24 @@ export function filterScripts(scripts, { topic = null, level = null } = {}) {
   return scripts.filter((s) => (!topic || s.topic === topic) && (!level || s.level === level));
 }
 
-// Welk script opent de werkbank? Een bestaand ?script= wint; anders het eerste script volgens de
-// volgorde in de index (die staat op onderwerp, niveau en id), eerst binnen de filters, dan overal.
+// Het standaardscript uit een lijst: het laagste niveau eerst, en bij gelijk niveau eerst een script dat
+// gecontroleerd is (zodat een nieuwe bezoeker niet begint met iets dat nog niet is nagelopen). Bij gelijke
+// score blijft de volgorde van de index (onderwerp, niveau, id).
+export function standaardScript(scripts) {
+  const niveau = (s) => (NIVEAUS.includes(s.level) ? NIVEAUS.indexOf(s.level) : NIVEAUS.length);
+  const gecontroleerd = (s) => (s.check?.status === 'gecontroleerd' ? 0 : 1);
+  let beste = null;
+  for (const s of scripts) {
+    if (!beste || niveau(s) < niveau(beste) || (niveau(s) === niveau(beste) && gecontroleerd(s) < gecontroleerd(beste))) beste = s;
+  }
+  return beste;
+}
+
+// Welk script opent de werkbank? Een bestaand ?script= wint; anders het standaardscript, eerst binnen de
+// filters, dan overal.
 export function kiesScript(scripts, gewenstId, filters = {}) {
   const gevraagd = gewenstId && scripts.find((s) => s.id === gewenstId);
-  return gevraagd ?? filterScripts(scripts, filters)[0] ?? scripts[0] ?? null;
+  return gevraagd ?? standaardScript(filterScripts(scripts, filters)) ?? standaardScript(scripts) ?? null;
 }
 
 // Vragen binnen een script volgens "soort vraag" (ontbrekend filter = alle vragen).

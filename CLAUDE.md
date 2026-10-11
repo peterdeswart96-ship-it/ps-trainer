@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.7, akkoord).
-- `DESIGN.md`: hoe (versie 1.8, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.9, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 
 ## Werkwijze (verplicht)
