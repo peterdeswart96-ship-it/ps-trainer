@@ -1,0 +1,544 @@
+<title>PowerShell Leestrainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: werkbank — script links met regelnummers, vragen rechts die regels oplichten; woordenboek als tweede tab */
+:root {
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --ink: #18202c;
+  --muted: #5b6577;
+  --line: #d9dee7;
+  --accent: #2d55c4;
+  --accent-soft: #e4ebfb;
+  --code-bg: #f8f9fc;
+  --hl: #fff3c4;
+  --ok: #1f7a4d;
+  --ok-soft: #dff2e8;
+  --bad: #b3372b;
+  --bad-soft: #f8e1de;
+  --warn: #9a5b00;
+  --warn-soft: #fbeccf;
+  --tok-cmd: #2d55c4;
+  --tok-var: #8a3fa8;
+  --tok-str: #a0521c;
+  --tok-com: #6f7a8c;
+  --tok-par: #1f7a6d;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151c; --panel: #181e27; --ink: #e6eaf1; --muted: #9aa5b6; --line: #2a3342;
+  --accent: #7d9cf0; --accent-soft: #1f2a44; --code-bg: #141a22; --hl: #3a3417;
+  --ok: #5cc28d; --ok-soft: #173327; --bad: #ef8a7e; --bad-soft: #3a1d1a; --warn: #e3b05a; --warn-soft: #3a2c12;
+  --tok-cmd: #8fb0ff; --tok-var: #d29bea; --tok-str: #e6a46f; --tok-com: #7f8a9c; --tok-par: #6fd0c0;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11151c; --panel: #181e27; --ink: #e6eaf1; --muted: #9aa5b6; --line: #2a3342;
+  --accent: #7d9cf0; --accent-soft: #1f2a44; --code-bg: #141a22; --hl: #3a3417;
+  --ok: #5cc28d; --ok-soft: #173327; --bad: #ef8a7e; --bad-soft: #3a1d1a; --warn: #e3b05a; --warn-soft: #3a2c12;
+  --tok-cmd: #8fb0ff; --tok-var: #d29bea; --tok-str: #e6a46f; --tok-com: #7f8a9c; --tok-par: #6fd0c0;
+  color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 64px; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 62ch; }
+.score { font-family: var(--f-mono); font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.score b { color: var(--ink); }
+.method { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9rem; }
+.method .lbl { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); margin-right: 4px; }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; }
+.step span { font-family: var(--f-mono); color: var(--accent); margin-right: 6px; font-size: .8rem; }
+.tabs, .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.tab { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 6px 2px; margin-right: 18px; font-family: var(--f-display); font-weight: 500; font-size: 1.05rem; color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.chip { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; text-align: left; display: grid; gap: 2px; min-width: 0; }
+.chip small { color: var(--muted); font-size: .8rem; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.chip .prog { font-family: var(--f-mono); font-size: .75rem; color: var(--accent); }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.bench { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.codepane { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+@media (max-width: 900px) { .codepane { position: static; } }
+.codehead { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.codehead h2 { font-family: var(--f-display); font-size: 1.2rem; margin: 0; }
+.codehead p { margin: 0; color: var(--muted); font-size: .92rem; }
+.note { margin-top: 6px !important; background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 6px 10px; font-size: .85rem !important; }
+.code { overflow-x: auto; background: var(--code-bg); border-radius: 0 0 10px 10px; padding-block: 10px; }
+.code table { border-collapse: collapse; font-family: var(--f-mono); font-size: .84rem; line-height: 1.6; width: 100%; }
+.code td { padding: 0 14px 0 0; white-space: pre; vertical-align: top; }
+.code td.n { width: 1%; text-align: right; color: var(--muted); padding-left: 12px; padding-right: 14px; user-select: none; font-variant-numeric: tabular-nums; }
+.code tr.hl td { background: var(--hl); }
+.t-cmd { color: var(--tok-cmd); font-weight: 600; } .t-var { color: var(--tok-var); } .t-str { color: var(--tok-str); }
+.t-com { color: var(--tok-com); font-style: italic; } .t-par { color: var(--tok-par); }
+
+.qs { display: grid; gap: 14px; min-width: 0; }
+.q { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
+.q.active { border-color: var(--accent); }
+.qtop { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+.qnum { font-family: var(--f-display); font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.lines { font-family: var(--f-mono); font-size: .75rem; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 1px 9px; color: var(--accent); }
+.kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-family: var(--f-display); }
+.kind.bug { background: var(--bad-soft); color: var(--bad); }
+.kind.open { background: var(--warn-soft); color: var(--warn); }
+.q p.prompt { margin: 0; font-weight: 600; }
+.opts { display: grid; gap: 6px; }
+.opt { text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; gap: 10px; align-items: flex-start; }
+.opt:hover:not([disabled]) { border-color: var(--accent); }
+.opt .k { font-family: var(--f-mono); color: var(--muted); font-size: .85rem; padding-top: 1px; }
+.opt.right { border-color: var(--ok); background: var(--ok-soft); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt[disabled] { cursor: default; }
+.expl { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; color: var(--ink); font-size: .95rem; }
+.expl.ok { border-left-color: var(--ok); } .expl.no { border-left-color: var(--bad); } .expl.neutral { border-left-color: var(--warn); }
+.expl strong { display: block; margin-bottom: 2px; }
+code.i { font-family: var(--f-mono); font-size: .86em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+.btn { background: var(--accent); color: var(--panel); border: 0; border-radius: 8px; padding: 7px 14px; font-weight: 600; justify-self: start; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.dict { display: grid; gap: 16px; }
+.dict input { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; width: min(100%, 420px); }
+.dgroup h3 { font-family: var(--f-display); font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 8px 0; }
+.dlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 10px; }
+.entry { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.entry .name { font-family: var(--f-mono); font-weight: 600; color: var(--tok-cmd); overflow-wrap: anywhere; }
+.entry .ex { font-family: var(--f-mono); font-size: .8rem; background: var(--code-bg); border-radius: 6px; padding: 6px 8px; overflow-x: auto; white-space: pre; }
+.entry .eh { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.risk { font-size: .72rem; border-radius: 999px; padding: 1px 8px; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .05em; }
+.risk.read { background: var(--ok-soft); color: var(--ok); }
+.risk.write { background: var(--bad-soft); color: var(--bad); }
+.risk.neutral { background: var(--accent-soft); color: var(--accent); }
+.empty { color: var(--muted); }
+footer { color: var(--muted); font-size: .85rem; max-width: 80ch; }
+@media (prefers-reduced-motion: no-preference) { .q, .opt { transition: border-color .15s, background .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>PowerShell Leestrainer</h1>
+      <p class="sub">Vier scripts uit de praktijk van een M365-engineer. Klik op een vraag om de bijbehorende regels op te lichten. Probeer eerst zelf, kijk daarna pas naar het antwoord.</p>
+    </div>
+    <div class="score" id="score" aria-live="polite"></div>
+  </header>
+
+  <div class="method" aria-label="Leesmethode">
+    <span class="lbl">Leesmethode</span>
+    <span class="step"><span>1</span>Parameters</span>
+    <span class="step"><span>2</span>Bron</span>
+    <span class="step"><span>3</span>Bewerking</span>
+    <span class="step"><span>4</span>Wijziging</span>
+    <span class="step"><span>5</span>Uitvoer</span>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-scripts" aria-selected="true">Oefenscripts</button>
+    <button class="tab" role="tab" id="tab-dict" aria-selected="false">Woordenboek</button>
+  </div>
+
+  <section id="view-scripts" class="wrap" style="padding:0;max-width:none">
+    <div class="chips" id="chips"></div>
+    <div class="bench">
+      <div class="codepane">
+        <div class="codehead" id="codehead"></div>
+        <div class="code"><table id="codetable"></table></div>
+      </div>
+      <div class="qs" id="qs"></div>
+    </div>
+  </section>
+
+  <section id="view-dict" class="dict" hidden>
+    <input id="search" type="search" placeholder="Zoek een cmdlet of begrip, bijv. Where of -WhatIf" aria-label="Zoeken in woordenboek">
+    <div id="dict"></div>
+  </section>
+
+  <footer>Microsoft Graph-, SharePoint Online- en ShareGate-cmdlets werken alleen met de bijbehorende module en de juiste rechten. Controleer parameters altijd met <code class="i">Get-Help &lt;cmdlet&gt; -Examples</code> of de documentatie voordat je iets in productie draait.</footer>
+</div>
+
+<script>
+const SCRIPTS = [
+{
+  id: 'graph-users', title: 'Inactieve gebruikers', tag: 'Microsoft Graph · alleen lezen',
+  desc: 'Rapport van ingeschakelde accounts die 90 dagen niet hebben ingelogd. Typisch voor een opschoonactie na een ISO 27001-audit.',
+  code: String.raw`# Rapport: ingeschakelde accounts die 90 dagen niet hebben ingelogd
+Connect-MgGraph -Scopes "User.Read.All", "AuditLog.Read.All"
+
+$grens = (Get-Date).AddDays(-90)
+
+$users = Get-MgUser -Property DisplayName, UserPrincipalName, AccountEnabled, SignInActivity
+
+$inactief = $users | Where-Object {
+    $_.AccountEnabled -and
+    ($null -eq $_.SignInActivity.LastSignInDateTime -or
+     $_.SignInActivity.LastSignInDateTime -lt $grens)
+}
+
+$inactief |
+    Select-Object DisplayName, UserPrincipalName,
+        @{ Name = 'LaatsteLogin'; Expression = { $_.SignInActivity.LastSignInDateTime } } |
+    Sort-Object LaatsteLogin |
+    Export-Csv -Path '.\inactieve-gebruikers.csv' -NoTypeInformation -Encoding UTF8
+
+Write-Output "$($inactief.Count) inactieve accounts gevonden"`,
+  qs: [
+    { type:'mc', lines:[2], q:'Waarom vraagt het script om twee scopes?',
+      opts:['De eerste is om te lezen, de tweede om te schrijven','User.Read.All voor de gebruikers, AuditLog.Read.All omdat aanmeldgegevens (SignInActivity) onder auditlogs vallen','AuditLog.Read.All is nodig voor MFA','Het is dubbelop; één scope is genoeg'],
+      a:1, ex:'Zonder <code class="i">AuditLog.Read.All</code> blijft <code class="i">SignInActivity</code> leeg of krijg je een fout. Beide scopes zijn leesrechten; er wordt niets gewijzigd.' },
+    { type:'mc', lines:[4], q:'Wat staat er na regel 4 in $grens?',
+      opts:['Het getal 90','Een datum en tijd van 90 dagen geleden','Een datum 90 dagen in de toekomst','Het aantal dagen sinds de laatste login'],
+      a:1, ex:'<code class="i">Get-Date</code> geeft nu; <code class="i">.AddDays(-90)</code> telt er min 90 dagen bij op. Het resultaat is een <code class="i">[datetime]</code>-object dat je verderop vergelijkt.' },
+    { type:'mc', lines:[8,9,10,11,12], q:'Wat is $_ binnen het Where-Object-blok?',
+      opts:['Alle gebruikers tegelijk','De gebruiker die op dat moment door de pipeline komt','De laatste fout','Een lege variabele'],
+      a:1, ex:'<code class="i">Where-Object</code> bekijkt de objecten één voor één. <code class="i">$_</code> (of <code class="i">$PSItem</code>) is steeds het huidige object. Alleen als het blok <code class="i">$true</code> oplevert, gaat de gebruiker door.' },
+    { type:'mc', lines:[10], q:'Waarom staat er een aparte controle op $null?',
+      opts:['Om fouten te onderdrukken','Om gebruikers mee te nemen die nog nooit hebben ingelogd, want die hebben geen datum','Om uitgeschakelde accounts over te slaan','Het is overbodig'],
+      a:1, ex:'Een account dat nooit heeft ingelogd heeft geen <code class="i">LastSignInDateTime</code>. Die wil je juist in het rapport. <code class="i">$null</code> staat links van <code class="i">-eq</code>: dat is de aanbevolen schrijfwijze, omdat de vergelijking anders onverwacht werkt als de rechterkant een lijst is.' },
+    { type:'mc', lines:[16], q:'Wat doet @{ Name = ...; Expression = { ... } } in Select-Object?',
+      opts:['Het maakt een nieuwe variabele aan','Het maakt een berekende kolom: een nieuwe eigenschap met een eigen naam en waarde','Het filtert de gebruikers','Het sorteert de kolommen'],
+      a:1, ex:'Dit heet een <em>calculated property</em>. De datum zit diep in <code class="i">SignInActivity</code>; zo haal je hem naar boven als kolom <code class="i">LaatsteLogin</code>, die <code class="i">Sort-Object</code> en <code class="i">Export-Csv</code> daarna kunnen gebruiken.' },
+    { type:'bug', lines:[6], q:'De tenant heeft 2.000 gebruikers, maar het rapport kijkt maar naar een deel ervan. Waar zit de fout?',
+      opts:['Where-Object filtert te streng','Get-MgUser mist -All, waardoor alleen de eerste pagina resultaten wordt opgehaald','Export-Csv kapt het bestand af','De scope User.Read.All is te beperkt'],
+      a:1, ex:'Graph werkt met pagina\'s. Zonder <code class="i">-All</code> haalt <code class="i">Get-MgUser</code> alleen de eerste pagina op. Hetzelfde patroon zie je bij <code class="i">Get-SPOSite -Limit All</code> en <code class="i">Get-MgDevice -All</code>. Dit is een klassieke valkuil om in een gesprek te noemen.' },
+    { type:'open', lines:[], q:'Wat verandert er in de tenant als je dit script draait?',
+      ex:'Niets. Elke stap leest of verwerkt alleen: <code class="i">Connect</code>, <code class="i">Get</code>, <code class="i">Where</code>, <code class="i">Select</code>, <code class="i">Sort</code>, <code class="i">Export</code> naar een lokaal bestand. Er staat geen <code class="i">Set-</code>, <code class="i">Update-</code>, <code class="i">New-</code> of <code class="i">Remove-</code> in. Kijk bij elk onbekend script eerst naar die werkwoorden.' }
+  ]
+},
+{
+  id: 'graph-devices', title: 'Oude apparaten uitschakelen', tag: 'Microsoft Graph · wijzigt',
+  desc: 'Schakelt apparaten in Entra ID uit die lang niet hebben aangemeld. Gebouwd met -WhatIf-ondersteuning en foutafhandeling.',
+  code: String.raw`[CmdletBinding(SupportsShouldProcess)]
+param(
+    [int]$Dagen = 180
+)
+
+Connect-MgGraph -Scopes "Device.ReadWrite.All"
+$grens = (Get-Date).AddDays(-$Dagen)
+
+$oud = Get-MgDevice -All |
+    Where-Object { $_.ApproximateLastSignInDateTime -lt $grens }
+
+foreach ($apparaat in $oud) {
+    if ($PSCmdlet.ShouldProcess($apparaat.DisplayName, 'Apparaat uitschakelen')) {
+        try {
+            Update-MgDevice -DeviceId $apparaat.Id -BodyParameter @{ accountEnabled = $false } -ErrorAction Stop
+            Write-Verbose "Uitgeschakeld: $($apparaat.DisplayName)"
+        }
+        catch {
+            Write-Warning "Mislukt voor $($apparaat.DisplayName): $($_.Exception.Message)"
+        }
+    }
+}`,
+  qs: [
+    { type:'mc', lines:[1], q:'Wat maakt SupportsShouldProcess mogelijk?',
+      opts:['Het script draait sneller','Je kunt het script met -WhatIf en -Confirm aanroepen','Het script vraagt automatisch om MFA','Fouten worden genegeerd'],
+      a:1, ex:'Met <code class="i">SupportsShouldProcess</code> in <code class="i">[CmdletBinding()]</code> krijgt je script dezelfde <code class="i">-WhatIf</code> en <code class="i">-Confirm</code> als ingebouwde cmdlets. Het werkt alleen als je in de code ook <code class="i">$PSCmdlet.ShouldProcess()</code> aanroept, zoals op regel 13.' },
+    { type:'mc', lines:[2,3,4], q:'Hoe start je het script voor apparaten die een jaar niet actief waren?',
+      opts:['.\\Disable-OudeApparaten.ps1 365','.\\Disable-OudeApparaten.ps1 -Dagen 365','.\\Disable-OudeApparaten.ps1 $Dagen=365','Je moet regel 3 aanpassen'],
+      a:1, ex:'Parameters uit het <code class="i">param()</code>-blok geef je mee met een streepje en de naam. <code class="i">= 180</code> is alleen de standaardwaarde als je niets meegeeft. (Optie A werkt toevallig ook, omdat het de enige parameter is en PowerShell hem op positie toewijst, maar met de naam is het duidelijker.)' },
+    { type:'mc', lines:[13], q:'Je draait het script met -WhatIf. Wat gebeurt er?',
+      opts:['Alle apparaten worden uitgeschakeld en daarna gemeld','Per apparaat verschijnt een regel "What if: Performing the operation \'Apparaat uitschakelen\' on target ...", en er wordt niets uitgeschakeld','Het script stopt direct','Je krijgt per apparaat een ja/nee-vraag'],
+      a:1, ex:'Bij <code class="i">-WhatIf</code> geeft <code class="i">ShouldProcess()</code> <code class="i">$false</code> terug en print het wat er zou gebeuren. De code binnen de <code class="i">if</code> draait dus niet. De ja/nee-vraag (optie D) is het gedrag van <code class="i">-Confirm</code>.' },
+    { type:'mc', lines:[15], q:'Waarom staat er -ErrorAction Stop achter Update-MgDevice?',
+      opts:['Om het hele script te stoppen bij de eerste fout','Omdat veel cmdlet-fouten niet-blokkerend zijn; Stop maakt de fout blokkerend, zodat catch hem kan opvangen','Om waarschuwingen te verbergen','Het is verplicht bij Graph-cmdlets'],
+      a:1, ex:'Zonder <code class="i">-ErrorAction Stop</code> schrijft een cmdlet een fout en gaat gewoon door; <code class="i">catch</code> wordt dan nooit bereikt. Door de <code class="i">try/catch</code> per apparaat stopt het script niet bij één mislukt apparaat, maar loopt het door naar het volgende.' },
+    { type:'mc', lines:[19], q:'Wat is $_ in het catch-blok?',
+      opts:['Het huidige apparaat','De fout die is opgetreden (een ErrorRecord)','De laatste regel output','Hetzelfde als $apparaat'],
+      a:1, ex:'Let op: <code class="i">$_</code> betekent hier iets anders dan in <code class="i">Where-Object</code>. In <code class="i">catch</code> is het het foutobject; <code class="i">$_.Exception.Message</code> is de leesbare foutmelding. Daarom gebruikt de regel <code class="i">$apparaat.DisplayName</code> voor de naam.' },
+    { type:'mc', lines:[16], q:'Waarom zie je de regels van Write-Verbose normaal niet?',
+      opts:['Ze worden naar een logbestand geschreven','Ze verschijnen alleen als je het script met -Verbose start','Ze werken alleen in Windows PowerShell 5.1','Er zit een fout in'],
+      a:1, ex:'<code class="i">Write-Verbose</code> is extra informatie die je aanzet met <code class="i">-Verbose</code>. Dankzij <code class="i">[CmdletBinding()]</code> werkt die schakelaar automatisch. <code class="i">Write-Warning</code> zie je wel altijd.' },
+    { type:'open', lines:[6], q:'Een security officer vraagt wat je aan dit script zou verbeteren voordat het in productie draait. Wat noem je?',
+      ex:'Goede punten: (1) eerst draaien met <code class="i">-WhatIf</code> en het resultaat laten beoordelen; (2) uitschakelen in plaats van verwijderen is al een goede keuze, verwijderen pas na een wachttijd; (3) uitzonderingen inbouwen, bijvoorbeeld apparaten in een bepaalde groep of zonder aanmelddatum; (4) wat er is uitgeschakeld vastleggen in een CSV, zodat je het kunt terugdraaien; (5) de rechten via PIM just-in-time activeren, en bij automatisering een app-registratie met certificaat of managed identity gebruiken met alleen <code class="i">Device.ReadWrite.All</code>.' }
+  ]
+},
+{
+  id: 'spo-sites', title: 'SharePoint-sites inventariseren', tag: 'SharePoint Online · alleen lezen',
+  desc: 'Overzicht van sites met eigenaar, opslag en deelinstelling. Dit is stap 1 van elke migratie of opschoonactie.',
+  code: String.raw`$adminUrl = 'https://contoso-admin.sharepoint.com'
+Connect-SPOService -Url $adminUrl
+
+$sites = Get-SPOSite -Limit All -IncludePersonalSite $false
+
+$rapport = foreach ($site in $sites) {
+    [PSCustomObject]@{
+        Url         = $site.Url
+        Eigenaar    = $site.Owner
+        OpslagGB    = [math]::Round($site.StorageUsageCurrent / 1024, 1)
+        Delen       = $site.SharingCapability
+        LaatsteWijz = $site.LastContentModifiedDate
+    }
+}
+
+$rapport | Where-Object { $_.Delen -eq 'ExternalUserAndGuestSharing' } |
+    Sort-Object OpslagGB -Descending |
+    Format-Table -AutoSize`,
+  qs: [
+    { type:'mc', lines:[1,2], q:'Waarom eindigt de URL op -admin.sharepoint.com?',
+      opts:['Dat is een typfout','Connect-SPOService verbindt met het SharePoint admin center, niet met een gewone site','Het zorgt voor een veiliger verbinding','Alleen nodig voor OneDrive'],
+      a:1, ex:'De SharePoint Online Management Shell werkt op tenantniveau, dus via de admin-URL. Voor werk binnen één site (lijsten, bestanden) gebruik je eerder PnP PowerShell met <code class="i">Connect-PnPOnline</code> en de URL van die site.' },
+    { type:'mc', lines:[4], q:'Wat gebeurt er als je -Limit All weglaat?',
+      opts:['Je krijgt een fout','Je krijgt alleen de eerste 200 sites','Je krijgt alleen je eigen sites','Er verandert niets'],
+      a:1, ex:'<code class="i">Get-SPOSite</code> geeft standaard maximaal 200 sites terug. Hetzelfde idee als <code class="i">-All</code> bij Graph: zonder die parameter mis je stilletjes data. <code class="i">-IncludePersonalSite $false</code> laat OneDrive-sites weg.' },
+    { type:'mc', lines:[6,7,8,9,10,11,12,13,14], q:'Wat staat er na regel 14 in $rapport?',
+      opts:['Alleen de laatste site','Een lijst met één eigen object per site, met vijf eigenschappen','Een tekstbestand','Niets; foreach geeft geen output'],
+      a:1, ex:'Alles wat binnen de <code class="i">foreach</code> wordt "uitgespuugd" komt in <code class="i">$rapport</code>. <code class="i">[PSCustomObject]@{...}</code> maakt per site een object met de kolommen die jij kiest. Dit patroon zie je heel vaak in rapportagescripts.' },
+    { type:'mc', lines:[10], q:'Waarom wordt StorageUsageCurrent door 1024 gedeeld?',
+      opts:['Om bytes naar MB om te rekenen','Omdat de waarde in MB is en je GB wilt','Om af te ronden','Om het percentage te berekenen'],
+      a:1, ex:'<code class="i">StorageUsageCurrent</code> staat in megabytes. Delen door 1024 geeft gigabytes; <code class="i">[math]::Round(..., 1)</code> rondt af op één decimaal.' },
+    { type:'mc', lines:[16], q:'Welke sites blijven over na het filter op regel 16?',
+      opts:['Sites zonder extern delen','Sites waar alleen bestaande gasten mogen meekijken','Sites met de ruimste instelling: delen met iedereen, ook via anonieme links','Sites zonder eigenaar'],
+      a:2, ex:'<code class="i">ExternalUserAndGuestSharing</code> is het hoogste niveau ("Iedereen"). Voor een security officer is dit een mooi voorbeeld: grote sites die anoniem gedeeld kunnen worden, wil je als eerste bekijken.' },
+    { type:'bug', lines:[18], q:'Je wilt het resultaat ook naar een CSV schrijven en plakt | Export-Csv achter regel 18. Het bestand bevat onzin. Waarom?',
+      opts:['Export-Csv werkt niet met SharePoint-data','Format-Table zet de objecten om in opmaakinstructies; daarna is de data weg. Format-* hoort altijd als allerlaatste stap','-AutoSize is niet compatibel met CSV','Sort-Object moet na Export-Csv'],
+      a:1, ex:'<code class="i">Format-Table</code> en <code class="i">Format-List</code> zijn alleen voor het scherm. Vervang regel 18 door <code class="i">Export-Csv -Path .\\sites.csv -NoTypeInformation</code>, of gebruik beide in aparte regels.' },
+    { type:'open', lines:[], q:'Hoe gebruik je dit script bij de voorbereiding van een migratie?',
+      ex:'Als inventarisatie: hoeveel sites en hoeveel data (planning en duur), wie de eigenaren zijn (aanspreekpunten en wie moet testen), welke sites lang niet zijn gewijzigd (kandidaten om te archiveren in plaats van te migreren), en welke sites ruim gedeeld worden (eerst rechten opschonen). Dat is precies de 80% voorbereiding die bij een migratie hoort.' }
+  ]
+},
+{
+  id: 'sharegate', title: 'Migratie met ShareGate', tag: 'ShareGate-module · wijzigt doel',
+  desc: 'Kopieert bibliotheken volgens een CSV-plan, met incrementele updates en een rapport per bibliotheek.',
+  note: 'Werkt alleen met ShareGate Migrate geïnstalleerd. Controleer de exacte parameters in de ShareGate-documentatie; dit voorbeeld is om te leren lezen.',
+  code: String.raw`Import-Module Sharegate
+
+$plan = Import-Csv -Path '.\migratieplan.csv'   # kolommen: Bron, Doel, Bibliotheek
+$instellingen = New-CopySettings -OnContentItemExists IncrementalUpdate
+
+foreach ($regel in $plan) {
+    $bronSite = Connect-Site -Url $regel.Bron -Browser
+    $doelSite = Connect-Site -Url $regel.Doel -Browser
+
+    $bronLijst = Get-List -Site $bronSite -Name $regel.Bibliotheek
+    $doelLijst = Get-List -Site $doelSite -Name $regel.Bibliotheek
+
+    $resultaat = Copy-Content -SourceList $bronLijst -DestinationList $doelLijst -CopySettings $instellingen
+    Export-Report $resultaat -Path ".\rapporten\$($regel.Bibliotheek).xlsx"
+}`,
+  qs: [
+    { type:'mc', lines:[3], q:'Wat geeft Import-Csv terug?',
+      opts:['Eén lange tekst','Per regel in de CSV een object, met de kolomkoppen als eigenschappen','Een Excel-bestand','Alleen de eerste regel'],
+      a:1, ex:'Daarom kun je verderop <code class="i">$regel.Bron</code> en <code class="i">$regel.Bibliotheek</code> schrijven. Alles na <code class="i">#</code> op regel 3 is commentaar en wordt niet uitgevoerd.' },
+    { type:'mc', lines:[4], q:'Wat betekent -OnContentItemExists IncrementalUpdate?',
+      opts:['Bestaande bestanden worden altijd overschreven','Bestaande bestanden worden overgeslagen, ook als ze zijn gewijzigd','Alleen nieuwe of sinds de vorige keer gewijzigde items worden gekopieerd','Het doel wordt eerst leeggemaakt'],
+      a:2, ex:'Dit is de delta-migratie: eerst de bulk kopiëren, op de cut-over-dag het script nog een keer draaien en dan gaat alleen het verschil over. Precies het verhaal uit je migratiefases.' },
+    { type:'mc', lines:[7,8], q:'Wat doet de schakelaar -Browser?',
+      opts:['Opent de site in een tabblad om te bekijken','Laat je inloggen via een browservenster, zodat MFA en moderne authenticatie werken','Gebruikt de inloggegevens van de browser zonder te vragen','Schakelt de webversie van ShareGate in'],
+      a:1, ex:'Moderne authenticatie met MFA loopt via een browserprompt. Bij een grote migratie werk je vaak met een apart migratieaccount met tijdelijke rechten.' },
+    { type:'mc', lines:[14], q:'Waarom staat er $( ) rond $regel.Bibliotheek in de bestandsnaam?',
+      opts:['Om de waarde in hoofdletters te zetten','Zonder $( ) vult PowerShell in een string alleen $regel in, en zet ".Bibliotheek" er letterlijk achter','Om speciale tekens te verwijderen','Het is optioneel'],
+      a:1, ex:'In een string met dubbele aanhalingstekens wordt alleen een simpele variabele ingevuld. Wil je een eigenschap of een berekening, dan heb je de subexpressie <code class="i">$( )</code> nodig. Dezelfde constructie zag je in de andere scripts bij <code class="i">$($apparaat.DisplayName)</code>.' },
+    { type:'mc', lines:[13], q:'Welk deel van dit script verandert iets?',
+      opts:['Regel 3, Import-Csv','Regel 7, Connect-Site','Regel 13, Copy-Content, in de doelsite','Regel 14, Export-Report, in de bronsite'],
+      a:2, ex:'Alleen <code class="i">Copy-Content</code> schrijft, en wel in de doelomgeving. De bron wordt alleen gelezen. <code class="i">Export-Report</code> schrijft een lokaal Excel-bestand.' },
+    { type:'open', lines:[], q:'Wat zou je toevoegen om dit robuuster te maken voor een echte klantmigratie?',
+      ex:'Bijvoorbeeld: (1) eerst testen met één regel in de CSV; (2) <code class="i">try/catch</code> rond elke regel, zodat één mislukte bibliotheek de rest niet stopt; (3) controleren of <code class="i">Get-List</code> echt iets vond voordat je kopieert; (4) een logregel per bibliotheek met aantallen geslaagd, waarschuwingen en fouten; (5) gebruikers- en groepsmapping toevoegen bij een tenant-to-tenant-migratie.' }
+  ]
+}
+];
+
+const DICT = [
+ { g:'Zelf uitzoeken', items:[
+  ['Get-Help <cmdlet> -Examples','Toont voorbeelden van een cmdlet. Je beste vriend tijdens het lezen.','Get-Help Get-MgUser -Examples','neutral'],
+  ['Get-Command','Zoekt cmdlets op naam of module.','Get-Command -Module Microsoft.Graph.Users -Verb Get','neutral'],
+  ['Get-Member','Laat zien welke eigenschappen en methodes een object heeft.','Get-MgUser -Top 1 | Get-Member','neutral'],
+ ]},
+ { g:'Werkwoorden: lezen of wijzigen?', items:[
+  ['Get-','Haalt data op. Wijzigt niets.','Get-MgUser, Get-SPOSite','read'],
+  ['Set- / Update-','Past iets bestaands aan.','Set-SPOSite, Update-MgDevice','write'],
+  ['New- / Add-','Maakt iets nieuws aan of voegt toe.','New-MgUser, Add-PnPFile','write'],
+  ['Remove-','Verwijdert. Altijd eerst met -WhatIf.','Remove-MgDevice -DeviceId $id -WhatIf','write'],
+  ['Connect-','Maakt verbinding met een dienst. Wijzigt niets, maar bepaalt met welke rechten de rest draait.','Connect-MgGraph -Scopes "User.Read.All"','neutral'],
+  ['Import- / Export-','Leest of schrijft een bestand, zoals CSV.','Import-Csv .\\plan.csv','neutral'],
+ ]},
+ { g:'Pipeline', items:[
+  ['Where-Object','Filtert: alleen objecten waarvoor het blok $true oplevert gaan door.','Get-Process | Where-Object { $_.CPU -gt 100 }','read'],
+  ['ForEach-Object','Doet iets met elk object in de pipeline.','$users | ForEach-Object { $_.DisplayName }','neutral'],
+  ['Select-Object','Kiest kolommen, of de eerste N objecten.','Select-Object DisplayName -First 5','read'],
+  ['Sort-Object','Sorteert op een eigenschap.','Sort-Object OpslagGB -Descending','read'],
+  ['Group-Object','Groepeert en telt per waarde.','$users | Group-Object Department','read'],
+  ['Measure-Object','Telt, of berekent som en gemiddelde.','$sites | Measure-Object OpslagGB -Sum','read'],
+  ['$_ of $PSItem','Het huidige object in de pipeline. In een catch-blok: de fout.','Where-Object { $_.AccountEnabled }','neutral'],
+ ]},
+ { g:'Uitvoer', items:[
+  ['Export-Csv','Schrijft objecten naar een CSV. Gebruik -NoTypeInformation en -Encoding UTF8.','Export-Csv .\\rapport.csv -NoTypeInformation','neutral'],
+  ['Format-Table / Format-List','Alleen voor het scherm. Altijd als laatste stap, nooit vóór Export-Csv.','$rapport | Format-Table -AutoSize','neutral'],
+  ['Write-Output','Stuurt objecten de pipeline in; kan worden opgevangen in een variabele.','Write-Output "Klaar"','neutral'],
+  ['Write-Host','Schrijft alleen naar het scherm; is niet op te vangen of door te sturen.','Write-Host "Bezig..." -ForegroundColor Cyan','neutral'],
+  ['Write-Verbose / Write-Warning','Extra info (zichtbaar met -Verbose) en waarschuwingen (altijd zichtbaar).','Write-Verbose "Stap 2 gestart"','neutral'],
+ ]},
+ { g:'Veiligheid en fouten', items:[
+  ['-WhatIf','Laat zien wat er zou gebeuren, zonder het uit te voeren.','Remove-Item .\\oud\\* -WhatIf','neutral'],
+  ['-Confirm','Vraagt per actie om bevestiging.','Set-SPOSite -Identity $url -LockState NoAccess -Confirm','neutral'],
+  ['[CmdletBinding(SupportsShouldProcess)]','Geeft je eigen script -WhatIf, -Confirm en -Verbose. Werkt samen met $PSCmdlet.ShouldProcess().','if ($PSCmdlet.ShouldProcess($naam)) { ... }','neutral'],
+  ['try / catch','Vangt blokkerende fouten op, zodat het script netjes doorgaat of stopt.','try { ... } catch { Write-Warning $_.Exception.Message }','neutral'],
+  ['-ErrorAction Stop','Maakt een niet-blokkerende fout blokkerend, zodat catch hem ziet.','Get-MgUser -UserId $id -ErrorAction Stop','neutral'],
+ ]},
+ { g:'Syntax', items:[
+  ['param( )','De invoer van een script, met types en standaardwaarden.','param([string]$Pad, [int]$Dagen = 30)','neutral'],
+  ['@{ }','Hashtable: sleutel-waardeparen. Ook gebruikt voor berekende kolommen en -BodyParameter.','@{ accountEnabled = $false }','neutral'],
+  ['@( )','Array. @($x).Count telt ook goed bij nul of één resultaat.','@($resultaten).Count','neutral'],
+  ['[PSCustomObject]@{ }','Maakt een eigen object met zelfgekozen kolommen; ideaal voor rapporten.','[PSCustomObject]@{ Naam = $u.DisplayName }','neutral'],
+  ['$( )','Subexpressie: om een eigenschap of berekening in een string in te vullen.','"Gevonden: $($lijst.Count)"','neutral'],
+  ['-eq -ne -gt -lt','Vergelijken: gelijk, niet gelijk, groter dan, kleiner dan.','$_.Delen -eq \'Disabled\'','neutral'],
+  ['-like / -match','-like met jokertekens (*), -match met een reguliere expressie.','$_.Name -like "*.tmp"','neutral'],
+  ['-and / -or / -not','Voorwaarden combineren of omdraaien.','$_.AccountEnabled -and -not $_.Guest','neutral'],
+ ]},
+ { g:'M365-modules', items:[
+  ['Connect-MgGraph','Verbinding met Microsoft Graph. -Scopes bepaalt de rechten (least privilege).','Connect-MgGraph -Scopes "Group.Read.All"','neutral'],
+  ['Get-MgUser / Get-MgGroup / Get-MgDevice','Gebruikers, groepen en apparaten uit Entra ID. Vergeet -All niet.','Get-MgGroup -All -Filter "groupTypes/any(c:c eq \'Unified\')"','read'],
+  ['Connect-SPOService','SharePoint-beheer op tenantniveau, via de -admin-URL.','Connect-SPOService -Url https://contoso-admin.sharepoint.com','neutral'],
+  ['Get-SPOSite','Lijst met sites en hun instellingen. Standaard maximaal 200: gebruik -Limit All.','Get-SPOSite -Limit All','read'],
+  ['Connect-PnPOnline','PnP PowerShell: werken binnen één site (lijsten, bestanden, rechten).','Connect-PnPOnline -Url $siteUrl -Interactive','neutral'],
+  ['Connect-ExchangeOnline','Exchange Online-beheer: mailboxen, rechten, transportregels.','Connect-ExchangeOnline -UserPrincipalName admin@contoso.com','neutral'],
+ ]},
+];
+
+const KEY = 'ps-leestrainer-v1';
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+let current = SCRIPTS[0].id;
+try { const h = location.hash.slice(1); if (SCRIPTS.some(s => s.id === h)) current = h; } catch (e) {}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const TOK = /(#.*$)|("(?:[^"]*)"|'(?:[^']*)')|(\$[A-Za-z_][\w:]*|\$_)|(\b[A-Z][a-z]+-[A-Za-z]\w*)|((?:^|(?<=\s))-[A-Za-z]\w*)/g;
+function highlight(line) {
+  let out = '', last = 0, m;
+  TOK.lastIndex = 0;
+  while ((m = TOK.exec(line)) !== null) {
+    if (m[0] === '') { TOK.lastIndex++; continue; }
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 't-com' : m[2] ? 't-str' : m[3] ? 't-var' : m[4] ? 't-cmd' : 't-par';
+    out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+    last = m.index + m[0].length;
+  }
+  return out + esc(line.slice(last));
+}
+
+function totals() {
+  let done = 0, right = 0, all = 0;
+  SCRIPTS.forEach(s => s.qs.forEach((q, i) => {
+    if (q.type === 'open') return;
+    all++;
+    const st = state[s.id + ':' + i];
+    if (st) { done++; if (st.first === q.a) right++; }
+  }));
+  return { done, right, all };
+}
+function renderScore() {
+  const t = totals();
+  document.getElementById('score').innerHTML = 'Meerkeuze: <b>' + t.right + '</b> goed bij eerste poging · ' + t.done + '/' + t.all + ' beantwoord' +
+    (t.done ? ' · <button class="lines" id="reset" type="button">opnieuw</button>' : '');
+  const r = document.getElementById('reset');
+  if (r) r.onclick = () => { state = {}; save(); render(); };
+}
+
+function renderChips() {
+  const el = document.getElementById('chips');
+  el.innerHTML = SCRIPTS.map(s => {
+    const mc = s.qs.filter(q => q.type !== 'open').length;
+    const d = s.qs.filter((q, i) => q.type !== 'open' && state[s.id + ':' + i]).length;
+    return '<button class="chip" type="button" aria-pressed="' + (s.id === current) + '" data-id="' + s.id + '"><span>' + esc(s.title) + '</span><small>' + esc(s.tag) + '</small><span class="prog">' + d + '/' + mc + '</span></button>';
+  }).join('');
+  el.querySelectorAll('.chip').forEach(b => b.onclick = () => { current = b.dataset.id; render(); window.scrollTo({ top: 0 }); });
+}
+
+function setHL(lines) {
+  document.querySelectorAll('#codetable tr').forEach((tr, i) => tr.classList.toggle('hl', lines.includes(i + 1)));
+  if (lines.length) {
+    const tr = document.querySelector('#codetable tr:nth-child(' + lines[0] + ')');
+    const pane = document.querySelector('.code');
+    if (tr && pane) pane.scrollLeft = 0;
+  }
+}
+
+function renderScript() {
+  const s = SCRIPTS.find(x => x.id === current);
+  document.getElementById('codehead').innerHTML = '<h2>' + esc(s.title) + '</h2><p>' + esc(s.desc) + '</p>' + (s.note ? '<p class="note">' + esc(s.note) + '</p>' : '');
+  document.getElementById('codetable').innerHTML = s.code.split('\n').map((l, i) =>
+    '<tr><td class="n">' + (i + 1) + '</td><td>' + (highlight(l) || ' ') + '</td></tr>').join('');
+
+  const qs = document.getElementById('qs');
+  qs.innerHTML = s.qs.map((q, i) => {
+    const key = s.id + ':' + i, st = state[key];
+    const kind = q.type === 'bug' ? '<span class="kind bug">Zoek de fout</span>' : q.type === 'open' ? '<span class="kind open">Zelf formuleren</span>' : '<span class="kind">Meerkeuze</span>';
+    const ln = q.lines.length ? '<button class="lines" type="button" data-hl="' + i + '">regel ' + (q.lines.length > 1 ? q.lines[0] + '–' + q.lines[q.lines.length - 1] : q.lines[0]) + '</button>' : '';
+    let body = '';
+    if (q.type === 'open') {
+      body = '<textarea id="ans-' + key.replace(':','-') + '" placeholder="Schrijf eerst je eigen antwoord, in je eigen woorden"></textarea>' +
+        (st && st.shown ? '<div class="expl neutral"><strong>Wat een sterk antwoord bevat</strong>' + q.ex + '</div>' : '<button class="btn ghost" type="button" data-show="' + i + '">Toon voorbeeldantwoord</button>');
+    } else {
+      body = '<div class="opts">' + q.opts.map((o, j) => {
+        let cls = 'opt';
+        if (st) { if (j === q.a) cls += ' right'; else if (j === st.first) cls += ' wrong'; }
+        return '<button class="' + cls + '" type="button" data-q="' + i + '" data-o="' + j + '"' + (st ? ' disabled' : '') + '><span class="k">' + 'ABCD'[j] + '</span><span>' + esc(o) + '</span></button>';
+      }).join('') + '</div>';
+      if (st) {
+        const ok = st.first === q.a;
+        body += '<div class="expl ' + (ok ? 'ok' : 'no') + '"><strong>' + (ok ? 'Goed.' : 'Niet helemaal. Het juiste antwoord is ' + 'ABCD'[q.a] + '.') + '</strong>' + q.ex + '</div>';
+      }
+    }
+    return '<article class="q" data-i="' + i + '"><div class="qtop"><span class="qnum">Vraag ' + (i + 1) + '</span><span class="row">' + kind + ln + '</span></div><p class="prompt">' + esc(q.q) + '</p>' + body + '</article>';
+  }).join('');
+
+  qs.querySelectorAll('.q').forEach(card => {
+    const q = s.qs[+card.dataset.i];
+    const act = () => { qs.querySelectorAll('.q').forEach(c => c.classList.remove('active')); card.classList.add('active'); setHL(q.lines); };
+    card.addEventListener('mouseenter', act);
+    card.addEventListener('focusin', act);
+    card.addEventListener('click', act);
+  });
+  qs.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const i = +b.dataset.q, key = s.id + ':' + i;
+    if (state[key]) return;
+    state[key] = { first: +b.dataset.o }; save(); renderScript(); renderChips(); renderScore();
+    const card = qs.querySelector('.q[data-i="' + i + '"]'); if (card) { card.classList.add('active'); setHL(s.qs[i].lines); }
+  });
+  qs.querySelectorAll('[data-show]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.show, key = s.id + ':' + i;
+    const ta = document.getElementById('ans-' + key.replace(':','-'));
+    const draft = ta ? ta.value : '';
+    state[key] = { shown: true }; save(); renderScript();
+    const ta2 = document.getElementById('ans-' + key.replace(':','-')); if (ta2) ta2.value = draft;
+  });
+  setHL([]);
+}
+
+function renderDict(filter) {
+  const f = (filter || '').toLowerCase().trim();
+  const html = DICT.map(grp => {
+    const items = grp.items.filter(it => !f || (it[0] + ' ' + it[1] + ' ' + it[2]).toLowerCase().includes(f));
+    if (!items.length) return '';
+    return '<div class="dgroup"><h3>' + esc(grp.g) + '</h3><div class="dlist">' + items.map(it => {
+      const r = it[3] === 'read' ? '<span class="risk read">leest</span>' : it[3] === 'write' ? '<span class="risk write">wijzigt</span>' : '';
+      return '<div class="entry"><div class="eh"><span class="name">' + esc(it[0]) + '</span>' + r + '</div><div>' + esc(it[1]) + '</div><div class="ex">' + highlight(it[2]) + '</div></div>';
+    }).join('') + '</div></div>';
+  }).join('');
+  document.getElementById('dict').innerHTML = html || '<p class="empty">Niets gevonden. Probeer een deel van een naam, zoals "Object" of "Graph".</p>';
+}
+
+function showTab(which) {
+  const s = which === 'scripts';
+  document.getElementById('tab-scripts').setAttribute('aria-selected', s);
+  document.getElementById('tab-dict').setAttribute('aria-selected', !s);
+  document.getElementById('view-scripts').hidden = !s;
+  document.getElementById('view-dict').hidden = s;
+}
+document.getElementById('tab-scripts').onclick = () => showTab('scripts');
+document.getElementById('tab-dict').onclick = () => showTab('dict');
+document.getElementById('search').addEventListener('input', e => renderDict(e.target.value));
+
+function render() { renderChips(); renderScript(); renderScore(); }
+render();
+renderDict('');
+</script>

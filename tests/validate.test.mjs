@@ -141,6 +141,72 @@ test('open-vraag met options: exitcode 1', () => {
   });
 });
 
+// --- Woordenboek ---
+
+const geldigWoordenboek = () => [
+  { id: 'pipeline', name: 'Pipeline', items: [
+    { term: 'Where-Object', explanation: 'Filtert objecten.', example: 'Get-Process | Where-Object { $_.CPU -gt 100 }', risk: 'read' },
+    { term: 'Connect-MgGraph', explanation: 'Maakt verbinding.', example: 'Connect-MgGraph', risk: 'neutral', topics: ['entra-id'] }
+  ] }
+];
+
+// Zet een woordenboek in een tijdelijke map en valideert het naast de fixture "geldig".
+function metWoordenboek(woordenboek, test) {
+  metKopie((tmp) => {
+    const bestand = join(tmp, 'woordenboek.json');
+    writeFileSync(bestand, typeof woordenboek === 'string' ? woordenboek : JSON.stringify(woordenboek));
+    const r = spawnSync(process.execPath, [join(root, 'tools', 'validate.mjs'), join(fixtures, 'geldig'), bestand], { cwd: root, encoding: 'utf8' });
+    test({ code: r.status, uit: `${r.stdout}${r.stderr}` });
+  });
+}
+
+test('geldig woordenboek: exitcode 0 en telling in de uitvoer', () => {
+  metWoordenboek(geldigWoordenboek(), (r) => {
+    assert.equal(r.code, 0, r.uit);
+    assert.match(r.uit, /Woordenboek: 2 items in 1 groepen/);
+  });
+});
+
+test('woordenboek met dubbele term: exitcode 1', () => {
+  const w = geldigWoordenboek();
+  w.push({ id: 'syntax', name: 'Syntax', items: [{ term: 'Where-Object', explanation: 'x', example: 'x', risk: 'read' }] });
+  metWoordenboek(w, (r) => {
+    assert.equal(r.code, 1);
+    assert.match(r.uit, /dubbele term 'Where-Object' \(in groep 'syntax'\)/);
+  });
+});
+
+test('woordenboek met dubbel groep-id: exitcode 1', () => {
+  const w = geldigWoordenboek();
+  w.push({ id: 'pipeline', name: 'Andere naam', items: [{ term: 'Sort-Object', explanation: 'x', example: 'x', risk: 'read' }] });
+  metWoordenboek(w, (r) => {
+    assert.equal(r.code, 1);
+    assert.match(r.uit, /dubbel groep-id 'pipeline'/);
+  });
+});
+
+test('woordenboek met ongeldige risk, onbekend topic of extra veld: exitcode 1', () => {
+  for (const [wijzig, verwacht] of [
+    [(w) => { w[0].items[0].risk = 'gevaarlijk'; }, /\/0\/items\/0\/risk must be equal to one of the allowed values/],
+    [(w) => { w[0].items[1].topics = ['exchange']; }, /\/0\/items\/1\/topics\/0 must be equal to one of the allowed values/],
+    [(w) => { w[0].items[0].extra = 1; }, /must NOT have additional properties: 'extra'/]
+  ]) {
+    const w = geldigWoordenboek();
+    wijzig(w);
+    metWoordenboek(w, (r) => {
+      assert.equal(r.code, 1, r.uit);
+      assert.match(r.uit, verwacht);
+    });
+  }
+});
+
+test('woordenboek met kapotte JSON: exitcode 1', () => {
+  metWoordenboek('[ kapot', (r) => {
+    assert.equal(r.code, 1);
+    assert.match(r.uit, /JSON is ongeldig/);
+  });
+});
+
 // --- Waarschuwingen (geen fout, dus exitcode 0) ---
 
 test('risk read met Remove-cmdlet in de code: waarschuwing, exitcode 0', () => {
@@ -198,3 +264,14 @@ test('Test-Syntax.ps1 op script met syntaxfout: exitcode 1 en bestand:regel:kolo
     assert.match(r.uit, /script\.ps1:2:\d+: /);
   });
 });
+
+// Zonder -Pad gebruikt Test-Syntax.ps1 data/scripts in de repo. In Windows PowerShell 5.1 ging dit eerder
+// mis ($PSScriptRoot was leeg in de standaardwaarde van de parameter), dus testen we beide uitvoerders.
+for (const [naam, programma] of [['pwsh', 'pwsh'], ['Windows PowerShell 5.1', 'powershell']]) {
+  const aanwezig = spawnSync(programma, ['-NoProfile', '-Command', 'exit 0']).error === undefined;
+  test(`Test-Syntax.ps1 zonder -Pad (${naam}): controleert data/scripts`, { skip: !aanwezig && `${programma} niet gevonden` }, () => {
+    const r = spawnSync(programma, ['-NoProfile', '-File', join(root, 'tools', 'Test-Syntax.ps1')], { cwd: root, encoding: 'utf8' });
+    assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /Samenvatting: [1-9]\d* scripts, 0 syntaxfouten/);
+  });
+}

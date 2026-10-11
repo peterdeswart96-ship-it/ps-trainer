@@ -1,0 +1,299 @@
+[
+  {
+    "id": "zelf-uitzoeken",
+    "name": "Zelf uitzoeken",
+    "items": [
+      {
+        "term": "Get-Help <cmdlet> -Examples",
+        "explanation": "Toont voorbeelden van een cmdlet. Je beste vriend tijdens het lezen.",
+        "example": "Get-Help Get-MgUser -Examples",
+        "risk": "neutral"
+      },
+      {
+        "term": "Get-Command",
+        "explanation": "Zoekt cmdlets op naam of module.",
+        "example": "Get-Command -Module Microsoft.Graph.Users -Verb Get",
+        "risk": "neutral"
+      },
+      {
+        "term": "Get-Member",
+        "explanation": "Laat zien welke eigenschappen en methodes een object heeft.",
+        "example": "Get-MgUser -Top 1 | Get-Member",
+        "risk": "neutral"
+      }
+    ]
+  },
+  {
+    "id": "werkwoorden",
+    "name": "Werkwoorden: lezen of wijzigen?",
+    "items": [
+      {
+        "term": "Get-",
+        "explanation": "Haalt data op. Wijzigt niets.",
+        "example": "Get-MgUser, Get-SPOSite",
+        "risk": "read"
+      },
+      {
+        "term": "Set- / Update-",
+        "explanation": "Past iets bestaands aan.",
+        "example": "Set-SPOSite, Update-MgDevice",
+        "risk": "write"
+      },
+      {
+        "term": "New- / Add-",
+        "explanation": "Maakt iets nieuws aan of voegt toe.",
+        "example": "New-MgUser, Add-PnPFile",
+        "risk": "write"
+      },
+      {
+        "term": "Remove-",
+        "explanation": "Verwijdert. Altijd eerst met -WhatIf.",
+        "example": "Remove-MgDevice -DeviceId $id -WhatIf",
+        "risk": "write"
+      },
+      {
+        "term": "Connect-",
+        "explanation": "Maakt verbinding met een dienst. Wijzigt niets, maar bepaalt met welke rechten de rest draait.",
+        "example": "Connect-MgGraph -Scopes \"User.Read.All\"",
+        "risk": "neutral"
+      },
+      {
+        "term": "Import- / Export-",
+        "explanation": "Leest of schrijft een bestand, zoals CSV.",
+        "example": "Import-Csv .\\plan.csv",
+        "risk": "neutral"
+      }
+    ]
+  },
+  {
+    "id": "pipeline",
+    "name": "Pipeline",
+    "items": [
+      {
+        "term": "Where-Object",
+        "explanation": "Filtert: alleen objecten waarvoor het blok $true oplevert gaan door.",
+        "example": "Get-Process | Where-Object { $_.CPU -gt 100 }",
+        "risk": "read"
+      },
+      {
+        "term": "ForEach-Object",
+        "explanation": "Doet iets met elk object in de pipeline.",
+        "example": "$users | ForEach-Object { $_.DisplayName }",
+        "risk": "neutral"
+      },
+      {
+        "term": "Select-Object",
+        "explanation": "Kiest kolommen, of de eerste N objecten.",
+        "example": "Select-Object DisplayName -First 5",
+        "risk": "read"
+      },
+      {
+        "term": "Sort-Object",
+        "explanation": "Sorteert op een eigenschap.",
+        "example": "Sort-Object OpslagGB -Descending",
+        "risk": "read"
+      },
+      {
+        "term": "Group-Object",
+        "explanation": "Groepeert en telt per waarde.",
+        "example": "$users | Group-Object Department",
+        "risk": "read"
+      },
+      {
+        "term": "Measure-Object",
+        "explanation": "Telt, of berekent som en gemiddelde.",
+        "example": "$sites | Measure-Object OpslagGB -Sum",
+        "risk": "read"
+      },
+      {
+        "term": "$_ of $PSItem",
+        "explanation": "Het huidige object in de pipeline. In een catch-blok: de fout.",
+        "example": "Where-Object { $_.AccountEnabled }",
+        "risk": "neutral"
+      }
+    ]
+  },
+  {
+    "id": "uitvoer",
+    "name": "Uitvoer",
+    "items": [
+      {
+        "term": "Export-Csv",
+        "explanation": "Schrijft objecten naar een CSV. Gebruik -NoTypeInformation en -Encoding UTF8.",
+        "example": "Export-Csv .\\rapport.csv -NoTypeInformation",
+        "risk": "neutral"
+      },
+      {
+        "term": "Format-Table / Format-List",
+        "explanation": "Alleen voor het scherm. Altijd als laatste stap, nooit vóór Export-Csv.",
+        "example": "$rapport | Format-Table -AutoSize",
+        "risk": "neutral"
+      },
+      {
+        "term": "Write-Output",
+        "explanation": "Stuurt objecten de pipeline in; kan worden opgevangen in een variabele.",
+        "example": "Write-Output \"Klaar\"",
+        "risk": "neutral"
+      },
+      {
+        "term": "Write-Host",
+        "explanation": "Schrijft alleen naar het scherm; is niet op te vangen of door te sturen.",
+        "example": "Write-Host \"Bezig...\" -ForegroundColor Cyan",
+        "risk": "neutral"
+      },
+      {
+        "term": "Write-Verbose / Write-Warning",
+        "explanation": "Extra info (zichtbaar met -Verbose) en waarschuwingen (altijd zichtbaar).",
+        "example": "Write-Verbose \"Stap 2 gestart\"",
+        "risk": "neutral"
+      }
+    ]
+  },
+  {
+    "id": "veiligheid-en-fouten",
+    "name": "Veiligheid en fouten",
+    "items": [
+      {
+        "term": "-WhatIf",
+        "explanation": "Laat zien wat er zou gebeuren, zonder het uit te voeren.",
+        "example": "Remove-Item .\\oud\\* -WhatIf",
+        "risk": "neutral"
+      },
+      {
+        "term": "-Confirm",
+        "explanation": "Vraagt per actie om bevestiging.",
+        "example": "Set-SPOSite -Identity $url -LockState NoAccess -Confirm",
+        "risk": "neutral"
+      },
+      {
+        "term": "[CmdletBinding(SupportsShouldProcess)]",
+        "explanation": "Geeft je eigen script -WhatIf, -Confirm en -Verbose. Werkt samen met $PSCmdlet.ShouldProcess().",
+        "example": "if ($PSCmdlet.ShouldProcess($naam)) { ... }",
+        "risk": "neutral"
+      },
+      {
+        "term": "try / catch",
+        "explanation": "Vangt blokkerende fouten op, zodat het script netjes doorgaat of stopt.",
+        "example": "try { ... } catch { Write-Warning $_.Exception.Message }",
+        "risk": "neutral"
+      },
+      {
+        "term": "-ErrorAction Stop",
+        "explanation": "Maakt een niet-blokkerende fout blokkerend, zodat catch hem ziet.",
+        "example": "Get-MgUser -UserId $id -ErrorAction Stop",
+        "risk": "neutral"
+      }
+    ]
+  },
+  {
+    "id": "syntax",
+    "name": "Syntax",
+    "items": [
+      {
+        "term": "param( )",
+        "explanation": "De invoer van een script, met types en standaardwaarden.",
+        "example": "param([string]$Pad, [int]$Dagen = 30)",
+        "risk": "neutral"
+      },
+      {
+        "term": "@{ }",
+        "explanation": "Hashtable: sleutel-waardeparen. Ook gebruikt voor berekende kolommen en -BodyParameter.",
+        "example": "@{ accountEnabled = $false }",
+        "risk": "neutral"
+      },
+      {
+        "term": "@( )",
+        "explanation": "Array. @($x).Count telt ook goed bij nul of één resultaat.",
+        "example": "@($resultaten).Count",
+        "risk": "neutral"
+      },
+      {
+        "term": "[PSCustomObject]@{ }",
+        "explanation": "Maakt een eigen object met zelfgekozen kolommen; ideaal voor rapporten.",
+        "example": "[PSCustomObject]@{ Naam = $u.DisplayName }",
+        "risk": "neutral"
+      },
+      {
+        "term": "$( )",
+        "explanation": "Subexpressie: om een eigenschap of berekening in een string in te vullen.",
+        "example": "\"Gevonden: $($lijst.Count)\"",
+        "risk": "neutral"
+      },
+      {
+        "term": "-eq -ne -gt -lt",
+        "explanation": "Vergelijken: gelijk, niet gelijk, groter dan, kleiner dan.",
+        "example": "$_.Delen -eq 'Disabled'",
+        "risk": "neutral"
+      },
+      {
+        "term": "-like / -match",
+        "explanation": "-like met jokertekens (*), -match met een reguliere expressie.",
+        "example": "$_.Name -like \"*.tmp\"",
+        "risk": "neutral"
+      },
+      {
+        "term": "-and / -or / -not",
+        "explanation": "Voorwaarden combineren of omdraaien.",
+        "example": "$_.AccountEnabled -and -not $_.Guest",
+        "risk": "neutral"
+      }
+    ]
+  },
+  {
+    "id": "m365-modules",
+    "name": "M365-modules",
+    "items": [
+      {
+        "term": "Connect-MgGraph",
+        "explanation": "Verbinding met Microsoft Graph. -Scopes bepaalt de rechten (least privilege).",
+        "example": "Connect-MgGraph -Scopes \"Group.Read.All\"",
+        "risk": "neutral",
+        "topics": [
+          "entra-id"
+        ]
+      },
+      {
+        "term": "Get-MgUser / Get-MgGroup / Get-MgDevice",
+        "explanation": "Gebruikers, groepen en apparaten uit Entra ID. Vergeet -All niet.",
+        "example": "Get-MgGroup -All -Filter \"groupTypes/any(c:c eq 'Unified')\"",
+        "risk": "read",
+        "topics": [
+          "entra-id"
+        ]
+      },
+      {
+        "term": "Connect-SPOService",
+        "explanation": "SharePoint-beheer op tenantniveau, via de -admin-URL.",
+        "example": "Connect-SPOService -Url https://contoso-admin.sharepoint.com",
+        "risk": "neutral",
+        "topics": [
+          "sharepoint"
+        ]
+      },
+      {
+        "term": "Get-SPOSite",
+        "explanation": "Lijst met sites en hun instellingen. Standaard maximaal 200: gebruik -Limit All.",
+        "example": "Get-SPOSite -Limit All",
+        "risk": "read",
+        "topics": [
+          "sharepoint"
+        ]
+      },
+      {
+        "term": "Connect-PnPOnline",
+        "explanation": "PnP PowerShell: werken binnen één site (lijsten, bestanden, rechten).",
+        "example": "Connect-PnPOnline -Url $siteUrl -Interactive",
+        "risk": "neutral",
+        "topics": [
+          "sharepoint"
+        ]
+      },
+      {
+        "term": "Connect-ExchangeOnline",
+        "explanation": "Exchange Online-beheer: mailboxen, rechten, transportregels.",
+        "example": "Connect-ExchangeOnline -UserPrincipalName admin@contoso.com",
+        "risk": "neutral"
+      }
+    ]
+  }
+]

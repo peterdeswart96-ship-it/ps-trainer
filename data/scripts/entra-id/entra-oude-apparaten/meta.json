@@ -1,0 +1,135 @@
+{
+  "id": "entra-oude-apparaten",
+  "legacyId": "graph-devices",
+  "title": "Oude apparaten uitschakelen",
+  "topic": "entra-id",
+  "level": "gevorderd",
+  "tag": "Microsoft Graph · wijzigt",
+  "summary": "Schakelt apparaten in Entra ID uit die lang niet hebben aangemeld. Gebouwd met -WhatIf-ondersteuning en foutafhandeling.",
+  "risk": "write",
+  "modules": [
+    "Microsoft.Graph.Authentication",
+    "Microsoft.Graph.Identity.DirectoryManagement"
+  ],
+  "note": "Controleer de benodigde scope: de documentatie van Update-MgDevice noemt voor delegated toegang Directory.AccessAsUser.All (Device.ReadWrite.All staat daar alleen bij app-only toegang), terwijl het script Device.ReadWrite.All vraagt.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-MgDevice (-All), Update-MgDevice (-DeviceId, -BodyParameter, -WhatIf) en device-resource (approximateLastSignInDateTime, accountEnabled) bestaan. Open punt: de scope Device.ReadWrite.All."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        1
+      ],
+      "prompt": "Wat maakt SupportsShouldProcess mogelijk?",
+      "options": [
+        "Het script draait sneller",
+        "Je kunt het script met -WhatIf en -Confirm aanroepen",
+        "Het script vraagt automatisch om MFA",
+        "Fouten worden genegeerd"
+      ],
+      "answer": 1,
+      "explanation": "Met `SupportsShouldProcess` in `[CmdletBinding()]` krijgt je script dezelfde `-WhatIf` en `-Confirm` als ingebouwde cmdlets. Het werkt alleen als je in de code ook `$PSCmdlet.ShouldProcess()` aanroept, zoals op regel 13."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        2,
+        3,
+        4
+      ],
+      "prompt": "Hoe start je het script voor apparaten die een jaar niet actief waren?",
+      "options": [
+        ".\\Disable-OudeApparaten.ps1 -Days 365",
+        ".\\Disable-OudeApparaten.ps1 -Dagen 365",
+        ".\\Disable-OudeApparaten.ps1 $Dagen=365",
+        "Je moet regel 3 aanpassen"
+      ],
+      "answer": 1,
+      "explanation": "Parameters uit het `param()`-blok geef je mee met een streepje en de naam: `-Dagen 365`. `= 180` is alleen de standaardwaarde als je niets meegeeft. `-Days` bestaat niet in dit script en `$Dagen=365` is geen geldige manier om een parameter mee te geven."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        13
+      ],
+      "prompt": "Je draait het script met -WhatIf. Wat gebeurt er?",
+      "options": [
+        "Alle apparaten worden uitgeschakeld en daarna gemeld",
+        "Per apparaat verschijnt een regel \"What if: Performing the operation 'Apparaat uitschakelen' on target ...\", en er wordt niets uitgeschakeld",
+        "Het script stopt direct",
+        "Je krijgt per apparaat een ja/nee-vraag"
+      ],
+      "answer": 1,
+      "explanation": "Bij `-WhatIf` geeft `ShouldProcess()` `$false` terug en print het wat er zou gebeuren. De code binnen de `if` draait dus niet. De ja/nee-vraag (optie D) is het gedrag van `-Confirm`."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        15
+      ],
+      "prompt": "Waarom staat er -ErrorAction Stop achter Update-MgDevice?",
+      "options": [
+        "Om het hele script te stoppen bij de eerste fout",
+        "Omdat veel cmdlet-fouten niet-blokkerend zijn; Stop maakt de fout blokkerend, zodat catch hem kan opvangen",
+        "Om waarschuwingen te verbergen",
+        "Het is verplicht bij Graph-cmdlets"
+      ],
+      "answer": 1,
+      "explanation": "Zonder `-ErrorAction Stop` schrijft een cmdlet een fout en gaat gewoon door; `catch` wordt dan nooit bereikt. Door de `try/catch` per apparaat stopt het script niet bij één mislukt apparaat, maar loopt het door naar het volgende."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        19
+      ],
+      "prompt": "Wat is $_ in het catch-blok?",
+      "options": [
+        "Het huidige apparaat",
+        "De fout die is opgetreden (een ErrorRecord)",
+        "De laatste regel output",
+        "Hetzelfde als $apparaat"
+      ],
+      "answer": 1,
+      "explanation": "Let op: `$_` betekent hier iets anders dan in `Where-Object`. In `catch` is het het foutobject; `$_.Exception.Message` is de leesbare foutmelding. Daarom gebruikt de regel `$apparaat.DisplayName` voor de naam."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        16
+      ],
+      "prompt": "Waarom zie je de regels van Write-Verbose normaal niet?",
+      "options": [
+        "Ze worden naar een logbestand geschreven",
+        "Ze verschijnen alleen als je het script met -Verbose start",
+        "Ze werken alleen in Windows PowerShell 5.1",
+        "Er zit een fout in"
+      ],
+      "answer": 1,
+      "explanation": "`Write-Verbose` is extra informatie die je aanzet met `-Verbose`. Dankzij `[CmdletBinding()]` werkt die schakelaar automatisch. `Write-Warning` zie je wel altijd."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "lines": [
+        6
+      ],
+      "prompt": "Een security officer vraagt wat je aan dit script zou verbeteren voordat het in productie draait. Wat noem je?",
+      "explanation": "Goede punten: (1) eerst draaien met `-WhatIf` en het resultaat laten beoordelen; (2) uitschakelen in plaats van verwijderen is al een goede keuze, verwijderen pas na een wachttijd; (3) uitzonderingen inbouwen, bijvoorbeeld apparaten in een bepaalde groep of zonder aanmelddatum; (4) wat er is uitgeschakeld vastleggen in een CSV, zodat je het kunt terugdraaien; (5) de rechten via PIM just-in-time activeren, en bij automatisering een app-registratie met certificaat of managed identity gebruiken met alleen `Device.ReadWrite.All`; (6) denk aan apparaten zonder aanmelddatum: `$null -lt $grens` geeft in PowerShell `$true`, dus die worden ook uitgeschakeld. Kies bewust of die erbij horen."
+    }
+  ]
+}
