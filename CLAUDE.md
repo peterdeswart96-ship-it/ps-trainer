@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.7, akkoord).
-- `DESIGN.md`: hoe (versie 1.10, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.11, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 
 ## Werkwijze (verplicht)
@@ -73,5 +73,5 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7)
 - [x] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten
 - [x] `feature/startpagina-en-werkbank`: gedeelde basis, woordenboekpagina, startpagina en werkbank (visuele controle in een browser door Peter nog nodig)
-- [ ] `feature/deploy` (`deploy.yml`, DNS, eerste livegang)
+- [ ] `feature/deploy`: `deploy.yml`, `tools/build-site.mjs`, `DEPLOY.md` en tests staan klaar (in uitvoering). Nog te doen door Peter, in deze volgorde (zie `DEPLOY.md`): DNS-record in TransIP, Pages inschakelen met bron GitHub Actions en eigen domein instellen, dan de pull request met `deploy.yml` mergen en de controle na livegang doen
 - [ ] Inhoud: Migraties, SharePoint, Foundry, Purview (elk eigen feature-branch)

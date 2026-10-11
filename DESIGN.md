@@ -1,6 +1,6 @@
 # DESIGN – PowerShell Leestrainer
 
-Status: versie 1.10 (11 oktober 2026), definitief. Wijziging t.o.v. 1.9: de tegels van Foundry en Entra ID gebruiken het officiële, ongewijzigde Microsoft-icoon met de volledige productnaam ernaast (`assets/img/microsoft`, bron en voorwaarden in `BRON.md` en `bron.json`; door Peter geaccepteerd voor trainingsdoeleinden); de andere onderwerpen houden hun eigen icoon, want voor SharePoint en Purview bevatten de Microsoft-sets geen productpictogram. Geen open vragen.
+Status: versie 1.11 (11 oktober 2026), definitief. Wijziging t.o.v. 1.10: de deploy is uitgewerkt: de workflow `deploy.yml` (paragraaf 6.2), het buildscript `tools/build-site.mjs` dat alleen de allowlist als pakket bouwt, de rooktest op het pakket zelf, het runbook `DEPLOY.md` (instellen in een vaste volgorde, controle na livegang, terugdraaien) en het bestand `CNAME`. DNS, de Pages-instellingen en de livegang zelf blijven stappen die Peter uitdrukkelijk goedkeurt. Geen open vragen.
 
 ## 1. Besluiten
 
@@ -72,6 +72,7 @@ ps-trainer/
 ├─ legacy/ps-leestrainer-v1.html  De v1-bron van de omzetting; wordt niet gepubliceerd (buiten de deploy-allowlist)
 ├─ tools/
 │  ├─ build-index.mjs             Bouwt data/index.json uit alle meta.json-bestanden
+│  ├─ build-site.mjs              Bouwt het sitepakket _site (alleen de allowlist, met een verse index) voor GitHub Pages
 │  ├─ validate.mjs                Controleert alle meta.json tegen het schema en regelnummers tegen de .ps1
 │  ├─ Test-Syntax.ps1             PowerShell-syntaxcheck van alle .ps1-bestanden
 │  ├─ check-node.mjs              Stopt direct als de Node-hoofdversie niet gelijk is aan .nvmrc
@@ -82,6 +83,7 @@ ps-trainer/
 ├─ .npmrc                         engine-strict=true (npm weigert installeren bij een verkeerde Node-versie)
 ├─ package.json                   Scripts (dev, build-index, validate, test, syntax, smoke) en "engines" voor de Node-versie
 ├─ .github/workflows/             validate.yml en deploy.yml
+├─ CNAME                          ps-trainer.pdscloud.nl (staat in het pakket; bij een deploy via Actions bepaalt de Pages-instelling het domein)
 ├─ CLAUDE.md  DEFINE.md  DESIGN.md  DEPLOY.md
 ```
 
@@ -207,6 +209,15 @@ Naam "Validatie". Draait bij een push op `feature/**` en bij een pull request na
 7. `pwsh -Version` (bewijs in het log dat pwsh aanwezig is), daarna `npm run syntax`
 8. `npm run smoke`
 
+### 6.2 Workflow `deploy.yml`
+
+Naam "Deploy". Draait alleen bij een push naar `main` (dus op het merge-moment) en handmatig via "Run workflow", dat ook alleen vanaf `main` publiceert. `permissions: contents: read` voor de bouwjob; alleen de publiceerjob krijgt `pages: write` en `id-token: write`. `concurrency` groep `pages` zonder afbreken van een lopende deploy. Runner `ubuntu-24.04`, `timeout-minutes: 10` per job, geen secrets. Twee jobs:
+
+1. **bouwen:** `actions/checkout@v7`, `actions/setup-node@v7` (`node-version-file: .nvmrc`), `npm ci`, dezelfde controles als bij een pull request (`npm run validate`, `npm test`, `pwsh -Version` en `npm run syntax`, `npm run smoke`), dan `npm run build-site` (bouwt `_site`), `npm run smoke-site` (de rooktest op het pakket zelf) en `actions/upload-pages-artifact@v5`.
+2. **publiceren** (na bouwen, alleen op `main`, omgeving `github-pages`): `actions/deploy-pages@v5`.
+
+Het pakket bevat alleen de allowlist (paragraaf 8): `index.html`, `CNAME`, `oefenen/`, `woordenboek/`, `assets/`, `data/` (met een verse `index.json`) en `schema/`; dotfiles, `node_modules` en symbolische links (die laten het bouwen falen) blijven er altijd uit. `build-site.mjs` maakt zijn doelmap leeg en accepteert daarom alleen een map direct in de repo waarvan de naam met `_site` begint. Tests bewaken de allowlist (`tests/site.test.mjs`) en de afspraken in de workflows (`tests/workflows.test.mjs`: vaste actieversies, minimale rechten, alleen vanaf `main`, volgorde van de stappen).
+
 ## 7. Backend en AI (release 2.2)
 
 **Function App** in `rg-ps-trainer` (hostingplan en Node-versie: zie 7.1), drie eindpunten:
@@ -280,7 +291,7 @@ Naam "Validatie". Draait bij een push op `feature/**` en bij een pull request na
 ## 10. Domein en hosting
 
 - **Domein:** `ps-trainer.pdscloud.nl`; DNS bij TransIP (CNAME naar `peterdeswart96-ship-it.github.io`); HTTPS afdwingen in de Pages-instellingen. De bestaande skill `github-pages-subdomain` begeleidt dit in Deploy.
-- **Deploy:** GitHub Actions (`upload-pages-artifact` en `deploy-pages`) zodat de gebouwde index meegaat zonder die in git te zetten.
+- **Deploy:** GitHub Actions (`upload-pages-artifact` en `deploy-pages`) zodat de gebouwde index meegaat zonder die in git te zetten. Pages krijgt dus **GitHub Actions als bron** (niet "Deploy from a branch" zoals de skill `github-pages-subdomain` beschrijft). Volgorde bij het instellen: eerst het DNS-record, dan Pages inschakelen en het eigen domein instellen, dan pas de eerste deploy; zie `DEPLOY.md`.
 - **Verschil met de skill `pdscloud-project-setup`:** die gaat uit van een tak `develop` met een testomgeving op `<naam>.test.pdscloud.nl`. Hier zijn beide bewust vervallen: er is geen `develop` en geen online testomgeving, alleen lokaal testen; dit staat ook in `CLAUDE.md`.
 - **Branches en testen:** `main` is productie (beschermd) en `feature/*` is voor werk, altijd gemaakt vanaf `main`. Er is geen `develop` en geen online testomgeving; ik test lokaal met `npm run dev` (een webserver is nodig, want `fetch` van JSON werkt niet via `file://`). Op elke push naar een feature-branch en op elke pull request naar `main` draait `validate.yml` met validatie, tests, syntaxcheck en rooktest. Wijzigingen komen alleen via een pull request in `main`; mijn Merge-klik is het akkoord.
 - **Deploy:** `deploy.yml` draait alleen op een push naar `main`, dus op het merge-moment, en voert vooraf zelf `npm run validate`, `npm test` en `npm run smoke` uit als extra veiligheid. Alleen `main` wordt gedeployed. Nadeel: de eerste echte test op `ps-trainer.pdscloud.nl` gebeurt na de merge. De rooktest en mijn controle direct na livegang (in `DEPLOY.md`) dekken dat af; terugdraaien kan met Revert op de gemergde pull request.

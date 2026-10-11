@@ -44,7 +44,7 @@ try {
   server = await startServer({ root: siteMap ?? tmp, port: 0 });
   const basis = `http://127.0.0.1:${server.address().port}`;
 
-  for (const pad of [...PAGINAS, '/data/index.json']) {
+  for (const pad of [...PAGINAS, '/data/index.json', '/data/topics.json', '/data/dictionary.json']) {
     const antwoord = await fetch(basis + pad);
     if (antwoord.status !== 200) { mislukt(`${pad} gaf HTTP ${antwoord.status}`); continue; }
     console.log(`OK  200  ${pad}`);
@@ -80,6 +80,15 @@ try {
       const index = await antwoord.json();
       if (!Array.isArray(index.scripts)) mislukt('index.json bevat geen lijst scripts');
       if (!Array.isArray(index.topics)) mislukt('index.json bevat geen lijst topics');
+      // De app laadt per script meta.json en script.ps1 met fetch: die moeten er ook zijn.
+      for (const script of Array.isArray(index.scripts) ? index.scripts : []) {
+        for (const bestand of ['meta.json', 'script.ps1']) {
+          const scriptPad = `/${script.path}/${bestand}`;
+          const r = await fetch(basis + scriptPad);
+          if (r.status !== 200) mislukt(`${scriptPad} gaf HTTP ${r.status}`);
+        }
+      }
+      console.log(`OK  200  ${index.scripts?.length ?? 0} scripts met meta.json en script.ps1`);
     }
   }
 

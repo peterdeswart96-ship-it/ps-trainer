@@ -3,9 +3,10 @@
 // package.json, .github, legacy, ...) komt er nooit in (CLAUDE.md, "Beveiliging").
 //
 // Gebruik:  node tools/build-site.mjs [doelmap]      (standaard: _site in de repo)
-// De doelmap wordt eerst leeggemaakt; die moet binnen de repo liggen en mag niet de repo zelf zijn.
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+// De doelmap wordt eerst leeggemaakt. Daarom is alleen een map direct in de repo toegestaan waarvan de naam met
+// _site begint (standaard _site): zo kan een typfout nooit bronbestanden wissen.
+import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { bouwIndex, schrijfIndex } from './build-index.mjs';
 
@@ -19,6 +20,8 @@ export const TOEGESTANE_MAPPEN = ['oefenen', 'woordenboek', 'assets', 'data', 's
 // Nooit meenemen, ook niet binnen een toegestane map: dotfiles en node_modules, en de lokale index
 // (die bouwen we hieronder opnieuw, zodat er nooit een verouderde index meegaat).
 const nietMeenemen = (bron, mapRoot) => {
+  // Een symbolische link kan naar buiten het pakket wijzen: dat laten we liever hard falen dan stil meekopieren.
+  if (lstatSync(bron).isSymbolicLink()) throw new Error(`Een symbolische link in de site is niet toegestaan: ${relative(mapRoot, bron)}`);
   const naam = bron.split(sep).pop();
   if (naam.startsWith('.') || naam === 'node_modules') return false;
   return relative(mapRoot, bron) !== join('data', 'index.json');
@@ -40,15 +43,12 @@ function tel(map) {
 export function bouwSite({ root = repo, doel = join(repo, '_site') } = {}) {
   const doelPad = resolve(doel);
   const rootPad = resolve(root);
-  const binnenRepo = doelPad.startsWith(rootPad + sep) || !relative(rootPad, doelPad).startsWith('..');
-  if (doelPad === rootPad || !doelPad.startsWith(rootPad + sep) && binnenRepo && relative(rootPad, doelPad) === '') {
-    throw new Error('De doelmap mag niet de repo zelf zijn');
-  }
-  if (!doelPad.startsWith(rootPad + sep)) throw new Error(`De doelmap moet binnen de repo liggen: ${doelPad}`);
-  // Nooit een map leegmaken die op de allowlist staat of de bronnen bevat
-  const eersteDeel = relative(rootPad, doelPad).split(sep)[0];
-  if ([...TOEGESTANE_MAPPEN, ...TOEGESTANE_BESTANDEN, '.git', 'tools', 'tests', 'legacy', 'node_modules'].includes(eersteDeel)) {
-    throw new Error(`De doelmap mag niet in ${eersteDeel} liggen`);
+  const deel = relative(rootPad, doelPad);
+  if (deel === '') throw new Error('De doelmap mag niet de repo zelf zijn');
+  if (deel.startsWith('..') || isAbsolute(deel)) throw new Error(`De doelmap moet binnen de repo liggen: ${doelPad}`);
+  // Allowlist in plaats van een lijst met verboden mappen: alleen _site... direct in de repo (hoofdletterongevoelig, voor Windows).
+  if (deel.split(sep).length !== 1 || !deel.toLowerCase().startsWith('_site')) {
+    throw new Error(`De doelmap moet direct in de repo liggen en met _site beginnen (bijvoorbeeld _site), niet: ${deel}`);
   }
 
   for (const naam of [...TOEGESTANE_BESTANDEN, ...TOEGESTANE_MAPPEN]) {
