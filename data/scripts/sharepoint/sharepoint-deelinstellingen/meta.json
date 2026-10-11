@@ -1,0 +1,136 @@
+{
+  "id": "sharepoint-deelinstellingen",
+  "title": "Deelinstellingen en oversharing",
+  "topic": "sharepoint",
+  "level": "gevorderd",
+  "tag": "Get-SPOTenant · hashtable · alleen lezen",
+  "summary": "Vergelijkt de deelinstelling van elke site met een grens die je zelf kiest en toont de sites die ruimer delen.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. De documentatie van Set-SPOTenant beschrijft de vier waarden van SharingCapability; dat Get-SPOTenant die eigenschap ook teruggeeft, is niet in de omschrijving van Get-SPOTenant bevestigd. Bij Get-SPOSite -Limit worden volgens de documentatie sommige eigenschappen, waaronder SharingCapability, niet gevuld; daarom haalt regel 17 elke site opnieuw op met -Identity, wat langzamer is bij veel sites.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-SPOTenant (geen parameters, SharePoint-beheerder vereist), Get-SPOSite (-Limit All, -Identity; bij -Limit niet alle eigenschappen gevuld) en Set-SPOTenant (waarden van SharingCapability). Open punt: of Get-SPOTenant SharingCapability teruggeeft."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        3,
+        4
+      ],
+      "prompt": "Wat doet [ValidateSet(...)] boven de parameter $MaxNiveau?",
+      "options": [
+        "Het zet de standaardwaarde vast, zodat je het niveau bij het starten niet meer kunt aanpassen",
+        "Het controleert na afloop of het gekozen niveau bij de tenantinstelling past en meldt anders een fout",
+        "Het zet de opgegeven tekst om in een getal, zodat het script de niveaus onderling kan vergelijken",
+        "Het staat alleen de vier genoemde niveaus toe; bij een andere waarde stopt het script met een fout"
+      ],
+      "answer": 3,
+      "explanation": "Met `ValidateSet` controleert PowerShell de waarde zodra de parameter wordt ingevuld. Een typefout geeft meteen een foutmelding. Zonder die controle zou een onbekend niveau in het script stil een lege waarde geven, en dan zouden alle sites als te ruim worden gemeld."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        17
+      ],
+      "prompt": "Waarom wordt elke site na Get-SPOSite -Limit All nog een keer opgehaald met -Identity?",
+      "options": [
+        "Volgens de documentatie worden bij -Limit sommige eigenschappen, zoals SharingCapability, niet gevuld",
+        "Omdat -Limit All alleen de eerste 200 sites teruggeeft en de rest met -Identity moet worden aangevuld",
+        "Omdat OneDrive-sites alleen via -Identity beschikbaar zijn, ook als je -IncludePersonalSite gebruikt",
+        "Omdat Get-SPOSite zonder -Identity geen eigenaar teruggeeft en het script die nodig heeft in de tabel"
+      ],
+      "answer": 0,
+      "explanation": "Dit is een bekende valkuil: wie `-Limit` gebruikt, krijgt sommige eigenschappen niet gevuld, onder andere `SharingCapability`, en leest dan een standaardwaarde. De tweede aanroep per site omzeilt dat, ten koste van snelheid. Dat de eigenschap daarna altijd gevuld is, staat niet uitdrukkelijk in de documentatie en moet je controleren."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "prompt": "Waarvoor dient de hashtable $niveau op regel 7 tot en met 12?",
+      "options": [
+        "Als lijst van toegestane waarden; het script weigert elk niveau dat er niet in staat, met een foutmelding",
+        "Als vertaaltabel naar het Nederlands, zodat de rapportage leesbaarder wordt voor de lezer van het rapport",
+        "Als rangorde van de vier niveaus: tekst is niet te vergelijken, getallen wel, dus ruimer is hoger (0-3)",
+        "Als geheugen van de resultaten per site, zodat het script geen sites twee keer hoeft op te vragen"
+      ],
+      "answer": 2,
+      "explanation": "De vier deelniveaus zijn tekst, en tekst heeft geen \"ruimer\" of \"strenger\". Door elk niveau een getal te geven (0 is het strengst, 3 het ruimst) kun je met `-gt` vergelijken. Dit patroon, een hashtable als rangtabel, kom je vaak tegen. Wat elk niveau betekent, staat in de documentatie van `Set-SPOTenant`."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        19
+      ],
+      "prompt": "Je haalt de aanhalingstekens en $( ) weg, zodat er $niveau[$_.SharingCapability] staat. Wat zie je dan?",
+      "options": [
+        "Een foutmelding op regel 19, want een hashtable accepteert geen opzoeking met een enum-waarde als sleutel",
+        "Geen enkele site in de tabel en geen foutmelding: de opzoeking is leeg, dus de vergelijking klopt nooit",
+        "Alle sites in de tabel, omdat de opzoeking leeg is en elk getal groter is dan een lege waarde, ook nul",
+        "Dezelfde uitkomst als nu, want PowerShell zet een enum-waarde zelf om in tekst bij het opzoeken in een tabel"
+      ],
+      "answer": 1,
+      "explanation": "De eigenschap `SharingCapability` is een enum, geen tekst. Een hashtable zoekt de sleutel als tekst en vindt voor een enum-waarde niets: de opzoeking is leeg, en dan is de vergelijking onwaar. Het resultaat is een lege lijst zonder foutmelding, alsof geen enkele site te ruim deelt. Door de waarde eerst in een tekst te zetten met `\"$( )\"` werkt het wel. Dit is getest in Windows PowerShell 5.1 en PowerShell 7 met een nagebootste enum; het gedrag van de echte module is niet getest."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        21,
+        22
+      ],
+      "prompt": "Waarom staat de tenantinstelling met Write-Host en niet in de tabel op regel 22?",
+      "options": [
+        "Write-Host schrijft alleen naar het scherm; de tabel bevat per site één rij, dit is één regel",
+        "Write-Host is de enige manier om een eigenschap van Get-SPOTenant te tonen zonder foutmelding",
+        "Write-Host zet de waarde in $teRuim, zodat de tabel hem ook kan sorteren en filteren op elke kolom",
+        "Write-Host voegt een kolom toe aan de tabel, zodat de tenantinstelling bij elke site staat"
+      ],
+      "answer": 0,
+      "explanation": "`Write-Host` schrijft tekst naar het scherm en niet naar de uitvoer die je kunt doorgeven of exporteren. De tenantinstelling geldt voor de hele organisatie en past niet bij een tabel met één rij per site. De tabel zelf gaat met `Format-Table` als laatste stap naar het scherm; wil je exporteren, laat die dan weg. `Sort-Object SharingCapability` sorteert op de volgorde van de enum; of die volgorde gelijk is aan de rangorde in `$niveau`, is niet gecontroleerd."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        14,
+        22
+      ],
+      "prompt": "Wat wijzigt dit script in SharePoint Online?",
+      "options": [
+        "Het zet de deelinstelling van de te ruime sites terug op het gekozen niveau en meldt dat in de tabel",
+        "Het past de tenantinstelling aan als blijkt dat meer dan de helft van de sites te ruim deelt",
+        "Niets: het verbindt, leest de tenant en de sites, en toont alleen een overzicht op het scherm",
+        "Het verwijdert externe gebruikers van de sites waarvan de deelinstelling te ruim blijkt te zijn"
+      ],
+      "answer": 2,
+      "explanation": "Er staat geen `Set-` of `Remove-` cmdlet in het script. `Get-SPOTenant` en `Get-SPOSite` lezen alleen, en volgens de documentatie moet je SharePoint-beheerder zijn om `Get-SPOTenant` te draaien. Het overzicht kun je veilig op een productietenant gebruiken."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Het script toont alleen de sites die te ruim delen. Wat zou je met die lijst doen, en waarom pas je de instelling niet meteen in het script aan?",
+      "explanation": "Eerst uitzoeken waarom een site ruim deelt: soms is dat bewust (een samenwerking met een leverancier), soms een vergeten instelling. Praat met de eigenaar (de kolom `Owner`), en leg het besluit vast. Een wijziging gaat met `Set-SPOSite -SharingCapability`; dat is een schrijfactie, en volgens de documentatie werkt `-WhatIf` bij `Set-SPOSite` niet, dus bouw een eigen droge run. Let op wat de tabel toont: volgens de documentatie bij `Get-SPOSite -Detailed` is `SharingCapability` de effectieve waarde (site- en tenantbeleid samen), terwijl de opgeslagen waarde van de site zelf in `SiteDefinedSharingCapability` staat. De tenantinstelling is in de regel het maximum, maar er zijn uitzonderingen; zoek op hoe dat in jouw tenant werkt voordat je op de uitkomst vertrouwt. Ruim gedeelde inhoud is ook een onderwerp bij oversharing: de documentatie die hier is gelezen zegt daar niets over, dus onderzoek dat apart."
+    }
+  ]
+}
