@@ -2,7 +2,7 @@
   "id": "migraties-onprem-naar-online",
   "title": "SharePoint on-premises naar Online",
   "topic": "migraties",
-  "level": "gevorderd",
+  "level": "expert",
   "tag": "SPMT-module · wijzigt doel",
   "summary": "Migreert een SharePoint-site van on-premises naar SharePoint Online met SPMT, met een schakelaar om eerst alleen te scannen.",
   "risk": "write",

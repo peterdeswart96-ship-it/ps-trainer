@@ -2,7 +2,7 @@
   "id": "migraties-delta-migratie",
   "title": "Delta-migratie met SPMT",
   "topic": "migraties",
-  "level": "gevorderd",
+  "level": "expert",
   "tag": "SPMT-module · wijzigt doel",
   "summary": "Draait op de cut-over-dag een tweede migratie die alleen bestanden meeneemt die sinds de eerste run zijn gewijzigd.",
   "risk": "write",
