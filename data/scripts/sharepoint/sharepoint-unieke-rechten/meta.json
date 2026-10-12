@@ -1,0 +1,133 @@
+{
+  "id": "sharepoint-unieke-rechten",
+  "title": "Lijsten en bibliotheken met unieke rechten",
+  "topic": "sharepoint",
+  "level": "expert",
+  "tag": "Get-PnPList · HasUniqueRoleAssignments · foreach",
+  "summary": "Loopt per site uit een CSV langs de lijsten en bibliotheken en schrijft op welke eigen rechten hebben, zodat je afwijkende rechten kunt vinden.",
+  "risk": "read",
+  "modules": [
+    "PnP.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. De documentatie van Get-PnPList noemt -Includes HasUniqueRoleAssignments als voorbeeld, maar beschrijft niet welke eigenschappen standaard worden opgehaald: of Title en RootFolder.ServerRelativeUrl altijd gevuld zijn, is niet bevestigd. De documentatie van HasUniqueRoleAssignments geeft alleen het type (Boolean); dat een lijst met de waarde True zijn eigen rechten heeft en niet meer erft van de site, is de gangbare uitleg en geen citaat. Het script kijkt alleen naar lijsten en bibliotheken, niet naar mappen of bestanden daarin. Of Get-PnPList ook verborgen lijsten en systeemlijsten teruggeeft die eigen rechten hebben en dus ruis in het rapport geven, is niet bevestigd. Met -Interactive komt per site een inlogvenster of wordt de tokencache gebruikt; bij veel sites is dat onhandig. PnP.PowerShell vereist PowerShell 7.4 of hoger.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "PnP PowerShell-documentatie: Get-PnPList (-Includes HasUniqueRoleAssignments, als voorbeeld van een extra eigenschap) en Connect-PnPOnline (-Interactive met -ClientId, verplicht sinds 9 september 2024); Microsoft Learn: SecurableObject.HasUniqueRoleAssignments (Boolean); PnP-installatiepagina (PowerShell 7.4 of hoger). Open punten: welke eigenschappen Get-PnPList standaard ophaalt, het gedrag van een niet opgehaalde eigenschap in het filter, en of het script werkt voor alle lijsttypen."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        5
+      ],
+      "prompt": "Waarom heeft het script een parameter -ClientId, en wat moet je met de standaardwaarde met nullen?",
+      "options": [
+        "Het is het ID van de gebruiker die inlogt; de nullen betekenen dat het script de huidige gebruiker neemt",
+        "Het is het ID van de site; de nullen betekenen dat het script alle sites uit de CSV in één keer verwerkt",
+        "Het is het ID van een eigen geregistreerde Entra-app voor interactief inloggen; vervang de nullen door dat ID",
+        "Het is een sleutel voor de CSV-export; de nullen zorgen dat het bestand zonder wachtwoord wordt opgeslagen"
+      ],
+      "answer": 2,
+      "explanation": "Volgens de documentatie van `Connect-PnPOnline` moet je bij `-Interactive` sinds 9 september 2024 zelf een `-ClientId` opgeven van een app die je zelf registreert (bijvoorbeeld met `Register-PnPEntraIDApp`). De nullen zijn een plaatsvervanger: het script werkt pas met een echt app-ID. Het ID is geen wachtwoord, maar leg het toch niet in een gedeeld script met echte tenantgegevens vast."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        7
+      ],
+      "prompt": "Waar komen de sites vandaan waar de foreach op regel 7 doorheen loopt, en wat moet er in de CSV staan?",
+      "options": [
+        "Uit Import-Csv: een object per rij van de CSV, en de CSV heeft een kolom met de naam Url",
+        "Uit SharePoint zelf: Import-Csv haalt alle sites van de tenant op en de CSV wordt alleen als filter gebruikt",
+        "Uit een lijst van tekstregels: elke regel van de CSV is een site, de kolomnaam doet er niet toe",
+        "Uit de verbinding met Connect-PnPOnline: de CSV bevat alleen de naam van de app-registratie"
+      ],
+      "answer": 0,
+      "explanation": "`Import-Csv` leest de eerste regel als kopregel en maakt per volgende regel een object met die kolomnamen als eigenschappen. Het script gebruikt `$site.Url`, dus de CSV moet een kolom `Url` hebben, bijvoorbeeld een kopregel `Url` en daaronder per regel het adres van een site. Heet de kolom anders, dan is `$site.Url` leeg en mislukt de verbinding."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        17,
+        21
+      ],
+      "prompt": "Welke lijsten laat Where-Object op regel 18 door, en wat staat er in het rapport?",
+      "options": [
+        "Lijsten die verborgen zijn voor gebruikers; per lijst de titel en het aantal items erin",
+        "Lijsten die onlangs zijn gewijzigd door iemand; per lijst de datum van de laatste wijziging",
+        "Lijsten waar de ingelogde gebruiker geen toegang toe heeft; per lijst de naam van de eigenaar",
+        "Lijsten met eigen rechten, zonder overerving van de site; per lijst de site, titel en pad"
+      ],
+      "answer": 3,
+      "explanation": "`HasUniqueRoleAssignments` is een Boolean. `True` betekent in de gangbare uitleg dat de lijst zijn eigen rechten heeft en niet meer erft van de site. Het filter laat alleen die lijsten door. `Select-Object` bouwt per lijst een object met de eigenschappen `Site` (een berekende eigenschap met `$site.Url`), `Title` en `Pad` (uit `RootFolder.ServerRelativeUrl`). Alles wat de `foreach` zo uitvoert, belandt in `$rapport` (`Write-Warning` gebruikt een eigen stroom en komt er niet in)."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        10,
+        18
+      ],
+      "prompt": "Je haalt -Includes HasUniqueRoleAssignments weg uit Get-PnPList. Wat is het gevolg?",
+      "options": [
+        "De cmdlet geeft een foutmelding en het script stopt direct bij de eerste site uit de CSV",
+        "De eigenschap wordt niet opgehaald, dus het filter is onbetrouwbaar: je krijgt een leeg rapport of foutmeldingen",
+        "Het script geeft nu alle lijsten terug, want zonder -Includes wordt het filter niet meer toegepast",
+        "Het script is sneller en geeft hetzelfde resultaat, omdat de eigenschap altijd al standaard meekomt"
+      ],
+      "answer": 1,
+      "explanation": "De documentatie van `Get-PnPList` toont `HasUniqueRoleAssignments` als voorbeeld van een extra eigenschap die je met `-Includes` opvraagt. Zonder `-Includes` is hij waarschijnlijk niet gevuld, en dan kan het filter er niets mee: je krijgt een leeg rapport of foutmeldingen over een niet opgehaalde eigenschap. Welke van de twee gebeurt, is niet getest. Gevaarlijk is vooral het eerste geval: een leeg rapport ziet er betrouwbaar uit, terwijl het filter niets heeft kunnen beoordelen."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        9,
+        24
+      ],
+      "prompt": "Wijzigt dit script iets in SharePoint Online, en waar schrijft het naartoe?",
+      "options": [
+        "Ja, Get-PnPList zet bij elke lijst een vlag; het rapport gaat naar de site",
+        "Ja, Connect-PnPOnline past de rechten van de site aan zodra de verbinding er is",
+        "Nee, het script leest alleen; Export-Csv schrijft een bestand op je eigen computer",
+        "Nee, het script doet niets; Export-Csv maakt alleen een leeg bestand als hulp voor later"
+      ],
+      "answer": 2,
+      "explanation": "`Connect-PnPOnline` en `Get-PnPList` lezen alleen. Het enige wat het script schrijft is het CSV-bestand op regel 24, op je eigen schijf. In SharePoint verandert niets. Het label \"alleen lezen\" klopt dus, al heb je wel rechten nodig om de lijsten van de site te mogen zien."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        12,
+        15
+      ],
+      "prompt": "Een site uit de CSV geeft een fout. Wat gebeurt er, en wat betekent dat voor het rapport?",
+      "options": [
+        "Het script stopt en toont de fout; het rapport is dan onvolledig en wordt niet geschreven",
+        "Het script slaat de site over met een waarschuwing; in het rapport is dat niet terug te zien",
+        "Het script probeert de site opnieuw en schrijft de foutmelding in de kolom Title van het rapport",
+        "Het script zet de site in het rapport als zonder unieke rechten, zodat het rapport compleet blijft"
+      ],
+      "answer": 1,
+      "explanation": "De `catch` toont een waarschuwing en `continue` gaat naar de volgende site. In het rapport staat van die site niets, en dat ziet er hetzelfde uit als \"deze site heeft geen lijsten met unieke rechten\". Controleer na afloop de waarschuwingen, of schrijf de mislukte sites ook naar een bestand. `-ErrorAction Stop` in regel 9 en 10 zorgt ervoor dat een fout de `catch` echt bereikt."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat laat dit rapport niet zien, en wat doe je ermee voordat je op basis hiervan rechten aanpast?",
+      "explanation": "Bijvoorbeeld: (1) het script kijkt alleen naar lijsten en bibliotheken; mappen, bestanden en items met unieke rechten staan er niet in, terwijl daar vaak de echte uitzonderingen zitten; (2) het toont dat een lijst eigen rechten heeft, maar niet welke rechten dat zijn of voor wie; daarvoor heb je per lijst de rolverdeling nodig; (3) sites die een fout gaven ontbreken zonder dat het rapport dat zegt; (4) er is een app-registratie en `-ClientId` nodig, en PnP.PowerShell vraagt PowerShell 7.4 of hoger; (5) controleer eerst bij een paar bekende lijsten of het rapport klopt voordat je het vertrouwt. Het script wijzigt zelf niets, dus herstellen is niet nodig; het gevaar zit in beslissingen op een onvolledig rapport."
+    }
+  ]
+}
