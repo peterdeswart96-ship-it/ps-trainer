@@ -1,0 +1,136 @@
+{
+  "id": "sharepoint-inactieve-sites-vergrendelen",
+  "title": "Inactieve sites uit een lijst vergrendelen met droge run",
+  "topic": "sharepoint",
+  "level": "expert",
+  "tag": "Set-SPOSite · -LockState · ValidateSet · wijzigt doel",
+  "summary": "Zet de sites uit een goedgekeurde CSV op alleen-lezen (of geen toegang), standaard als droge run en pas met -Uitvoeren echt; de hoofdsite wordt overgeslagen.",
+  "risk": "write",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. Volgens de documentatie van Set-SPOSite zijn de waarden van -LockState NoAccess, ReadOnly en Unlock, kan de vergrendeling niet op de hoofdsitecollectie worden gezet, werkt -WhatIf niet en moet je SharePoint-beheerder en sitebeheerder zijn. De droge run is daarom een eigen schakelaar. Het script bepaalt zelf niet welke sites inactief zijn: voor SharePoint Online is niet bevestigd dat LastContentModifiedDate een betrouwbaar signaal voor activiteit is; de lijst moet dus van een mens komen (bijvoorbeeld uit het gebruiksrapport). Dat Get-SPOSite -Identity de eigenschap LockState teruggeeft, is een afleiding (de documentatie noemt LockState als filter, niet als uitvoereigenschap). Hoe lang het duurt voordat een nieuwe vergrendeling overal geldt, is niet onderzocht.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Set-SPOSite (-LockState met NoAccess, ReadOnly en Unlock; niet op de hoofdsitecollectie; -WhatIf werkt niet; NoAccessRedirectUrl in Set-SPOTenant bepaalt de omleiding, anders een 403; SharePoint-beheerder en sitebeheerder vereist) en Get-SPOSite (-Identity; LockState als filtereigenschap). Open punten: of LockState als uitvoereigenschap bij -Identity altijd gevuld is, en hoe een inactieve site betrouwbaar wordt vastgesteld."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        4,
+        5
+      ],
+      "prompt": "Wat doet [ValidateSet('ReadOnly', 'NoAccess', 'Unlock')] bij de parameter -Status?",
+      "options": [
+        "Het zet de parameter altijd op ReadOnly, ook als je bij het starten van het script een andere waarde opgeeft",
+        "Het is een opmerking voor de lezer; PowerShell controleert de waarde niet en geeft alles door aan Set-SPOSite",
+        "Het maakt van de parameter een lijst, zodat het script alle drie de standen na elkaar op elke site zet",
+        "Het staat alleen deze drie waarden toe; een andere waarde geeft een foutmelding voordat het script begint"
+      ],
+      "answer": 3,
+      "explanation": "`ValidateSet` laat PowerShell de waarde controleren zodra het script start. Een typfout als `Dicht` stopt het script meteen met een duidelijke melding, nog voordat er verbonden wordt. De drie waarden zijn dezelfde als die de documentatie van `Set-SPOSite` voor `-LockState` noemt. De standaardwaarde `ReadOnly` is de mildere keuze: de site blijft leesbaar."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        6,
+        19,
+        24
+      ],
+      "prompt": "Waarom heeft het script een eigen schakelaar -Uitvoeren in plaats van -WhatIf?",
+      "options": [
+        "Omdat -WhatIf alleen werkt in PowerShell 7; in Windows PowerShell 5.1 bestaat de schakelaar niet",
+        "Omdat -WhatIf bij Set-SPOSite volgens de documentatie niet werkt, draait het script zelf droog",
+        "Omdat -Uitvoeren sneller is dan -WhatIf doordat het script dan geen verbinding met SharePoint maakt",
+        "Omdat -WhatIf een site per ongeluk definitief verwijdert; een eigen schakelaar voorkomt dat altijd"
+      ],
+      "answer": 1,
+      "explanation": "Bij `-WhatIf` in de documentatie van `Set-SPOSite` staat: de schakelaar werkt niet op deze cmdlet. Je kunt de cmdlet zelf dus niet \"droog\" draaien. Zonder `-Uitvoeren` toont het script alleen wat het zou doen, en omdat het ook de huidige `LockState` ophaalt, is die droge run meteen een rapport: huidige stand en nieuwe stand per site. De droge run maakt wel nog verbinding en vraagt de site op, dus een onbereikbare of onbestaande site valt hier al op."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        3,
+        11
+      ],
+      "prompt": "Hoe bepaalt dit script welke sites inactief zijn?",
+      "options": [
+        "Het kijkt per site naar de datum van de laatste wijziging en vergrendelt alles dat langer dan een jaar stilligt",
+        "Het vraagt SharePoint met Get-SPOSite om een lijst van inactieve sites en vergrendelt precies die sites",
+        "Het bepaalt dat niet zelf: het vertrouwt op de CSV, waarin iemand de inactieve sites heeft vastgelegd",
+        "Het telt de bezoekers van elke site en vergrendelt de sites zonder bezoekers in de afgelopen maand"
+      ],
+      "answer": 2,
+      "explanation": "Het script bevat geen enkele activiteitscontrole: elke site in de CSV (kolom `Url`) wordt behandeld als \"inactief\". Dat is een bewuste keuze, want wie een site vergrendelt, wil zeker weten dat hij echt ongebruikt is. Voor SharePoint Online is niet bevestigd dat `LastContentModifiedDate` daar betrouwbaar genoeg voor is. De kwaliteit van deze CSV bepaalt dus alles, en de eerste controle is de droge run."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        12,
+        15
+      ],
+      "prompt": "Wat controleert regel 12, en wat gebeurt er met een site waarvoor dat klopt?",
+      "options": [
+        "Of het adres geen pad heeft (de hoofdsite); het script meldt dat en gaat door met de volgende site",
+        "Of het adres een geldige URL is; bij een ongeldige URL stopt het hele script met een foutmelding",
+        "Of de site al vergrendeld is; zo ja, dan slaat het script de site stilzwijgend over en gaat door",
+        "Of de URL naar de beheersite wijst; zo ja, dan maakt het script daarvoor een extra verbinding"
+      ],
+      "answer": 0,
+      "explanation": "`[uri]$site.Url` maakt van de tekst een adres, `.AbsolutePath` is het deel na de domeinnaam. Voor `https://contoso.sharepoint.com/` is dat alleen `/`; na `Trim('/')` blijft er niets over, en dat is de hoofdsite. De documentatie van `Set-SPOSite` zegt dat het niet mogelijk is om de vergrendeling op de hoofdsitecollectie te zetten. `Write-Warning` meldt de overgeslagen site en `continue` gaat naar de volgende rij van de CSV."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        4,
+        20
+      ],
+      "prompt": "Welke regel wijzigt iets, en wat is het verschil tussen ReadOnly en NoAccess voor gebruikers?",
+      "options": [
+        "Regel 18; ReadOnly en NoAccess geven allebei een foutpagina, alleen de tekst van de melding verschilt",
+        "Regel 9; ReadOnly laat alleen de beheerder erbij, terwijl NoAccess voor alle gebruikers leesbaar blijft",
+        "Regel 20; ReadOnly maakt de site alleen-lezen, NoAccess blokkeert al het verkeer naar de site",
+        "Regel 20; ReadOnly en NoAccess doen hetzelfde, alleen zet NoAccess er een tijdstempel bij"
+      ],
+      "answer": 2,
+      "explanation": "Alleen `Set-SPOSite` op regel 20 wijzigt iets, en alleen met `-Uitvoeren`. Volgens de documentatie toont `ReadOnly` op de site een melding dat de site in onderhoud en alleen-lezen is. Bij `NoAccess` wordt al het verkeer naar de site geblokkeerd: gebruikers worden doorgestuurd naar het adres uit `NoAccessRedirectUrl` van `Set-SPOTenant`, of krijgen een 403 als dat niet is ingesteld. `NoAccess` is dus veel ingrijpender dan `ReadOnly`. `Unlock` heft de vergrendeling weer op."
+    },
+    {
+      "id": "q6",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        12,
+        14,
+        24
+      ],
+      "prompt": "Iemand haalt de regel continue (regel 14) weg. Wat gebeurt er nu met de hoofdsite in een droge run?",
+      "options": [
+        "Het script stopt bij de hoofdsite met een foutmelding en verwerkt daarna geen enkele andere site meer",
+        "Je ziet de waarschuwing, maar de droge run meldt ook dat de hoofdsite ReadOnly zou worden, wat niet kan",
+        "Niets: PowerShell slaat de rest van de lus automatisch over zodra Write-Warning is aangeroepen",
+        "De hoofdsite wordt in de droge run toch echt vergrendeld, omdat Get-SPOSite al een wijziging doorvoert"
+      ],
+      "answer": 1,
+      "explanation": "`Write-Warning` stopt de lus niet; alleen `continue` slaat de rest van deze ronde over. Zonder `continue` vraagt het script de hoofdsite op en schrijft het \"zou ReadOnly worden\", terwijl de documentatie zegt dat dit op de hoofdsitecollectie niet kan. De droge run belooft dan iets wat niet lukt, en met `-Uitvoeren` volgt volgens de documentatie een foutmelding via de `catch` (niet getest). Een droge run is alleen zo betrouwbaar als de controles erin."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "wijziging",
+      "prompt": "Wat regel je voordat je dit script met -Uitvoeren op echte sites draait, en hoe draai je het terug?",
+      "explanation": "Bijvoorbeeld: (1) laat de CSV door iemand goedkeuren die de sites kent, want het script controleert geen activiteit en `LastContentModifiedDate` is voor SharePoint Online niet bevestigd als betrouwbaar signaal; (2) draai eerst zonder `-Uitvoeren` en lees de lijst met huidige standen na; (3) begin met `ReadOnly` en één site, niet met `NoAccess`; (4) waarschuw de eigenaren, want gebruikers zien een onderhoudsmelding of krijgen bij `NoAccess` een 403 of een omleiding; (5) denk aan sites die aan een Microsoft 365-groep of Teams hangen; (6) schrijf de uitvoer naar een logbestand, zodat je weet wat de oude stand was; (7) terugdraaien kan met `-Status Unlock` op dezelfde lijst, maar test dat eerst op één site. Je hebt SharePoint-beheerrechten en sitebeheerrechten nodig; de documentatie zegt dat je beide moet zijn."
+    }
+  ]
+}
