@@ -77,5 +77,6 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] `feature/deploy`: `deploy.yml`, `tools/build-site.mjs`, `DEPLOY.md` en tests; DNS, Pages en eigen domein ingesteld; PR 12 gemerged op 11 oktober 2026, site live op https://ps-trainer.pdscloud.nl/
 - [x] Inhoud Migraties: 9 scripts, 3 per niveau (PR 16 t/m 24). De drie pre-scans zijn `gecontroleerd` (PR 27); de overige zes staan op `nog_te_controleren`: SPMT en ShareGate kunnen niet worden getoetst aan een geïnstalleerde module, en bij de twee PnP-scripts zijn veldnamen niet tegen een echte tenant gecontroleerd
 - [x] Inhoud SharePoint: 9 scripts, 3 per niveau (alle `nog_te_controleren`: niets is tegen een echte tenant of module gedraaid)
-- [ ] Inhoud: Foundry (9 scripts), Purview (3 scripts)
+- [x] Inhoud Purview: 3 scripts, 1 per niveau (alle `nog_te_controleren`: de uitvoereigenschappen van de `Get-`cmdlets zijn niet allemaal gedocumenteerd en niets is tegen een echte tenant gedraaid)
+- [ ] Inhoud: Foundry (9 scripts)
 - [ ] Issue #35 (meer onderwerpen en subcategorieën) en #36 (zoekfunctie, later): wachten op besluiten van Peter; zie `docs/sessies/2026-10-11-overdracht-inhoud-en-werkbank.md`
