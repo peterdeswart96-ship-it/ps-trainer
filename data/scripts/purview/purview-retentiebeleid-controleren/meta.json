@@ -1,0 +1,133 @@
+{
+  "id": "purview-retentiebeleid-controleren",
+  "title": "Retentiebeleid controleren tegen een verwachte lijst",
+  "topic": "purview",
+  "level": "expert",
+  "tag": "Get-RetentionCompliancePolicy · Get-RetentionComplianceRule · Import-Csv",
+  "summary": "Vergelijkt retentiebeleid en -regels met een CSV met verwacht beleid en meldt per beleid of het ontbreekt, afwijkt of in orde is.",
+  "risk": "read",
+  "modules": [
+    "ExchangeOnlineManagement"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. De documentatie van Get-RetentionCompliancePolicy beschrijft de standaardeigenschappen Name, Workload, Enabled en Mode (Test, AuditAndNotify of Enforce), en die van Get-RetentionComplianceRule Name, Disabled, Mode en Comment. RetentionDuration en RetentionComplianceAction staan als parameters bij New- en Set-RetentionComplianceRule (een geheel aantal dagen of Unlimited; Delete, Keep of KeepAndDelete); dat Get-RetentionComplianceRule ze met dezelfde naam en waarden teruggeeft, is niet bevestigd. Zijn ze er niet, dan geeft het script geen fout maar meldt het bij elk beleid een afwijking in de duur en de actie. De documentatie van New-RetentionComplianceRule zegt dat je maximaal een regel per beleid kunt toevoegen; het script neemt daarom de eerste regel (Select-Object -First 1) en kijkt niet naar extra regels. De locaties van een beleid (de *Location-eigenschappen) zijn volgens de documentatie alleen juist met -DistributionDetail; het script gebruikt die niet en controleert dus geen locaties. Beleid dat in de tenant staat maar niet in de CSV, komt niet in het rapport. Voor deze cmdlets heb je rechten in Security & Compliance PowerShell nodig. Import-Csv verwacht standaard komma's; een CSV die een Nederlandse Excel met puntkomma's opslaat, geeft lege kolommen Duur en Actie en dus bij elk beleid een nep-afwijking.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-RetentionCompliancePolicy (standaardeigenschappen Name, Workload, Enabled, Mode met Test, AuditAndNotify en Enforce; -DistributionDetail en de *Location-eigenschappen), Get-RetentionComplianceRule (-Policy; standaardeigenschappen Name, Disabled, Mode, Comment), New- en Set-RetentionComplianceRule (-RetentionDuration, -RetentionComplianceAction; bij New: een regel per beleid), Connect to Security & Compliance PowerShell. Open punten: of Get-RetentionComplianceRule RetentionDuration en RetentionComplianceAction met dezelfde naam en waarden teruggeeft, en hoe een beleid met meer dan een regel zich gedraagt."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        5
+      ],
+      "prompt": "Wat moet er in de CSV staan die -Csv aanwijst, zodat het script de vergelijkingen op regel 12, 34 en 35 kan doen?",
+      "options": [
+        "Een kopregel Beleid, Duur en Actie; per rij de naam, het aantal dagen of Unlimited, en de actie",
+        "Een kopregel Naam, Locatie en Eigenaar; per rij de naam en de site waar het beleid geldt",
+        "Alleen de namen van het beleid, een per regel; duur en actie haalt het script uit Purview",
+        "Een kopregel Beleid, Modus en Status; per rij de naam met Enforce en Enabled als vaste waarden"
+      ],
+      "answer": 0,
+      "explanation": "`Import-Csv` maakt per rij een object met de kopregel als eigenschapnamen. Het script gebruikt `$verwacht.Beleid`, `$verwacht.Duur` en `$verwacht.Actie`, dus die drie kolommen moeten er zijn: een kopregel `Beleid,Duur,Actie` en daaronder bijvoorbeeld `Mail 7 jaar,2555,KeepAndDelete` of `SharePoint bewaren,Unlimited,Keep`. Volgens de documentatie van `New-RetentionComplianceRule` is de duur een aantal dagen of `Unlimited` en is de actie `Delete`, `Keep` of `KeepAndDelete`. Let op: `Import-Csv` verwacht standaard komma's; een CSV met puntkomma's (zoals een Nederlandse Excel die opslaat) geeft lege kolommen en dus bij elk beleid een nep-afwijking."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        9,
+        12
+      ],
+      "prompt": "Waarom haalt regel 9 al het retentiebeleid één keer op, en wat doet Where-Object op regel 12?",
+      "options": [
+        "De CSV bevat het beleid niet, dus regel 9 haalt ze op; Where-Object schrijft ze weg naar de CSV",
+        "Regel 9 haalt alleen beleid in testmodus op; Where-Object telt per rij hoeveel dat er zijn",
+        "Een aanroep volstaat voor alle rijen; Where-Object zoekt per verwacht beleid de naam in de lijst",
+        "Regel 9 haalt de regels van het beleid op; Where-Object bepaalt de duur van elke regel"
+      ],
+      "answer": 2,
+      "explanation": "Zonder `-Identity` geeft `Get-RetentionCompliancePolicy` al het retentiebeleid. Dat één keer doen en daarna in het geheugen zoeken is sneller dan per CSV-rij opnieuw naar Purview te gaan. `Where-Object { $_.Name -eq $verwacht.Beleid }` vergelijkt de naam; `-eq` negeert hoofdletters, dus `mail 7 jaar` matcht ook `Mail 7 jaar`. Een naam die in Purview iets anders gespeld is, geeft `ontbreekt`."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        14,
+        21
+      ],
+      "prompt": "Een verwacht beleid staat niet in Purview. Wat doet het blok van regel 14 tot 21, en waarom is continue hier nodig?",
+      "options": [
+        "Het maakt het beleid aan in Purview; continue geeft het nieuwe beleid door aan regel 23 voor de regels",
+        "Het slaat het beleid stil over; continue is niet nodig, want regel 23 draait dan toch niet",
+        "Het stopt het script met een foutmelding; continue is overbodig omdat er na de fout niets meer draait",
+        "Het zet een rij ontbreekt in het rapport; continue voorkomt dat regel 23 met een leeg beleid draait"
+      ],
+      "answer": 3,
+      "explanation": "Staat het beleid niet in de lijst, dan is `$beleid` leeg. Het blok schrijft een rij `ontbreekt` en `continue` gaat naar de volgende CSV-rij. Zonder `continue` zou regel 23 `Get-RetentionComplianceRule -Policy $beleid.Name` met een lege naam aanroepen. Hoe die parameter een lege waarde verwerkt, is niet bevestigd: het kan een fout geven, maar ook alle regels van de tenant teruggeven, waarna `-First 1` een willekeurige regel kiest en het rapport een afwijking meldt die er niet is."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        27
+      ],
+      "prompt": "Je haalt regel 27 weg. Welk beleid beoordeelt het script dan ten onrechte als in orde?",
+      "options": [
+        "Een beleid dat is uitgeschakeld; zonder regel 27 wordt Enabled niet meer gecontroleerd en klopt alles",
+        "Een beleid in Test of AuditAndNotify met juiste duur en actie; het geldt als in orde maar dwingt niets af",
+        "Een beleid zonder regel; zonder regel 27 weet het script niet meer of er een regel hoort te zijn",
+        "Een beleid met een verkeerde duur; zonder regel 27 wordt de duur niet meer met de CSV vergeleken"
+      ],
+      "answer": 1,
+      "explanation": "Volgens de documentatie van `Get-RetentionCompliancePolicy` is `Mode` `Test` (er wordt getest, niets afgedwongen), `AuditAndNotify` (alleen meldingen) of `Enforce` (alles afgedwongen). Een beleid in `Test` met precies de verwachte duur en actie lijkt dus in orde, maar beschermt niets. De andere controles staan op andere regels: `Enabled` op regel 26, de regel op regel 29 en duur en actie op regel 34 en 35."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        7,
+        48
+      ],
+      "prompt": "Wijzigt dit script iets aan retentiebeleid in Purview, en wat schrijft het naar je computer?",
+      "options": [
+        "Ja, het herstelt beleid dat afwijkt van de CSV; het rapport toont precies wat er is aangepast",
+        "Ja, het zet beleid in testmodus als het afwijkt; het rapport toont daarna de oude stand",
+        "Nee, het leest alleen; het schrijft het rapport als CSV op je schijf en sluit de verbinding op regel 48",
+        "Nee, het leest niets; het maakt alleen een CSV met de namen uit de lijst met verwacht beleid"
+      ],
+      "answer": 2,
+      "explanation": "`Get-RetentionCompliancePolicy` en `Get-RetentionComplianceRule` lezen alleen. Het enige wat het script schrijft is de CSV op regel 46, op je eigen schijf. Terugzetten of repareren doet het niet: een `afwijking` is een melding voor jou. Voor wijzigen heb je `Set-RetentionCompliancePolicy` of `Set-RetentionComplianceRule` nodig, en bij retentie is dat riskant: korter bewaren kan ertoe leiden dat inhoud wordt verwijderd. `Export-Csv` overschrijft een bestaand `retentie-controle.csv` zonder te vragen."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        38,
+        42
+      ],
+      "prompt": "Een beleid krijgt de uitkomst in orde. Wat zegt dat wel, en wat niet?",
+      "options": [
+        "Dat het beleid volledig werkt: alle locaties zijn gedekt en de inhoud wordt volgens de regel bewaard",
+        "Dat het beleid in Purview is goedgekeurd; het script vraagt daarvoor om een controle door een tweede beheerder",
+        "Dat het beleid precies zo is als in de portal; het rapport en de portal kunnen nooit verschillen",
+        "Alleen dat beleid en regel aan staan, het beleid afdwingt en duur en actie kloppen; niet dat locaties kloppen"
+      ],
+      "answer": 3,
+      "explanation": "De uitkomst is alleen zo goed als de vergelijking: naam, `Enabled`, `Mode` (moet `Enforce` zijn), `Disabled` van de regel, en duur en actie tegen je CSV. Locaties worden niet vergeleken: volgens de documentatie zijn de `*Location`-eigenschappen alleen juist met `-DistributionDetail`, en het script gebruikt die niet. En het script kijkt alleen naar wat in je CSV staat; een fout in de CSV zelf geeft ook `in orde`."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat laat dit rapport niet zien, en wat controleer je voordat je zegt dat het retentiebeleid van de tenant klopt?",
+      "explanation": "Bijvoorbeeld: (1) beleid dat in de tenant staat maar niet in de CSV komt er niet in; een extra of vergeten beleid blijft onzichtbaar; (2) de locaties en de gebruikers waarop een beleid geldt worden niet vergeleken (daarvoor is `-DistributionDetail` nodig); (3) alleen de eerste regel van een beleid wordt bekeken; volgens de documentatie van `New-RetentionComplianceRule` kan een beleid maximaal een regel krijgen, maar of dat ook voor Teams-beleid of beleid met labels geldt, is niet bevestigd; (4) of `RetentionDuration` en `RetentionComplianceAction` echt zo uit `Get-RetentionComplianceRule` komen, is niet bevestigd: als ze er niet zijn, meldt het script bij elk beleid een afwijking in duur en actie; (5) de CSV is zelf een aanname: wie controleert of 2555 dagen echt het beleid is? (6) retentie en wettelijke bewaartermijnen: een afwijking oplossen kan inhoud laten verwijderen, dus overleg met de verantwoordelijke voordat je iets wijzigt. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
