@@ -1,0 +1,133 @@
+{
+  "id": "sharepoint-copilot-gereedheid",
+  "title": "Copilot-gereedheid: Restricted Content Discovery per site",
+  "topic": "sharepoint",
+  "level": "expert",
+  "tag": "Get-SPOSite · RestrictContentOrgWideSearch · Group-Object",
+  "summary": "Maakt een rapport van alle sites (zonder OneDrive) met hun deelinstelling en de status van Restricted Content Discovery, en telt hoeveel sites uit de organisatiebrede zoekopdracht en Copilot zijn gehaald.",
+  "risk": "read",
+  "modules": [
+    "Microsoft.Online.SharePoint.PowerShell"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. Restricted Content Discovery (RCD) is volgens de documentatie bedoeld voor Copilot-implementaties en vraagt een Copilot-licentie en SharePoint Advanced Management; zonder die voorwaarden is de uitkomst mogelijk niet bruikbaar. De documentatie van Microsoft Learn noemt de leesopdracht Get-SPOSite -Identity <site> | Select RestrictContentOrgWideSearch en de tenantinstelling Get-SPOTenant | Select DelegateRestrictedContentDiscoverabilityManagement. Het script zegt niets over de vraag of een site 'gereed' is: RCD is bedoeld als tijdelijke maatregel terwijl rechten worden nagekeken en verhelpt geen te ruime rechten. De documentatie noemt dat RCD ook de AI-ingangen op de site verbergt (zoals de Copilot-knop). Er bestaat ook een rapport via Start-SPORestrictedContentDiscoverabilityReport; dat is hier niet gebruikt.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Restrict discovery of SharePoint sites and content (RCD, Set-SPOSite -RestrictContentOrgWideSearch, controle met Get-SPOSite | Select RestrictContentOrgWideSearch, delegatie met Get-SPOTenant | Select DelegateRestrictedContentDiscoverabilityManagement, niet voor OneDrive, vertraging bij sites met meer dan 500.000 items); Get-SPOSite (-Limit laat eigenschappen als SharingCapability leeg; -IncludePersonalSite); Set-SPOSite (-RestrictContentOrgWideSearch, -SharingCapability); Export-Csv (-Path, -NoTypeInformation, -Encoding). Open punten: licentie-eisen in de praktijk, en of RestrictContentOrgWideSearch bij -Identity in elke tenant gevuld is."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        4
+      ],
+      "prompt": "Het script heeft geen schakelaar zoals -Uitvoeren. Waarom is dat hier niet nodig?",
+      "options": [
+        "Omdat de schakelaar al in Connect-SPOService zit; die vraagt zelf om bevestiging voordat het script verder gaat",
+        "Het script leest alleen; het enige wat het schrijft is een CSV-bestand, dus een droge run heeft hier geen nut",
+        "Omdat Get-SPOSite altijd een droge run doet; echte wijzigingen komen pas met Set-SPOSite in een ander script",
+        "Omdat de CSV pas wordt gemaakt na een bevestiging van een beheerder, dus de schakelaar is dan overbodig"
+      ],
+      "answer": 1,
+      "explanation": "Een schakelaar als `-Uitvoeren` hoort bij scripts die iets wijzigen, zoals `Set-SPOSite`. Dit script roept alleen `Get-SPOSite` en `Get-SPOTenant` aan, en schrijft een bestand op je eigen schijf (`-Uitvoer` is dus het pad van dat bestand, geen schakelaar). Er verandert niets in SharePoint, daarom heeft het label \"alleen lezen\" en is een droge run niet zinvol."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        8
+      ],
+      "prompt": "Welke sites laat -IncludePersonalSite $false op regel 8 weg, en wat heeft dat met RCD te maken?",
+      "options": [
+        "Sites van teams en groepen; RCD werkt alleen op persoonlijke sites en die zijn dus apart opgevraagd",
+        "De OneDrive-sites van gebruikers; RCD is volgens de documentatie niet voor OneDrive bedoeld",
+        "Sites die lang niet zijn gebruikt; RCD is een tijdelijke maatregel voor sites die actief zijn",
+        "De hoofdsite van de tenant; RCD kan daar niet op worden gezet, net als een vergrendeling"
+      ],
+      "answer": 1,
+      "explanation": "Met `-IncludePersonalSite $false` komen persoonlijke sites (OneDrive) niet in de lijst. De documentatie van Restricted Content Discovery zegt dat de functie alleen voor SharePoint-sites is en niet voor OneDrive, dus die sites horen niet in dit rapport. De tweede aanroep met `-Identity` is nodig omdat `-Limit` een aantal eigenschappen, zoals `SharingCapability`, niet vult."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        14
+      ],
+      "prompt": "Wat doet [bool] voor $site.RestrictContentOrgWideSearch op regel 15, en waar moet je op letten?",
+      "options": [
+        "Het maakt er True of False van; een lege waarde wordt False, dus onbekend lijkt dan ook \"uit\"",
+        "Het controleert of de eigenschap bestaat; ontbreekt hij, dan stopt het script met een duidelijke foutmelding",
+        "Het zet RCD aan als de waarde False is, zodat het rapport daarna alleen sites bevat waar RCD aan staat",
+        "Het maakt van de waarde een tekst, zodat Export-Csv de kolom niet als getal ziet en niets afkapt"
+      ],
+      "answer": 0,
+      "explanation": "`[bool]` zet de waarde om naar `$true` of `$false`. Een lege waarde (`$null`) wordt `$false`. Dat is handig voor het tellen, maar het verbergt iets: staat de eigenschap niet in de uitvoer van jouw module of tenant, dan staat er ook `False`, en lijkt een site \"zonder RCD\" terwijl het onbekend is. Controleer daarom eerst bij een paar sites met `Get-SPOSite -Identity <site> | Select RestrictContentOrgWideSearch` of de waarde klopt."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        14,
+        23
+      ],
+      "prompt": "Wat betekent RcdAan = True voor een site, en wat verandert er niet?",
+      "options": [
+        "De site is verwijderd uit de zoekindex; gebruikers kunnen de inhoud daardoor ook niet meer openen",
+        "De site is geblokkeerd voor iedereen; alleen een SharePoint-beheerder kan er nog bij met -LockState",
+        "De site komt niet meer in organisatiebrede zoekopdrachten en Copilot; de rechten blijven gelijk",
+        "De site is beveiligd met een gevoeligheidslabel; Copilot mag de inhoud wel lezen maar niet delen"
+      ],
+      "answer": 2,
+      "explanation": "Volgens de documentatie beperkt Restricted Content Discovery het vinden van de inhoud van een site in organisatiebrede zoekresultaten en in Microsoft Copilot. Rechten blijven ongewijzigd: wie al toegang heeft, kan de inhoud nog steeds openen. De inhoud blijft in de zoekindex, en Purview-functies als eDiscovery blijven werken. Op de site zelf verdwijnen de AI-ingangen, zoals de Copilot-knop, en komt er een markering \"Restricted\". Het is dus een zichtbaarheidsinstelling en geen beveiliging van de inhoud."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        18,
+        20
+      ],
+      "prompt": "Wat schrijft het script, en welke aparte opdracht zou RCD op een site wél aanzetten?",
+      "options": [
+        "Alleen een CSV op je eigen schijf; RCD zet je aan met Set-SPOSite -RestrictContentOrgWideSearch $true",
+        "Een logboek in SharePoint; RCD zet je aan met Set-SPOTenant -RestrictContentOrgWideSearch $true",
+        "Alleen een CSV op je eigen schijf; RCD zet je aan met Get-SPOSite -RestrictContentOrgWideSearch $true",
+        "Een nieuwe kolom bij elke site; RCD zet je aan met Add-SPOSiteScript voor de hele organisatie"
+      ],
+      "answer": 0,
+      "explanation": "`Export-Csv` schrijft een bestand op je eigen schijf, en `Get-SPOTenant` en `Get-SPOSite` lezen alleen. Het aanzetten van RCD gebeurt per site met `Set-SPOSite -Identity <site> -RestrictContentOrgWideSearch $true` (uit de documentatie van Microsoft Learn; met `$false` haal je het weer weg). Dat is dus een wijziging in een ander script, met eigen controles. Doe het bewust en selectief: de documentatie waarschuwt dat te veel gebruik de volledigheid van zoekresultaten en Copilot-antwoorden vermindert."
+    },
+    {
+      "id": "q6",
+      "type": "bug",
+      "step": "uitvoer",
+      "lines": [
+        20,
+        21,
+        23
+      ],
+      "prompt": "Iemand zet Get-SPOTenant | Select-Object DelegateRestrictedContentDiscoverabilityManagement als laatste regel, in plaats van regel 21 en 22. Wat zie je?",
+      "options": [
+        "De tabel met Name en Count, met eronder een lege of onbegrijpelijke rij; de tenantwaarde zie je niet",
+        "Twee nette tabellen onder elkaar, elk met hun eigen kolomkoppen en alle waarden goed zichtbaar",
+        "Een foutmelding, want PowerShell staat niet toe dat een script twee verschillende objecten teruggeeft",
+        "Alleen de tenantwaarde, want het laatste object in de uitvoer vervangt de eerdere uitvoer van het script"
+      ],
+      "answer": 0,
+      "explanation": "Staan twee soorten objecten onder elkaar in de uitvoer, dan kiest PowerShell de kolommen van het eerste object. Een tenantobject met een andere eigenschap past daar niet in: de waarde van de tenantinstelling is nergens te zien. Wat er verschijnt is een lege regel of een rij met lege `Name` en `Count` 1; dat verschilt licht tussen Windows PowerShell 5.1 en PowerShell 7. Daarom gebruikt het script `Write-Host` voor de tenantwaarde, en laat het alleen de `Group-Object`-uitvoer in de pijplijn staan."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat zegt dit rapport niet over de gereedheid voor Copilot, en welke stappen horen er nog bij?",
+      "explanation": "Bijvoorbeeld: (1) het rapport toont alleen of RCD aan staat, niet of de rechten kloppen; RCD is volgens Microsoft een tijdelijke maatregel terwijl je rechten nakijkt en wijzigt geen toegang; (2) het zegt niets over de inhoud, labels of eigenaren; daarvoor noemt de documentatie onder meer Data Access Governance-rapporten en de contentbeheerbeoordeling; (3) `False` kan ook \"onbekend\" zijn (zie `[bool]`); (4) RCD vraagt een Copilot-licentie en SharePoint Advanced Management; (5) een wijziging kan lang duren om door te werken, bij sites met meer dan 500.000 items zelfs meer dan een week; (6) OneDrive valt buiten dit rapport en buiten RCD; (7) te veel sites uitsluiten maakt Copilot minder nuttig. Bepaal dus eerst welke sites echt aandacht nodig hebben voordat je iets aanzet."
+    }
+  ]
+}
