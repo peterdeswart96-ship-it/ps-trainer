@@ -1,0 +1,133 @@
+{
+  "id": "purview-dlp-beleid-en-regels",
+  "title": "DLP-beleid en de regels erin overzichtelijk maken",
+  "topic": "purview",
+  "level": "gevorderd",
+  "tag": "Get-DlpCompliancePolicy · Get-DlpComplianceRule · foreach",
+  "summary": "Loopt langs alle DLP-beleidsregels, haalt per beleid de bijbehorende regels op en schrijft beleid, modus en regel naar een tabel en een CSV.",
+  "risk": "read",
+  "modules": [
+    "ExchangeOnlineManagement"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. De documentatie van Get-DlpCompliancePolicy en Get-DlpComplianceRule beschrijft de syntaxis (-Policy bij de regels, voorbeeld 3) en gebruikt Name als eigenschap van een beleid (voorbeeld 4), maar geeft geen uitvoereigenschappen. Mode (Enable, Disable, TestWithNotifications, TestWithoutNotifications) staat alleen als parameter bij Set-DlpCompliancePolicy; Disabled, BlockAccess en ContentContainsSensitiveInformation staan alleen als parameters bij New-DlpComplianceRule. Dat Get- die eigenschappen met dezelfde naam teruggeeft, is niet bevestigd; zijn ze er niet, dan geeft het script geen fout maar lege kolommen. Hoe ContentContainsSensitiveInformation in de uitvoer is opgebouwd, is niet bevestigd; het script zet het daarom als JSON-tekst in de CSV. Bij een regel zonder deze eigenschap geeft ConvertTo-Json in PowerShell 7 de tekst null en in Windows PowerShell 5.1 een lege cel (getest met nagebootste cmdlets). Het script toont niet waar een beleid op van toepassing is (locaties) of welke andere acties een regel heeft. Voor deze cmdlets heb je rechten in Security & Compliance PowerShell nodig.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-DlpCompliancePolicy (voorbeelden 1 en 4, -Identity op Name), Get-DlpComplianceRule (-Policy, voorbeeld 3), Set-DlpCompliancePolicy (-Mode met Enable, Disable, TestWithNotifications en TestWithoutNotifications), New-DlpComplianceRule (-Disabled, -BlockAccess, -ContentContainsSensitiveInformation), Connect to Security & Compliance PowerShell. Open punten: de eigenschappen in de uitvoer van beide Get-cmdlets (Mode, Disabled, BlockAccess, ContentContainsSensitiveInformation) en de opbouw van ContentContainsSensitiveInformation."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        4
+      ],
+      "prompt": "Waar komt het rapport terecht, en wat gebeurt er als dat bestand al bestaat?",
+      "options": [
+        "Het staat in je huidige map; bestaat het al, dan voegt het script de nieuwe rijen onderaan toe",
+        "Het staat in je huidige map als dlp-beleid-en-regels.csv; een bestaand bestand wordt overschreven",
+        "Het staat in Purview als rapport; een bestaand rapport met dezelfde naam wordt eerst gearchiveerd",
+        "Het staat in je huidige map; bestaat het al, dan stopt het script met een foutmelding"
+      ],
+      "answer": 1,
+      "explanation": "`.\\` betekent de map waarin je PowerShell op dat moment staat. `Export-Csv` overschrijft standaard een bestaand bestand zonder te vragen; alleen met `-NoClobber` krijg je een fout. Wil je oude rapporten bewaren, geef dan per keer een andere naam mee, bijvoorbeeld met de datum."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        8,
+        9
+      ],
+      "prompt": "Waar komen de regels op regel 9 vandaan, en waarom wordt Get-DlpComplianceRule binnen de foreach aangeroepen?",
+      "options": [
+        "Ze komen uit Get-DlpCompliancePolicy -Policy, dat per beleid de bijbehorende regels teruggeeft",
+        "Ze worden één keer opgehaald; de foreach koppelt ze daarna aan het beleid met de hoogste prioriteit",
+        "Ze komen uit een CSV; de foreach leest per beleid de regels van schijf en zoekt ze op",
+        "Ze worden per beleid opgehaald met -Policy, zodat elke regel bij zijn eigen beleid hoort"
+      ],
+      "answer": 3,
+      "explanation": "Volgens de documentatie geeft `-Policy` alle regels terug die bij het opgegeven beleid horen (voorbeeld 3 van `Get-DlpComplianceRule`). Een beleid is de container en een regel bevat de voorwaarden en acties. Daarom vraagt het script per beleid apart naar de regels, en kent het de rijen direct aan het goede beleid toe."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        11,
+        20
+      ],
+      "prompt": "Wat doet het blok van regel 11 tot 20, en wat staat er in het rapport zonder dat blok?",
+      "options": [
+        "Een beleid zonder regels krijgt toch een rij (geen regels); zonder blok ontbreekt het in het rapport",
+        "Een beleid zonder regels wordt uit het rapport gehaald; zonder het blok staat het er juist wel in",
+        "Een beleid zonder regels wordt in Purview verwijderd; zonder het blok blijft het beleid bestaan",
+        "Een beleid zonder regels krijgt een standaardregel in Purview; zonder het blok blijft het beleid leeg"
+      ],
+      "answer": 0,
+      "explanation": "Zonder dit blok zou een beleid zonder regels niet in het rapport staan: de `foreach` van regel 22 loopt dan nul keer en levert niets op. Dat is een stille omissie, terwijl een beleid zonder regels juist interessant is: het beschermt niets. Het script maakt of verwijdert niets in Purview."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        9
+      ],
+      "prompt": "Je haalt -Policy $beleid.Name weg uit regel 9. Wat gebeurt er met het rapport?",
+      "options": [
+        "Het script stopt met een foutmelding omdat Get-DlpComplianceRule altijd een beleid nodig heeft",
+        "Het rapport blijft gelijk, omdat Get-DlpComplianceRule het beleid zelf uit de pijplijn haalt",
+        "Elke aanroep geeft alle regels van de tenant, dus elke regel staat onder elk beleid",
+        "Alleen regels die uitgeschakeld zijn komen nog in het rapport, omdat de rest wordt gefilterd"
+      ],
+      "answer": 2,
+      "explanation": "Zonder `-Policy` werkt `Get-DlpComplianceRule` als in voorbeeld 1 van de documentatie: het geeft alle regels. Het script geeft dus geen fout, maar elke regel komt bij elk beleid terug en het rapport is onbetrouwbaar en veel te groot. Gevaarlijk omdat het eruitziet als een compleet rapport. Controleer na een wijziging of het aantal rijen klopt met de portal."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        6,
+        37
+      ],
+      "prompt": "Wijzigt dit script iets aan DLP-beleid of -regels, en wat betekent Modus in het rapport?",
+      "options": [
+        "Nee, het leest alleen; Modus laat zien wie het beleid als laatste heeft gewijzigd en wanneer",
+        "Nee, het leest alleen; Modus laat zien of het beleid afdwingt, test of uit staat",
+        "Ja, het zet elk beleid in testmodus zodat het rapport veilig is; Modus toont de nieuwe stand",
+        "Ja, het schakelt regels uit die geen gevoelige gegevenstypen hebben; Modus toont het resultaat"
+      ],
+      "answer": 1,
+      "explanation": "`Get-DlpCompliancePolicy` en `Get-DlpComplianceRule` lezen alleen; het enige wat het script schrijft is het CSV-bestand. De waarden van `Mode` staan bij `Set-DlpCompliancePolicy`: `Enable` (acties en meldingen), `Disable`, `TestWithNotifications` en `TestWithoutNotifications` (simulatie: er wordt niets afgedwongen). Een beleid in testmodus blokkeert dus niets, ook niet als de regel `BlockAccess` heeft. Of `Get-DlpCompliancePolicy` `Mode` met deze waarden teruggeeft, is niet bevestigd; de waarden komen uit de documentatie van `Set-DlpCompliancePolicy`."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        22,
+        31
+      ],
+      "prompt": "In de kolom Gevoelig staat tekst met accolades en haken. Waarom, en wat zie je bij een regel zonder gevoelige gegevenstypen?",
+      "options": [
+        "Export-Csv kan geen tekst met haken aan; de waarde is daarom altijd ongeldig en je moet hem opnieuw ophalen",
+        "Het is de officiële notatie van Purview; bij een lege waarde toont het script automatisch Geen",
+        "Het is een foutmelding van Get-DlpComplianceRule; een regel zonder gevoelige typen geeft altijd een lege rij",
+        "ConvertTo-Json maakt van geneste gegevens één tekst voor één cel; zonder waarde krijg je null of leeg"
+      ],
+      "answer": 3,
+      "explanation": "Een CSV-cel kan geen lijst met eigenschappen bevatten. `ConvertTo-Json -Depth 4 -Compress` maakt er één regel tekst van. Bij een regel zonder deze eigenschap geeft PowerShell 7 de tekst `null` en Windows PowerShell 5.1 een lege cel (getest met nagebootste cmdlets). Hoe `ContentContainsSensitiveInformation` echt is opgebouwd, is niet bevestigd; controleer een echte regel."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat laat dit rapport niet zien, en wat controleer je voordat je op basis hiervan zegt dat gevoelige gegevens beschermd zijn?",
+      "explanation": "Bijvoorbeeld: (1) waar een beleid op van toepassing is (Exchange, SharePoint, OneDrive, Teams, apparaten) staat er niet in; een beleid zonder locaties beschermt niets; (2) alleen de actie `BlockAccess` en de voorwaarde op gevoelige gegevenstypen staan erin, niet de andere acties (meldingen, incidentrapporten, overrides) en voorwaarden (labels, toegangsbereik); (3) een `Modus` met TestWith... betekent dat er niets wordt afgedwongen, ook al ziet het beleid er compleet uit; (4) de eigenschappen `Mode`, `Disabled`, `BlockAccess` en `ContentContainsSensitiveInformation` zijn bij `Get-` niet bevestigd; controleer of de kolommen gevuld zijn; (5) een beleid zonder regels staat erin als (geen regels), maar sites of mailboxen die buiten elk beleid vallen niet; (6) vergelijk een paar beleidsregels met de portal voordat je het rapport vertrouwt. Bestaat er geen enkel DLP-beleid, dan is het rapport leeg, en dat ziet er hetzelfde uit als een tenant zonder problemen. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
