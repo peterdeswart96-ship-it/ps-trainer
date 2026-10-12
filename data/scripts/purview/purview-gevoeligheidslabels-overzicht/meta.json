@@ -1,0 +1,132 @@
+{
+  "id": "purview-gevoeligheidslabels-overzicht",
+  "title": "Overzicht van gevoeligheidslabels",
+  "topic": "purview",
+  "level": "basis",
+  "tag": "Connect-IPPSSession · Get-Label · Export-Csv",
+  "summary": "Verbindt met Security & Compliance PowerShell, haalt alle gevoeligheidslabels op en toont ze als tabel en als CSV, zodat je ziet welke labels er zijn.",
+  "risk": "read",
+  "modules": [
+    "ExchangeOnlineManagement"
+  ],
+  "note": "Niet uitgevoerd tegen een echte tenant. Het enige voorbeeld in de documentatie (op de pagina Create and publish sensitivity labels) toont als eigenschappen DisplayName, Name, Guid en ContentType; de pagina van Get-Label zelf beschrijft geen uitvoereigenschappen; Priority en ParentId staan bij Set-Label als parameters, maar zijn niet bevestigd als eigenschappen van de uitvoer van Get-Label. Zijn ze er niet, dan geeft Select-Object geen fout maar lege kolommen, en sorteert Sort-Object op een eigenschap die niet bestaat. De richting van Priority is alleen bij Set-Label beschreven (een hoger getal is een hogere prioriteit); hoe dat zich verhoudt tot de volgorde in de portal is niet bevestigd. Bij het moderne labelschema kunnen labelgroepen bestaan; of die in de uitvoer van Get-Label staan en hoe ze zich van labels onderscheiden, is niet bevestigd. Voor Get-Label heb je rechten in Security & Compliance PowerShell nodig.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-Label (syntax, voorbeelden), Connect to Security & Compliance PowerShell (Connect-IPPSSession -UserPrincipalName, Disconnect-ExchangeOnline), Create and publish sensitivity labels (voorbeeld Get-Label | Format-Table -Property DisplayName, Name, Guid, ContentType), Set-Label (Priority, ParentId, ContentType). Open punten: of Priority en ParentId in de uitvoer van Get-Label staan, het verschil tussen labels en labelgroepen in de uitvoer, en het gedrag bij een tenant met meer dan 1000 labels (-SkipValidations)."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        4
+      ],
+      "prompt": "Wat is de parameter -Gebruiker, en wat doe je met de standaardwaarde beheerder@contoso.onmicrosoft.com?",
+      "options": [
+        "Het is de eigenaar van elk label; het script toont alleen de labels van dit voorbeeldaccount",
+        "Het is de naam van de CSV die ontstaat; het voorbeeldaccount wordt automatisch een bestandsnaam",
+        "Het is het account dat inlogt; vervang het voorbeeld door je eigen beheerdersaccount",
+        "Het is een filter op de labelnaam; de standaardwaarde laat alleen labels met de naam beheerder zien"
+      ],
+      "answer": 2,
+      "explanation": "`-UserPrincipalName` van `Connect-IPPSSession` is het account in UPN-notatie waarmee je inlogt. De standaardwaarde met `contoso` is een voorbeeld: vervang het door je eigen account, of geef het mee bij het starten (`-Gebruiker jij@jouwtenant.nl`). Het wachtwoord staat er niet in; het inlogvenster (of de browser in PowerShell 7) vraagt erom, ook voor MFA."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        6
+      ],
+      "prompt": "Waarom gebruikt het script Connect-IPPSSession in plaats van Connect-ExchangeOnline?",
+      "options": [
+        "Connect-IPPSSession is de nieuwere naam van Connect-ExchangeOnline en beide doen precies hetzelfde",
+        "Get-Label bestaat alleen in Security & Compliance PowerShell, en Connect-IPPSSession maakt die verbinding",
+        "Connect-ExchangeOnline kan geen labels tonen omdat het alleen met postvakken van gebruikers werkt",
+        "Connect-IPPSSession logt in met een app-geheim in plaats van een gebruiker, wat veiliger is"
+      ],
+      "answer": 1,
+      "explanation": "De documentatie van `Get-Label` zegt dat de cmdlet alleen in Security & Compliance PowerShell beschikbaar is. Die verbinding maak je met `Connect-IPPSSession` uit dezelfde module `ExchangeOnlineManagement` als `Connect-ExchangeOnline`, maar het zijn twee aparte verbindingen met een eigen set cmdlets. Zonder deze verbinding geeft regel 8 de melding dat `Get-Label` onbekend is."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        8,
+        10
+      ],
+      "prompt": "Wat gebeurt er met de labels in de pijplijn van regel 8 tot 10?",
+      "options": [
+        "Get-Label haalt alleen de eerste tien labels op, Sort-Object telt ze en Select-Object geeft het aantal terug",
+        "Get-Label haalt de labels op, Sort-Object verwijdert dubbele namen en Select-Object past de labels aan",
+        "Get-Label haalt de labels op, Sort-Object zet ze op alfabet en Select-Object slaat ze op in Purview",
+        "Get-Label haalt alle labels op, Sort-Object zet ze op Priority en Select-Object houdt zes eigenschappen"
+      ],
+      "answer": 3,
+      "explanation": "Zonder `-Identity` geeft `Get-Label` alle gevoeligheidslabels. `Sort-Object Priority` zet ze op het getal in `Priority`, oplopend. `Select-Object` bouwt per label een nieuw object met alleen `DisplayName`, `Name`, `Guid`, `ContentType`, `Priority` en `ParentId`. Alles komt in `$labels` te staan; er wordt niets teruggeschreven naar Purview. Dit gaat ervan uit dat `Get-Label` `Priority` en `ParentId` teruggeeft; dat is niet bevestigd (zie de opmerking bij het script)."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        10
+      ],
+      "prompt": "Je typt op regel 10 per ongeluk Priotity in plaats van Priority. Wat is het gevolg?",
+      "options": [
+        "Er komt geen foutmelding; de kolom Priotity staat in de tabel en de CSV, maar is leeg",
+        "Het script stopt direct met een foutmelding dat de eigenschap Priotity niet bestaat",
+        "Purview corrigeert de spelling zelf en geeft de juiste waarden voor Priority terug",
+        "Het script geeft nu alle eigenschappen van elk label terug in plaats van de zes gekozen"
+      ],
+      "answer": 0,
+      "explanation": "`Select-Object` geeft geen fout bij een eigenschap die niet bestaat: het maakt gewoon een kolom met die naam en laat de waarde leeg. Het rapport ziet er dus netjes uit, maar mist de prioriteit. Controleer daarom na het eerste gebruik of alle kolommen gevuld zijn. Dat geldt ook voor `Priority` en `ParentId` zelf: of `Get-Label` die eigenschappen echt teruggeeft, is niet bevestigd."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        6,
+        15
+      ],
+      "prompt": "Wijzigt dit script iets in Purview, en wat schrijft het naar je computer?",
+      "options": [
+        "Ja, Get-Label zet bij elk label een leesvlag, en de verbinding blijft open voor de volgende keer",
+        "Ja, Connect-IPPSSession past de labelvolgorde aan; Export-Csv maakt een back-up op de server",
+        "Nee, het leest alleen de labels; het schrijft een CSV op je eigen schijf en sluit de verbinding",
+        "Nee, het script leest niets; Export-Csv maakt alleen een leeg bestand met de kopregel"
+      ],
+      "answer": 2,
+      "explanation": "`Get-Label` leest alleen. Het enige wat het script schrijft is het CSV-bestand op regel 13, op je eigen schijf. Op regel 15 sluit `Disconnect-ExchangeOnline -Confirm:$false` de sessie zonder om bevestiging te vragen; de documentatie raadt aan altijd af te sluiten, anders gebruik je sessies op die het account nodig heeft. In Purview verandert niets."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        12,
+        13
+      ],
+      "prompt": "Regel 12 toont de labels als tabel, regel 13 schrijft ze naar een CSV. Waarom bevat de CSV toch gewone gegevens?",
+      "options": [
+        "Format-Table herstelt zichzelf na het tonen, zodat de objecten in $labels weer gewoon worden",
+        "Format-Table staat niet in $labels; het schrijft alleen naar het scherm, dus $labels is onveranderd",
+        "Export-Csv negeert de opmaak van Format-Table en haalt de gegevens opnieuw uit Purview op",
+        "De CSV bevat de opmaak als tekst; de tabel staat dus ook letterlijk in het bestand"
+      ],
+      "answer": 1,
+      "explanation": "`$labels | Format-Table` geeft opgemaakte uitvoer voor het scherm, maar de opdracht slaat het resultaat nergens op: `$labels` zelf is niet veranderd. Daarom kan regel 13 de echte objecten naar de CSV schrijven. Let op: zet je `Format-Table` vóór `Export-Csv` in dezelfde pijplijn, dan krijg je opmaakobjecten in je bestand in plaats van je gegevens."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat laat dit overzicht niet zien, en wat controleer je voordat je het gebruikt om iets over je labels te zeggen?",
+      "explanation": "Bijvoorbeeld: (1) je ziet in de lijst alleen naam, scope en volgorde, niet wat een label doet: geen versleuteling, geen markeringen, geen instellingen (die staan in de eigenschap `Settings` van een los label of in de portal); (2) het zegt niet welke labels zijn gepubliceerd en aan wie: dat staat in de labelbeleidsregels, een ander onderdeel van Purview; een label dat in de lijst staat, kan nog voor niemand zichtbaar zijn; (3) `Priority` en `ParentId` zijn niet bevestigd als uitvoereigenschappen van `Get-Label`, en bij het moderne labelschema kunnen labelgroepen bestaan: kijk of de kolommen gevuld zijn; (4) je ziet alleen wat je rechten in Security & Compliance PowerShell je laten zien; (5) vergelijk bij een paar labels de lijst met de portal voordat je hem vertrouwt. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
