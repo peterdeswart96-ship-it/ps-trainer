@@ -1,0 +1,143 @@
+{
+  "id": "m365-licenties-per-sku",
+  "title": "Licenties per SKU overzien",
+  "topic": "m365",
+  "level": "basis",
+  "tag": "Get-MgSubscribedSku · pscustomobject · alleen lezen",
+  "summary": "Haalt alle licentieabonnementen (SKU's) van de tenant op en toont per licentie hoeveel er gekocht, toegewezen en vrij zijn.",
+  "risk": "read",
+  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Identity.DirectoryManagement"],
+  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets en parameters zijn getoetst met `Get-Command` en de modeltypes van de module Microsoft.Graph 2.41; de logica is getest met nagebootste cmdlets. In de voorbeeldgegevens bij de vragen (zoals een licentie zonder actieve eenheden) is de situatie nagebootst. Open punten: of `LicenseAssignment.Read.All` de minimale scope voor `Get-MgSubscribedSku` is, en hoe `ConsumedUnits` zich precies verhoudt tot `PrepaidUnits.Enabled` bij verlopen of opgeschorte abonnementen.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 23],
+      "prompt": "Wat verandert er als je het script aanroept met `-DrempelPercentage 100`?",
+      "options": [
+        "De samenvatting telt alleen licenties die voor 100 procent of meer zijn toegewezen",
+        "Het script wijst automatisch alle vrije licenties toe aan gebruikers in de tenant",
+        "De tabel toont dan alleen nog licenties van 100 procent of meer, de rest verdwijnt",
+        "Het script stopt omdat een percentage nooit hoger dan 99 mag zijn volgens de parameter"
+      ],
+      "answer": 0,
+      "explanation": "De drempel bepaalt alleen welke licenties meetellen in de samenvatting op regel 23 en 24. De tabel op regel 21 blijft alle licenties tonen. Bij 100 telt een licentie mee als hij volledig of over de rand is toegewezen. Het script wijzigt niets in de tenant."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [5],
+      "prompt": "Waarom vraagt `Connect-MgGraph` hier alleen om de scope `LicenseAssignment.Read.All`?",
+      "options": [
+        "Omdat een scope met `Read` ervoor zorgt dat het script sneller verbindt met Graph",
+        "Omdat Graph geen andere scopes voor licenties kent, dus er is geen keuze",
+        "Omdat het script daardoor automatisch alle licenties van gebruikers mag wijzigen",
+        "Het script hoeft alleen te lezen en kan met deze scope niets wijzigen"
+      ],
+      "answer": 3,
+      "explanation": "Vraag zo weinig mogelijk rechten aan. Een scope met `Read` laat alleen lezen toe, dus een fout in het script kan geen licenties aanpassen. `-NoWelcome` onderdrukt alleen de welkomstbanner. Of dit de minimale scope is voor deze cmdlet, staat nog open in de `note`."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bron",
+      "lines": [7],
+      "prompt": "Wat levert `Get-MgSubscribedSku -All` op?",
+      "options": [
+        "Een object per licentie-SKU in de tenant, niet per gebruiker",
+        "Een lijst met alle gebruikers in de tenant en hun licenties",
+        "Alleen de licentie van de beheerder die is ingelogd",
+        "Een rapport met het gebruik van elke licentie per dag, per dienst"
+      ],
+      "answer": 0,
+      "explanation": "Een SKU is een licentieproduct zoals `SPE_E3`. Elk object bevat hoeveel eenheden er zijn gekocht (`PrepaidUnits`) en hoeveel er zijn toegewezen (`ConsumedUnits`). Wie de licentie heeft, staat er niet in: daarvoor haal je gebruikers op. `-All` laat PowerShell alle pagina's ophalen."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [10, 11],
+      "prompt": "Wat is het verschil tussen `PrepaidUnits.Enabled` en `ConsumedUnits`?",
+      "options": [
+        "Het zijn twee namen voor hetzelfde getal",
+        "`Enabled` is het aantal gebruikers en `ConsumedUnits` het aantal beheerders in de tenant",
+        "`Enabled` zijn de actieve eenheden, `ConsumedUnits` de toegewezen",
+        "`Enabled` telt de proeflicenties en `ConsumedUnits` alleen de betaalde licenties"
+      ],
+      "answer": 2,
+      "explanation": "Het verschil tussen die twee is de vrije ruimte. Het script rekent met beide: `Vrij` is `Totaal` min `Toegewezen`. Opgeschorte of waarschuwingseenheden staan in andere eigenschappen van `PrepaidUnits` (zoals `Suspended` en `Warning`) en tellen in deze berekening niet mee."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [17],
+      "prompt": "Een collega haalt de `if ($totaal -gt 0)` weg, zodat er alleen `[math]::Round(100 * $toegewezen / $totaal)` staat. Wat gebeurt er?",
+      "options": [
+        "Het percentage wordt `Infinity` voor licenties zonder actieve eenheden in het overzicht",
+        "Er komt een fout `door nul delen` en die licentie ontbreekt in het overzicht",
+        "Het script slaat die licenties over zonder enige melding en toont de rest van het overzicht",
+        "Het percentage wordt voor die licenties 100, omdat het script er maximaal 100 van maakt"
+      ],
+      "answer": 1,
+      "explanation": "Delen van een geheel getal door 0 geeft in PowerShell een fout (`Attempted to divide by zero`), geen `Infinity`. De fout stopt alleen die ene opdracht: de lus gaat door, maar het object van die licentie wordt niet gemaakt en ontbreekt dus in het overzicht (getest met nagebootste cmdlets). Een licentie zonder actieve eenheden komt voor bij bijvoorbeeld een verlopen abonnement. Daarom staat er een controle voor de deling. Let op: wie de waarde dan op 0 zet, verbergt het probleem (zie vraag 8)."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [16],
+      "prompt": "De licentie `TEAMS_EXPLORATORY` toont `Vrij` = -1. Wat betekent dat?",
+      "options": [
+        "Het script heeft een rekenfout gemaakt bij het aftrekken van de getallen",
+        "De licentie is verlopen en wordt automatisch uit de tenant verwijderd",
+        "Er is 1 licentie vrij die nog niet is toegewezen aan een gebruiker",
+        "Er zijn meer eenheden toegewezen dan er actief zijn"
+      ],
+      "answer": 3,
+      "explanation": "`Vrij` is `Totaal - Toegewezen`, dus 25 min 26. Het script rekent gewoon door en toont het negatieve getal. Waarom er meer is toegewezen dan actief, zoekt het script niet uit. Dat moet je zelf nagaan, bijvoorbeeld in het beheercentrum."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [5, 7, 21],
+      "prompt": "Welke gegevens in de tenant wijzigt dit script?",
+      "options": [
+        "Niets: het leest licentiegegevens en toont ze op het scherm",
+        "Het trekt licenties in die voor meer dan de drempel zijn gebruikt",
+        "Het schrijft het overzicht terug naar de organisatie-instellingen",
+        "Het wijst vrije licenties toe aan nieuwe gebruikers"
+      ],
+      "answer": 0,
+      "explanation": "Alleen `Connect-MgGraph` en `Get-MgSubscribedSku` praten met de tenant, en met een leesscope. De rest gebeurt in het geheugen: berekenen, sorteren en tonen. Daarom staat `risk` op `read`."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [17, 23],
+      "prompt": "De licentie `FLOW_FREE` toont 7 toegewezen maar 0 procent. Waarom, en wat verberg je daarmee?",
+      "options": [
+        "Omdat Power Automate gratis is en daarom geen percentage heeft in Graph",
+        "Omdat `Totaal` 0 is: het percentage wordt 0 en regel 23 laat de licentie weg",
+        "Omdat het script gratis licenties altijd uit de samenvatting en tabel haalt",
+        "Omdat 7 van 0 gewoon nul procent is, dus er is niets bijzonders aan de hand"
+      ],
+      "answer": 1,
+      "explanation": "Zonder actieve eenheden is een percentage niet te berekenen. Het script toont dan 0 en slaat de licentie over in de samenvatting, ook al zijn er 7 toegewezen. Dat is een stille afwijking: `Vrij` is -7. Een beter script meldt zulke licenties apart."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Het rapport toont namen als `SPE_E3`. Hoe maak je dat leesbaarder voor een collega, zonder de technische naam kwijt te raken?",
+      "explanation": "Een sterk antwoord noemt een opzoektabel: een hashtable die `SkuPartNumber` koppelt aan een leesbare naam, zoals `'SPE_E3' = 'Microsoft 365 E3'`, en een extra kolom `Naam` in het rapport. Voor een onbekende SKU val je terug op de technische naam, bijvoorbeeld met `if ($namen.ContainsKey($id)) { ... } else { $id }`. Microsoft publiceert een lijst met productnamen en SKU-namen waarmee je de tabel vult; noem dat die lijst kan veranderen en dus gecontroleerd moet worden. Laat de technische naam staan, want die gebruik je in scripts."
+    }
+  ]
+}
