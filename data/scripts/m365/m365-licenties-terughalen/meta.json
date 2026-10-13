@@ -1,0 +1,143 @@
+{
+  "id": "m365-licenties-terughalen",
+  "title": "Licenties van vertrokken medewerkers terughalen",
+  "topic": "m365",
+  "level": "gevorderd",
+  "tag": "Set-MgUserLicense · SupportsShouldProcess · try/catch · wijzigt",
+  "summary": "Leest een CSV met vertrokken medewerkers, controleert per persoon of de licentie veilig kan worden ingetrokken en trekt hem dan in, met een droge run.",
+  "risk": "write",
+  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Identity.DirectoryManagement", "Microsoft.Graph.Users", "Microsoft.Graph.Users.Actions"],
+  "note": "Niet uitgevoerd tegen een echte tenant en dit script wijzigt licenties: probeer het eerst met `-WhatIf`. De cmdlets en parameters (`Set-MgUserLicense -AddLicenses -RemoveLicenses`, `Get-MgUser -UserId`) en de eigenschappen `AssignedLicenses`, `LicenseAssignmentStates` en `AssignedByGroup` zijn getoetst in de module Microsoft.Graph 2.41; de logica, ook de droge run, is getest met nagebootste cmdlets. Het resultaat `Niet gevonden` geldt voor elke fout bij het ophalen van de gebruiker. Open punten: of een licentie die via een groep is toegewezen niet direct bij de gebruiker kan worden ingetrokken, of de scopes `User.ReadWrite.All` en `Organization.Read.All` de minimale zijn, of `-AddLicenses @()` verplicht is voor de aanroep (het script geeft hem altijd mee), en wat er met het postvak en de bestanden van de gebruiker gebeurt als de licentie verdwijnt.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [1],
+      "prompt": "Hoe doe je met dit script een droge run, en wat gebeurt er dan?",
+      "options": [
+        "Met `-Test`: het script draait alleen op de eerste vijf regels van de CSV",
+        "Met `-Confirm:$false`: het script vraagt nergens meer om bevestiging",
+        "Met `-Verbose`: het script toont wat het doet, maar voert alles uit",
+        "Met `-WhatIf`: het script toont wat het zou doen en trekt niets in"
+      ],
+      "answer": 3,
+      "explanation": "`SupportsShouldProcess` voegt `-WhatIf` en `-Confirm` toe. Bij `-WhatIf` geeft `$PSCmdlet.ShouldProcess()` (regel 37) `$false` terug en toont PowerShell `What if: Performing the operation ...`. `Set-MgUserLicense` wordt dan niet aangeroepen (getest met nagebootste cmdlets: 0 aanroepen). Het resultaat toont `Droge run` voor wie zou worden aangepast."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [3, 4],
+      "prompt": "Wat gebeurt er als je het script in een gewone console start zonder `-Pad`?",
+      "options": [
+        "Het script gebruikt standaard een bestand `vertrokken.csv` in de huidige map",
+        "PowerShell vraagt om een waarde voor `Pad`, omdat de parameter verplicht is",
+        "Het script slaat de CSV over en controleert alle gebruikers in de tenant",
+        "Het script stopt met een syntaxfout bij het inlezen van de parameters"
+      ],
+      "answer": 1,
+      "explanation": "`[Parameter(Mandatory)]` maakt `-Pad` verplicht. In een interactieve console vraagt PowerShell er dan om; in een geplande taak zonder invoer volgt een foutmelding. Voor een script dat licenties wijzigt is dat prettig: er is altijd een expliciete lijst nodig, het script zoekt nooit zelf uit wie ervoor in aanmerking komt."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bron",
+      "lines": [10, 11, 12, 13],
+      "prompt": "Waarom zoekt het script de licentie eerst op en gooit het een fout als die ontbreekt?",
+      "options": [
+        "Zonder `SkuId` kan niets worden ingetrokken; zo stopt het vóór iets wijzigt",
+        "Omdat de fout in regel 12 de CSV automatisch naar een logbestand schrijft voor later",
+        "Omdat Graph anders alle licenties van elke gebruiker in de lijst zou intrekken",
+        "Omdat `Get-MgSubscribedSku` anders niet wil starten zonder controle"
+      ],
+      "answer": 0,
+      "explanation": "Een licentie heeft een `SkuId` (een GUID) nodig om te kunnen worden ingetrokken; je kent hem alleen via de naam. Is er een typfout in `-SkuPartNumber`, dan stopt `throw` het script meteen, vóór de lus begint. Controleer dingen die alles bepalen altijd eerst, en voor je wijzigt."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [17, 18, 20, 21, 22, 23],
+      "prompt": "Het adres `nietbestaand@contoso.com` staat in de CSV. Wat gebeurt er met dat adres?",
+      "options": [
+        "Het script stopt met een foutmelding en verwerkt de rest van de CSV niet meer",
+        "Het adres wordt stil overgeslagen, zonder dat het in het resultaat komt te staan",
+        "Het krijgt de uitkomst `Niet gevonden`; de volgende regel wordt gewoon verwerkt",
+        "Het script maakt een nieuwe gebruiker aan met dat adres"
+      ],
+      "answer": 2,
+      "explanation": "`-ErrorAction Stop` maakt van de fout van `Get-MgUser` een afbrekende fout, die `catch` opvangt. Daar komt een resultaatregel `Niet gevonden` en `continue` gaat naar de volgende regel van de CSV. Let op: `catch` vangt elke fout van `Get-MgUser` op, niet alleen een gebruiker die niet bestaat. Een tijdelijke storing of een ontbrekend recht eindigt dus ook als `Niet gevonden`. Zonder `-ErrorAction Stop` zou de fout niet in `catch` komen (zie het script over `try` en `catch`)."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [28, 29, 30],
+      "prompt": "Een collega haalt het eerste blok (`if ($gebruiker.AccountEnabled) { ... }`) weg. Wat is het gevolg bij een run zonder `-WhatIf`?",
+      "options": [
+        "Er verandert niets: de andere controles vangen actieve accounts ook gewoon af",
+        "Ook actieve medewerkers met de licentie verliezen die",
+        "Het script stopt omdat `$uitkomst` dan niet meer gevuld kan worden",
+        "Het script vraagt voor elke actieve medewerker om een aparte bevestiging"
+      ],
+      "answer": 1,
+      "explanation": "Die eerste controle is de veiligheidsgrens: alleen geblokkeerde accounts komen in aanmerking. Zonder dat blok valt een actieve medewerker met een eigen licentie door naar `ShouldProcess` en wordt de licentie ingetrokken. Een droge run (`-WhatIf`) toont dat vooraf. Daarom draai je een script dat wijzigt eerst altijd met `-WhatIf` en lees je het resultaat."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [25, 26, 34, 35, 36],
+      "prompt": "Waarom slaat het script een licentie over die via een groep is toegewezen?",
+      "options": [
+        "Omdat groepslicenties altijd gratis zijn en dus niet meetellen",
+        "Omdat Graph slechts één licentie per groep kent, dus er is niets in te trekken",
+        "Omdat het script groepen niet kan lezen met de gevraagde scopes",
+        "Een groepslicentie volgt het lidmaatschap: haal de gebruiker uit de groep"
+      ],
+      "answer": 3,
+      "explanation": "Bij groepsgebaseerde licenties geeft de groep de licentie. Intrekken direct bij de gebruiker lukt naar verwachting niet, of de licentie komt terug (dit is een open punt, zie de `note`). De juiste handeling is de gebruiker uit de groep halen (en `AssignedByGroup` in `LicenseAssignmentStates` verraadt dit). Dat staat als open punt in de `note`; het script meldt dit geval apart in plaats van te falen."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [38],
+      "prompt": "Wat wijzigt `Set-MgUserLicense -AddLicenses @() -RemoveLicenses @($sku.SkuId)` bij een gebruiker met twee licenties?",
+      "options": [
+        "Alleen de ene licentie verdwijnt; de andere blijft staan",
+        "Beide licenties verdwijnen, omdat een lege lijst `alles` betekent voor Graph",
+        "Er verandert niets, want `-AddLicenses` is leeg",
+        "De licentie wordt vervangen door een proeflicentie"
+      ],
+      "answer": 0,
+      "explanation": "`-AddLicenses @()` voegt niets toe en `-RemoveLicenses` bevat alleen het `SkuId` van de gekozen licentie. Heeft de gebruiker nog andere licenties, dan blijven die staan. De test met nagebootste cmdlets bevestigt: 0 toevoegingen en 1 verwijdering. Of `-AddLicenses` verplicht is, staat als open punt in de `note`; het script geeft hem altijd mee."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [47, 48],
+      "prompt": "Na een run met `-WhatIf` staat in de samenvatting `Droge run: 1`. Wat betekent dat?",
+      "options": [
+        "Eén licentie is al ingetrokken en de rest van de lijst volgt nog",
+        "Eén gebruiker is overgeslagen omdat de run te kort duurde om te eindigen",
+        "Eén gebruiker zou zijn licentie verliezen; er is niets gewijzigd",
+        "Eén gebruiker is niet gevonden in de tenant of in de CSV"
+      ],
+      "answer": 2,
+      "explanation": "`Droge run` staat voor een gebruiker die aan alle voorwaarden voldoet: geblokkeerd, met de licentie, zonder groep. Zonder `-WhatIf` had hij `Ingetrokken` gekregen. Lees de samenvatting dus als een voorspelling. Controleer vooral de regels `Overgeslagen`: die laten zien wat het script bewust niet doet."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt dit script echt gebruiken. Welke drie dingen regel je eerst, behalve het draaien met `-WhatIf`?",
+      "explanation": "Een sterk antwoord noemt bijvoorbeeld: (1) het resultaat bewaren met een tijdstempel, zodat je later kunt aantonen wat er is ingetrokken (`Export-Csv`); (2) afspreken wie de CSV goedkeurt en dat geblokkeerde accounts pas na een bewaartermijn aan de beurt komen; (3) uitzoeken wat er met het postvak en de OneDrive van de gebruiker gebeurt als de licentie verdwijnt, en dat vooraf regelen (zoek dat op in de documentatie van Microsoft). Ook goed: na afloop controleren met `Get-MgUserLicenseDetail`, en de gebruiker uit groepen halen die licenties geven."
+    }
+  ]
+}
