@@ -1,0 +1,143 @@
+{
+  "id": "m365-licentie-wisselen-bulk",
+  "title": "Licentie in bulk wisselen met een droge run",
+  "topic": "m365",
+  "level": "expert",
+  "tag": "Set-MgUserLicense · splatting · SupportsShouldProcess · wijzigt",
+  "summary": "Vervangt voor een lijst gebruikers uit een CSV de ene licentie door de andere, controleert vooraf of er genoeg vrije licenties zijn en ondersteunt een droge run.",
+  "risk": "write",
+  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Identity.DirectoryManagement", "Microsoft.Graph.Users.Actions"],
+  "note": "Niet uitgevoerd tegen een echte tenant en dit script wijzigt licenties: probeer het eerst met `-WhatIf`. De cmdlets en parameters (`Set-MgUserLicense -AddLicenses -RemoveLicenses`, `Get-MgSubscribedSku`) zijn getoetst in de module Microsoft.Graph 2.41; de logica, ook de droge run (0 aanroepen), de controle op vrije licenties en de fout per gebruiker, is getest met nagebootste cmdlets. De omzetting van een hashtable `@{ SkuId = ... }` naar het type van `-AddLicenses` (een lijst `AssignedLicense`-objecten) is getest; of Graph de aanroep daarna accepteert niet. Open punten: wat Graph doet als de gebruiker de oude licentie niet heeft of de licentie via een groep krijgt, of de wissel in één aanroep veilig is, of de scopes `User.ReadWrite.All` en `Organization.Read.All` de minimale zijn, en of uitgeschakelde onderdelen (`DisabledPlans`) van de oude licentie op de nieuwe moeten worden overgenomen.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [5, 6, 7, 8, 14, 15],
+      "prompt": "Waarom krijgt het script licentienamen zoals `SPE_E3` als parameter en niet de `SkuId`-GUID's?",
+      "options": [
+        "Omdat Graph de GUID's niet accepteert in `Set-MgUserLicense`, alleen namen",
+        "Omdat de namen sneller zijn voor Graph dan de GUID's van de licenties",
+        "Omdat de GUID's per tenant bij elke aanroep opnieuw worden aangemaakt",
+        "Namen zijn leesbaar; het script zoekt het bijbehorende `SkuId` zelf op"
+      ],
+      "answer": 3,
+      "explanation": "Een mens onthoudt `SPE_E3` beter dan een GUID. Het script zoekt in regel 14 en 15 het bijbehorende `SkuId` op en gebruikt dat in de aanroep. Een typfout in een naam leidt tot de fout in regel 17, vóór er iets wijzigt. Wil je met GUID's werken, dan kan dat ook, maar dan ben je de leesbaarheid kwijt."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [20, 21, 22, 23, 24],
+      "prompt": "Waarom controleert het script vooraf of er genoeg vrije licenties van de nieuwe soort zijn?",
+      "options": [
+        "Omdat Graph een ontbrekende licentie anders automatisch voor je bijkoopt",
+        "Anders mislukken de laatste wissels halverwege; nu stopt het vooraf",
+        "Omdat de droge run anders niet zou werken zonder die controle vooraf",
+        "Omdat de oude licentie anders niet zou kunnen worden ingetrokken door Graph"
+      ],
+      "answer": 1,
+      "explanation": "Het aantal vrije licenties is `Enabled` min `ConsumedUnits` (regel 21). Zijn er minder dan gebruikers in de CSV, dan stopt `throw` in regel 23 het script vóór de lus begint. Anders zou een deel van de gebruikers de nieuwe licentie krijgen en de rest een foutmelding, midden in een wijziging. Controleer voorwaarden dus eerst, en wijzig daarna."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [30, 31],
+      "prompt": "Waarom staat er `AddLicenses = @(@{ SkuId = ... })` met twee keer `@`, en bij `RemoveLicenses` maar één keer?",
+      "options": [
+        "De buitenste `@( )` maakt een lijst met één licentie-object; bij verwijderen volstaan `SkuId`'s",
+        "Het tweede `@` is een typfout die het script stilzwijgend negeert bij het uitvoeren",
+        "Bij toevoegen is een speciale schrijfwijze verplicht door Graph, bij verwijderen niet",
+        "De hashtable bevat meerdere licenties tegelijk die in één keer worden toegevoegd aan de gebruiker"
+      ],
+      "answer": 0,
+      "explanation": "`-AddLicenses` verwacht een lijst met objecten die minstens een `SkuId` hebben, `-RemoveLicenses` een lijst met alleen `SkuId`'s (tekst). Een hashtable met `SkuId` is één object, en `@( )` maakt er een lijst van. De test met nagebootste cmdlets bevestigt: 1 licentie erbij, 1 eraf. Of Graph een hashtable zo accepteert, staat als open punt in de `note`."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [32],
+      "prompt": "Een collega haalt `ErrorAction = 'Stop'` uit de hashtable. Een wissel mislukt met een niet-afbrekende fout. Wat meldt het script?",
+      "options": [
+        "Het script stopt meteen met die fout en verwerkt niemand meer na deze gebruiker",
+        "De gebruiker krijgt de uitkomst `Mislukt: ...` met de foutmelding in het resultaat",
+        "De fout verschijnt wel, maar de uitkomst blijft toch `Gewisseld` staan",
+        "De gebruiker wordt overgeslagen en staat daardoor niet in het resultaat"
+      ],
+      "answer": 2,
+      "explanation": "`try/catch` vangt alleen afbrekende fouten. Met `ErrorAction = 'Stop'` in de splat wordt elke fout afbrekend. Zonder die regel toont PowerShell de fout, loopt het script door naar regel 37 en staat er toch `Gewisseld`. Bijvoorbeeld: bij drie gebruikers waarvan één mislukt, meldde het script in de test met een niet-afbrekende fout drie geslaagde wissels. Dat is erger dan een foutmelding: het resultaat liegt."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [35, 36, 37, 38, 39, 40, 41],
+      "prompt": "De wissel voor `fout@contoso.com` mislukt. Wat gebeurt er met de andere gebruikers?",
+      "options": [
+        "Het script stopt en niemand na `fout@contoso.com` wordt nog gewisseld door het script",
+        "De rest wordt gewoon verwerkt; deze gebruiker krijgt `Mislukt: ...`",
+        "Alle wissels worden automatisch teruggedraaid, ook die al zijn gelukt",
+        "Het script probeert de mislukte gebruiker net zo lang tot het lukt, zonder grens"
+      ],
+      "answer": 1,
+      "explanation": "De `try/catch` staat in de lus, per gebruiker. Een fout bij één gebruiker komt in `catch` terecht, die zet `Mislukt: ...` in het resultaat, en de lus gaat verder. Een wissel die al is gelukt, wordt niet teruggedraaid. Daarom is het resultaat zo belangrijk: bewaar het, want daaruit haal je wie handmatig moet worden bijgewerkt."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [30, 31, 36],
+      "prompt": "Wat verandert er bij een geslaagde wissel voor een gebruiker die ook nog andere licenties heeft?",
+      "options": [
+        "Alle licenties van de gebruiker worden vervangen door de nieuwe licentie",
+        "De oude licentie en alle andere licenties worden verwijderd uit het account",
+        "De nieuwe komt erbij en de oude gaat eraf; de rest blijft staan",
+        "Alleen de nieuwe licentie komt erbij; de oude blijft ook gewoon staan"
+      ],
+      "answer": 2,
+      "explanation": "De aanroep voegt `$nieuw.SkuId` toe en verwijdert `$oud.SkuId`; wat niet is genoemd, blijft zoals het was. In de test met nagebootste cmdlets: `add=1`, `remove=` de oude licentie. Of uitgeschakelde onderdelen van de oude licentie worden overgenomen, doet de aanroep niet: dat staat als open punt in de `note`."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [50],
+      "prompt": "Waarom staat er `-replace '^Mislukt:.*', 'Mislukt'` in het `Group-Object` van de samenvatting?",
+      "options": [
+        "Omdat `Group-Object` anders geen tekst kan groeperen of sorteren",
+        "Omdat de foutmeldingen anders de tabel breder maken dan het scherm",
+        "Zo vallen alle mislukte wissels in één groep, ook met verschillende meldingen",
+        "Omdat `Mislukt:` anders als opdracht wordt uitgevoerd door PowerShell"
+      ],
+      "answer": 2,
+      "explanation": "`Group-Object` maakt een groep per uniek resultaat. Elke foutmelding is anders, dus zonder de vervanging zou elke mislukte gebruiker een eigen groep krijgen. Met `-replace` wordt alles wat met `Mislukt:` begint, `Mislukt`. Daardoor krijg je totalen zoals `Gewisseld: 2` en `Mislukt: 1` (bij drie gebruikers, waarvan één mislukt). Let op `(?s)` aan het begin van het patroon: zonder dat vangt de punt geen regeleinde, en een foutmelding van meerdere regels kreeg dan toch een eigen groep. Een scriptblok als `-Property` is een snelle manier om een eigen groeperingssleutel te maken."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [34, 44],
+      "prompt": "De droge run meldt voor alle drie de gebruikers `Droge run`, maar bij de echte run mislukt er één. Hoe kan dat?",
+      "options": [
+        "De droge run roept `Set-MgUserLicense` niet aan; Graph-fouten zie je pas later",
+        "Het script slaat de droge run over voor gebruikers met een fout in de CSV",
+        "De droge run werkt alleen voor gebruikers die de oude licentie al hebben",
+        "Graph geeft in de droge run altijd een beloofde uitkomst terug aan het script"
+      ],
+      "answer": 0,
+      "explanation": "Bij `-WhatIf` geeft `ShouldProcess` `$false` terug en gebeurt het blok met `Set-MgUserLicense` niet (getest: 0 aanroepen). Alles wat alleen Graph kan weten, zoals een gebruiker zonder de oude licentie of een licentie via een groep, merk je pas bij de echte run. De droge run bewijst dus dat het script klopt, niet dat elke wissel lukt. Daarom start je met een kleine groep."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt 2000 gebruikers wisselen. Hoe pak je dat veilig aan, behalve de droge run?",
+      "explanation": "Een sterk antwoord noemt: eerst een kleine pilotgroep, controleren met `Get-MgUserLicenseDetail` of de juiste onderdelen aanstaan, en dan in batches; het resultaat bewaren (`Export-Csv`) en de mislukte gebruikers apart opnieuw verwerken; uitzoeken of uitgeschakelde onderdelen (`DisabledPlans`) van de oude licentie moeten worden overgenomen; rekening houden met groepslicenties en met throttling bij veel aanroepen (zie het script over opnieuw proberen); en een terugdraaiplan (de omgekeerde wissel). Noem ook dat je buiten kantooruren werkt en dat een beheerder de CSV goedkeurt."
+    }
+  ]
+}
