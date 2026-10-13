@@ -9,6 +9,7 @@ import {
   filterScripts, hoofdOnderwerp, kiesScript, laadIndex, laadMeta, laadScript, leesParams, regelLabel, scriptRegels, werkbankUrl
 } from './data.js';
 import { renderLine } from './highlight.js';
+import { PROMPT_LENGTE_WAARSCHUWING, bouwCopilotPrompt } from './prompt.js';
 import { renderMarkdownLite } from './markdown-lite.js';
 import {
   bewaarState, laadVoortgang, registreerAntwoord, registreerOpenGetoond, standaardOpslag, voortgangScript, wisScript
@@ -63,7 +64,8 @@ export function scoreTekst({ beantwoord, goed, totaal }) {
 
 // Bouwt een vraagkaart. ctx:
 //   doc, scriptId, nummer (volgorde in het script), totaal (aantal vragen), leesState() (de huidige v2-voortgang),
-//   acties: { antwoord(vraag, optieIndex), toonOpen(vraag), markeer(kaart, lines), vorige(), volgende() }
+//   acties: { antwoord(vraag, optieIndex), toonOpen(vraag), markeer(kaart, lines), vorige(), volgende(),
+//             kopieerPrompt(vraag, nummer) -> { gelukt, tekst, tekens, lang } }
 // De kaart bouwt zichzelf opnieuw op na een antwoord; een open vraag behoudt wat je al typde.
 export function bouwVraagKaart(vraag, ctx) {
   const { doc, scriptId, nummer, acties } = ctx;
@@ -187,14 +189,38 @@ export function bouwVraagKaart(vraag, ctx) {
   nav.setAttribute('aria-label', 'Navigatie tussen vragen');
   const vorigeKnop = navKnop('Vorige', 'vorige', true, () => acties.vorige?.());
   const volgendeKnop = navKnop('Volgende', 'volgende', false, () => acties.volgende?.());
-  nav.append(vorigeKnop, volgendeKnop);
-  kaart.navKnoppen = { vorige: vorigeKnop, volgende: volgendeKnop };
+  // Tussen Vorige en Volgende: kopieert een prompt voor Copilot (script, vraag en instructies, zonder het goede antwoord).
+  // Lukt het klembord niet, dan staat de prompt in een tekstvak om zelf te kopiëren.
+  const kopieerKnop = el(doc, 'button', 'btn ghost qknop qcopilot', 'Kopieer Copilot-prompt');
+  kopieerKnop.type = 'button';
+  const meldVak = el(doc, 'div', 'qmeld');
+  meldVak.setAttribute('role', 'status'); // altijd in de pagina (leeg is hij onzichtbaar), zodat een schermlezer de melding voorleest
+  kopieerKnop.addEventListener('click', async () => {
+    const uitslag = await acties.kopieerPrompt?.(vraag, nummer);
+    if (!uitslag) return;
+    if (uitslag.gelukt) {
+      const lang = uitslag.lang ? ` Let op: de prompt is lang (${uitslag.tekens} tekens) en sommige Copilot-versies accepteren minder.` : '';
+      meldVak.replaceChildren(el(doc, 'p', '', `Prompt gekopieerd. Plak hem in Copilot.${lang}`));
+    } else {
+      const veld = el(doc, 'textarea', 'qpromptveld');
+      veld.readOnly = true;
+      veld.rows = 6;
+      veld.value = uitslag.tekst;
+      veld.setAttribute('aria-label', 'De prompt, om zelf te kopiëren');
+      meldVak.replaceChildren(el(doc, 'p', '', 'Kopiëren naar het klembord lukte niet. Kopieer de tekst hieronder zelf.'), veld);
+      veld.focus?.();
+      veld.select?.();
+    }
+  });
+  nav.append(vorigeKnop, kopieerKnop, volgendeKnop);
+  kaart.navKnoppen = { vorige: vorigeKnop, volgende: volgendeKnop, kopieer: kopieerKnop };
+  kaart.wisMelding = () => meldVak.replaceChildren(); // bij het wisselen van vraag: het klembord kan inmiddels iets anders bevatten
 
   // Twee vakken: links de vragenbox met nummer, vraag en navigatie, rechts de ruimte voor antwoorden en uitleg.
   function vul() {
     uitlegElement = null;
     const box = el(doc, 'div', 'qbox');
-    box.append(kop(), el(doc, 'p', 'prompt', vraag.prompt), nav);
+    box.append(kop(), el(doc, 'p', 'prompt', vraag.prompt), nav, meldVak);
     const antwoorden = el(doc, 'div', 'qantwoord');
     antwoorden.append(...(vraag.type === 'open' ? vulOpenVraag() : vulKeuzevraag()));
     kaart.replaceChildren(box, antwoorden);
@@ -206,7 +232,9 @@ export function bouwVraagKaart(vraag, ctx) {
 // --- De pagina ---
 
 // Start de werkbank. Alles wat de pagina nodig heeft komt als parameter binnen (zie de aanroep onderaan).
-export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, haalMeta, meld = console.error }) {
+export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, haalMeta, kopieer, meld = console.error }) {
+  // Kopieren naar het klembord; faalt het (geen toestemming of geen beveiligde pagina), dan toont de kaart de prompt zelf.
+  const naarKlembord = kopieer ?? (async (tekst) => { await win.navigator.clipboard.writeText(tekst); });
   const onderdeel = (id) => doc.getElementById(id);
   const melding = onderdeel('melding');
   const toonMelding = (tekst) => {
@@ -443,6 +471,7 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
     const zichtbaar = zichtbareIndexen();
     const plek = zichtbaar.indexOf(i);
     kaarten.forEach((kaart, j) => {
+      if (j !== i) kaart.wisMelding?.();
       kaart.setAttribute('data-huidig', String(j === i));
       kaart.navKnoppen.vorige.disabled = plek <= 0;
       kaart.navKnoppen.volgende.disabled = plek < 0 || plek >= zichtbaar.length - 1;
@@ -487,7 +516,13 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
       },
       toonOpen: (vraag) => bewaar(registreerOpenGetoond(state, entry.id, vraag.id)),
       vorige: () => naburigeVraag(-1),
-      volgende: () => naburigeVraag(1)
+      volgende: () => naburigeVraag(1),
+      kopieerPrompt: async (vraag, nummer) => {
+        const tekst = bouwCopilotPrompt({ meta, code: geladen.code, vraag, nummer, totaal: meta.questions.length });
+        let gelukt = true;
+        try { await naarKlembord(tekst); } catch (fout) { gelukt = false; meld(fout); }
+        return { gelukt, tekst, tekens: tekst.length, lang: tekst.length > PROMPT_LENGTE_WAARSCHUWING };
+      }
     };
     huidigeVraag = 0;
     kaarten = meta.questions.map((vraag, i) => bouwVraagKaart(vraag, {
