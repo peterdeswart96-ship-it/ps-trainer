@@ -512,3 +512,87 @@ test('boom: de echte topics.json is een geldige boom met twee niveaus en de best
   assert.equal(perId.get('purview').parent, 'security');
   assert.equal(perId.get('foundry').parent, 'azure');
 });
+
+// --- Copilot-prompt (issue #72) ---
+
+import { PROMPT_LENGTE_WAARSCHUWING, bouwCopilotPrompt } from '../assets/js/prompt.js';
+
+const promptMeta = (extra = {}) => ({
+  id: 'x', title: 'Voorbeeldscript', topic: 'algemeen', level: 'gevorderd', tag: 't', summary: 's', risk: 'write', modules: ['Az.Accounts'],
+  check: { status: 'gecontroleerd', date: '2026-10-13', source: 'Bron' }, ...extra
+});
+const promptVraag = (extra = {}) => ({
+  id: 'q1', type: 'mc', step: 'bewerking', lines: [2, 3], prompt: 'Wat doet regel 2?', options: ['Een', 'Twee', 'Drie'], answer: 1,
+  explanation: 'GEHEIME-UITLEG-TEKST', ...extra
+});
+
+test('prompt: bevat het hele script met regelnummers, de vraag, de opties en de instructies', () => {
+  const tekst = bouwCopilotPrompt({ meta: promptMeta(), code: 'Get-Date\n\nWrite-Output 1\n', vraag: promptVraag(), nummer: 2, totaal: 5 });
+  assert.match(tekst, /Je bent een geduldige PowerShell-docent/);
+  assert.match(tekst, /Titel: Voorbeeldscript/);
+  assert.match(tekst, /Kenmerken: Gevorderd · wijzigt · modules: Az\.Accounts/);
+  assert.match(tekst, /```powershell\n1  Get-Date\n2  \n3  Write-Output 1\n```/);
+  assert.match(tekst, /Vraag 2 van 5 · leesstap: Bewerking · regel 2–3/);
+  assert.match(tekst, /Vraag: Wat doet regel 2\?/);
+  assert.match(tekst, /A\. Een\nB\. Twee\nC\. Drie/);
+  for (const eis of [/HELE script/, /learn\.microsoft\.com/, /Verzin niets/, /Windows PowerShell 5\.1 en PowerShell 7/, /Voer niets uit/, /controlevragen/, /of alles duidelijk is/, /wacht op mijn antwoord/]) assert.match(tekst, eis);
+});
+
+test('prompt: het goede antwoord en de uitleg staan er nooit in', () => {
+  const tekst = bouwCopilotPrompt({ meta: promptMeta(), code: 'Get-Date\n', vraag: promptVraag(), nummer: 1, totaal: 1 });
+  assert.doesNotMatch(tekst, /GEHEIME-UITLEG-TEKST/);
+  assert.doesNotMatch(tekst, /juiste antwoord is|goede antwoord is|antwoord: B/i);
+});
+
+test('prompt: een open vraag heeft geen opties, een script dat nog te controleren is krijgt de waarschuwing en de note', () => {
+  const open = bouwCopilotPrompt({ meta: promptMeta({ check: { status: 'nog_te_controleren' }, note: 'Niet getest op een tenant.' }), code: 'x\n', vraag: { id: 'q9', type: 'open', step: 'uitvoer', prompt: 'Leg uit.', explanation: 'GEHEIM' }, nummer: 9 });
+  assert.match(open, /Dit is een open vraag, zonder antwoordopties\./);
+  assert.doesNotMatch(open, /Antwoordopties:/);
+  assert.match(open, /nog niet nagelopen/);
+  assert.doesNotMatch(open, /Niet getest op een tenant/, 'de note staat er nooit in: hij kan het antwoord verklappen');
+  assert.match(open, /Vraag 9 · leesstap/, 'zonder totaal staat er geen "van"');
+  const gecontroleerd = bouwCopilotPrompt({ meta: promptMeta({ note: 'Zichtbaar alleen bij nog te controleren.' }), code: 'x\n', vraag: promptVraag(), nummer: 1, totaal: 1 });
+  assert.doesNotMatch(gecontroleerd, /nog niet nagelopen|Zichtbaar alleen bij nog te controleren/);
+});
+
+test('prompt: code met backticks breekt de omheining niet, en een script met 12 regels krijgt uitgelijnde nummers', () => {
+  const code = Array.from({ length: 12 }, (_, i) => (i === 3 ? 'Write-Output ```x```' : `regel${i + 1}`)).join('\n');
+  const tekst = bouwCopilotPrompt({ meta: promptMeta(), code, vraag: promptVraag({ lines: [4] }), nummer: 1, totaal: 1 });
+  assert.match(tekst, /````powershell\n/, 'de omheining is langer dan de langste reeks backticks in de code');
+  assert.match(tekst, / 1  regel1\n/);
+  assert.match(tekst, /12  regel12\n````/);
+  assert.match(tekst, /· regel 4\n/);
+});
+
+test('prompt: een echte prompt van het langste script blijft onder de waarschuwingsgrens', () => {
+  const root2 = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const { index } = bouwIndex({ scriptsMap: join(root2, 'data', 'scripts'), topicsBestand: join(root2, 'data', 'topics.json') });
+  let langste = 0;
+  for (const s of index.scripts) {
+    const meta = JSON.parse(readFileSync(join(root2, s.path, 'meta.json'), 'utf8'));
+    const code = readFileSync(join(root2, s.path, 'script.ps1'), 'utf8');
+    for (const [i, vraag] of meta.questions.entries()) langste = Math.max(langste, bouwCopilotPrompt({ meta, code, vraag, nummer: i + 1, totaal: meta.questions.length }).length);
+  }
+  assert.ok(langste < PROMPT_LENGTE_WAARSCHUWING, `de langste prompt is ${langste} tekens`);
+});
+
+test('prompt: bij geen enkele vraag van de echte scripts staat de uitleg, het goede antwoord of de note in de prompt', () => {
+  const root3 = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const { index } = bouwIndex({ scriptsMap: join(root3, 'data', 'scripts'), topicsBestand: join(root3, 'data', 'topics.json') });
+  let gecontroleerd = 0;
+  for (const s of index.scripts) {
+    const meta = JSON.parse(readFileSync(join(root3, s.path, 'meta.json'), 'utf8'));
+    const code = readFileSync(join(root3, s.path, 'script.ps1'), 'utf8');
+    for (const [i, vraag] of meta.questions.entries()) {
+      const tekst = bouwCopilotPrompt({ meta, code, vraag, nummer: i + 1, totaal: meta.questions.length });
+      assert.ok(!tekst.includes(vraag.explanation), `${s.id} ${vraag.id}: de uitleg staat in de prompt`);
+      if (meta.note) assert.ok(!tekst.includes(meta.note), `${s.id}: de note staat in de prompt`);
+      if (meta.check?.source) assert.ok(!tekst.includes(meta.check.source), `${s.id}: check.source staat in de prompt`);
+      // De vraag komt precies een keer voor, met alle opties; de optie met het goede antwoord is niet gemarkeerd.
+      if (vraag.options) for (const optie of vraag.options) assert.ok(tekst.includes(optie), `${s.id} ${vraag.id}: een optie ontbreekt`);
+      assert.doesNotMatch(tekst, /\(goed\)|\bjuist antwoord\b|\bcorrect antwoord\b/i);
+      gecontroleerd++;
+    }
+  }
+  assert.ok(gecontroleerd > 100, `alle vragen gecontroleerd (${gecontroleerd})`);
+});

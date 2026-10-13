@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.9, akkoord).
-- `DESIGN.md`: hoe (versie 1.21, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.22, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 - `docs/sessies/`: een overdracht per sessie. Begin een nieuwe sessie met het nieuwste bestand: de stand van zaken, besluiten en wat er openstaat.
 
@@ -82,5 +82,5 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] Issue #35: onderwerpen als boom met twee niveaus (`parent` in `topics.json`): PowerShell-basis, SharePoint (Migraties), Exchange, Security (Entra ID, Purview), Azure (Foundry) en Microsoft 365; de nieuwe onderwerpen hebben nog geen scripts. Besluiten van Peter: een script op precies één plek, tegels per hoofdonderwerp met subcategorie als tweede filter. DESIGN.md 1.18, DEFINE.md 0.9
 - [x] Inhoud PowerShell-basis (`algemeen`): 9 scripts, 3 per niveau (PR 64 t/m 70, 73 en de laatste; PR 71 bevat een reviewcorrectie). Alle 9 zijn `gecontroleerd`: ze hebben geen module nodig en elk gedrag uit de vragen is uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1. Nieuwe onderwerpen Exchange, Security (alleen Entra ID en Purview), Azure (alleen Foundry) en Microsoft 365 hebben nog geen eigen scripts (alleen via de subcategorieën): een nieuwe scriptlijst per onderwerp kiest Peter
 - [x] Uitklapmenu voor subcategorieën (PR 74) en compactere kop en scorerij op de werkbank (PR 75)
-- [ ] Issue #72: knop om bij elke vraag een Copilot-prompt te genereren (wacht op besluiten van Peter, zie het issue)
+- [x] Issue #72: knop "Kopieer Copilot-prompt" bij elke vraag (tussen Vorige en Volgende; alleen kopiëren, nooit het antwoord; DESIGN.md 1.22)
 - [ ] Issue #36 (zoekfunctie, later): wacht op een besluit van Peter

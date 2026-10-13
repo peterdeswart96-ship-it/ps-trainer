@@ -368,7 +368,7 @@ test('werkbank: de navigatie in de vragenbox heeft tekst, pictogram en het vraag
   assert.ok(vind(kaart, (k) => k.className === 'qantwoord'), 'het antwoordvak bestaat');
   assert.equal(vind(box, (k) => k.className === 'qnum').textContent, 'Vraag 1 van 3');
   const nav = vind(box, (k) => k.className === 'qnav');
-  assert.deepEqual(knoppen(nav).map((k) => tekstVan(k).trim()), ['Vorige', 'Volgende']);
+  assert.deepEqual(knoppen(nav).map((k) => tekstVan(k).trim()), ['Vorige', 'Kopieer Copilot-prompt', 'Volgende']);
   assert.ok(vind(nav, (k) => k.className === 'icoon ico-vorige' && k.attributen['aria-hidden'] === 'true'));
   assert.ok(vind(nav, (k) => k.className === 'icoon ico-volgende' && k.attributen['aria-hidden'] === 'true'));
   assert.equal(vind(kaart, (k) => k.className === 'opts').tag, 'div');
@@ -850,4 +850,80 @@ test('werkbank: een klik op Soort vraag sluit een open menu en meerdere hoofdond
   await wacht();
   assert.deepEqual(menuKnoppen().map((k) => k.attributen['aria-expanded']), ['false', 'false'], 'een klik op een ander filter sluit het menu');
   assert.equal(groepNamen(p).includes('Subcategorie'), false);
+});
+
+// --- Copilot-prompt-knop (issue #72) ---
+
+async function startMetKlembord({ kopieer, zoek = '?script=a-basis' } = {}) {
+  const pagina = maakPagina({ zoek });
+  const api = await startWerkbank({
+    doc: pagina.doc, win: pagina.win, opslag: nepOpslag(),
+    haalIndex: async () => testIndex(),
+    haalScript: async (entry) => GEGEVENS[entry.id],
+    haalMeta: async (entry) => GEGEVENS[entry.id].meta,
+    kopieer, meld: () => {}
+  });
+  return { ...pagina, api };
+}
+const copilotKnop = (p) => vindAlle(p.els.vragen, (k) => k.tag === 'button' && typeof k.className === 'string' && k.className.includes('qcopilot'))[0];
+
+test('copilot-knop: staat tussen Vorige en Volgende en kopieert de prompt met het hele script, zonder antwoord of uitleg', async () => {
+  const gekopieerd = [];
+  const p = await startMetKlembord({ kopieer: async (tekst) => { gekopieerd.push(tekst); } });
+  const nav = vind(p.els.vragen, (k) => k.className === 'qnav');
+  assert.deepEqual(nav.kinderen.map((k) => tekstVan(k)), ['Vorige', 'Kopieer Copilot-prompt', 'Volgende']);
+  klik(copilotKnop(p));
+  await wacht();
+  assert.equal(gekopieerd.length, 1);
+  const tekst = gekopieerd[0];
+  assert.match(tekst, /Titel: Titel a-basis/);
+  assert.match(tekst, /1  Connect-Thing -Naam 'x'/, 'het hele script met regelnummers');
+  assert.match(tekst, /Vraag 1 van 3 · leesstap: Parameters · regel 1/);
+  assert.match(tekst, /B\. Goed B/);
+  assert.doesNotMatch(tekst, /Omdat `B` klopt/, 'de uitleg staat er niet in');
+  const melding = vind(p.els.vragen, (k) => k.className === 'qmeld');
+  assert.equal(melding.attributen.role, 'status', 'een live region die altijd in de pagina staat');
+  assert.notEqual(melding.hidden, true);
+  assert.match(tekstVan(melding), /Prompt gekopieerd\. Plak hem in Copilot\./);
+});
+
+test('copilot-knop: de knop werkt per vraag (het nummer van de vraag staat in de prompt)', async () => {
+  const gekopieerd = [];
+  const p = await startMetKlembord({ kopieer: async (tekst) => { gekopieerd.push(tekst); } });
+  const knoppenLijst = vindAlle(p.els.vragen, (k) => k.tag === 'button' && typeof k.className === 'string' && k.className.includes('qcopilot'));
+  assert.equal(knoppenLijst.length, 3);
+  klik(knoppenLijst[2]);
+  await wacht();
+  assert.match(gekopieerd[0], /Vraag 3 van 3 · leesstap: Uitvoer/);
+  assert.match(gekopieerd[0], /Dit is een open vraag/);
+});
+
+test('copilot-knop: lukt het klembord niet, dan staat de prompt in een tekstvak om zelf te kopiëren', async () => {
+  const gemeld = [];
+  const pagina = maakPagina({ zoek: '?script=a-basis' });
+  await startWerkbank({
+    doc: pagina.doc, win: pagina.win, opslag: nepOpslag(), haalIndex: async () => testIndex(),
+    haalScript: async (entry) => GEGEVENS[entry.id], haalMeta: async (entry) => GEGEVENS[entry.id].meta,
+    kopieer: async () => { throw new Error('geen toestemming'); }, meld: (f) => gemeld.push(f.message)
+  });
+  klik(copilotKnop({ els: pagina.els }));
+  await wacht();
+  const veld = vind(pagina.els.vragen, (k) => k.tag === 'textarea');
+  assert.ok(veld, 'er is een tekstvak');
+  assert.equal(veld.readOnly, true);
+  assert.match(veld.value, /Je bent een geduldige PowerShell-docent/);
+  assert.equal(veld.gefocust, 1, 'het tekstvak krijgt de focus');
+  assert.match(tekstVan(vind(pagina.els.vragen, (k) => k.className === 'qmeld')), /Kopiëren naar het klembord lukte niet/);
+  assert.deepEqual(gemeld, ['geen toestemming']);
+});
+
+test('copilot-knop: zonder klembord in de browser (win.navigator ontbreekt) valt hij terug op het tekstvak, zonder fout', async () => {
+  const pagina = maakPagina({ zoek: '?script=a-basis' });
+  await startWerkbank({
+    doc: pagina.doc, win: pagina.win, opslag: nepOpslag(), haalIndex: async () => testIndex(),
+    haalScript: async (entry) => GEGEVENS[entry.id], haalMeta: async (entry) => GEGEVENS[entry.id].meta, meld: () => {}
+  });
+  klik(copilotKnop({ els: pagina.els }));
+  await wacht();
+  assert.ok(vind(pagina.els.vragen, (k) => k.tag === 'textarea'));
 });

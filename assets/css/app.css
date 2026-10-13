@@ -229,10 +229,16 @@ a.kaart:hover { border-color: var(--accent); }
 .qantwoord { grid-area: antwoorden; display: grid; gap: 10px; align-content: start; min-width: 0; }
 @media (max-width: 900px) { .q { grid-template-columns: minmax(0, 1fr); grid-template-areas: "box" "antwoorden"; } }
 /* Compacte knoppen (ongeveer 41% van de vorige afmetingen), links en rechts onderaan de vragenbox */
-.qnav { display: flex; gap: 10px; justify-content: space-between; margin-top: 6px; }
+.qnav { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: space-between; margin-top: 6px; }
 .qknop { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; padding: 3px 12px; font-size: .8rem; justify-self: auto; flex: 0 0 auto; }
-.qnav .qknop:last-child { background: var(--accent); color: var(--panel); border: 1px solid var(--accent); }
+.qnav .qknop:last-child { background: var(--accent); color: var(--panel); border: 1px solid var(--accent); margin-left: auto; }
 .qknop:disabled { opacity: .4; cursor: default; }
+/* De Copilot-knop staat tussen Vorige en Volgende; de melding en het terugvaltekstvak staan onder de navigatie. */
+.qnav .qknop.qcopilot { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.qmeld { font-size: .82rem; color: var(--muted); }
+.qmeld:empty { display: none; }
+.qmeld p { margin: 0 0 6px; }
+.qpromptveld { width: 100%; box-sizing: border-box; font-family: var(--f-mono); font-size: .75rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; resize: vertical; }
 .qtop { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
 .qnum { font-family: var(--f-display); font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .lines { font-family: var(--f-mono); font-size: .75rem; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 1px 9px; color: var(--accent); }
