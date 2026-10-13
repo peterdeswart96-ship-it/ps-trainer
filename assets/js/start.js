@@ -1,7 +1,8 @@
-// Startpagina (/): de leesmethode en een kaart per onderwerp met aantal scripts, niveaus en voortgang.
+// Startpagina (/): de leesmethode en een kaart per hoofdonderwerp met aantal scripts, niveaus en voortgang.
+// Subcategorieen (topics met een parent) hebben geen eigen kaart: hun scripts tellen mee bij het hoofdonderwerp.
 // Onderwerpen zonder scripts (status "in-opbouw") staan als niet-klikbare kaart met "nog in opbouw".
 // Alle tekst komt via textContent; er wordt nooit HTML uit de data gemaakt.
-import { kiesScript, laadIndex, laadMeta, NIVEAUS, werkbankUrl } from './data.js';
+import { filterScripts, kiesScript, laadIndex, laadMeta, NIVEAUS, werkbankUrl } from './data.js';
 import { laadVoortgang, standaardOpslag, voortgangOnderwerp } from './progress.js';
 import { initThema } from './theme.js';
 
@@ -41,8 +42,8 @@ function element(doc, tag, klasse, tekst) {
 export function bouwKaarten(index, state, doc = globalThis.document) {
   const lijst = element(doc, 'ul', 'kaarten');
   lijst.setAttribute('role', 'list'); // list-style: none laat Safari/VoiceOver anders de lijstsemantiek laten vallen
-  for (const onderwerp of index.topics) {
-    const scripts = index.scripts.filter((s) => s.topic === onderwerp.id);
+  for (const onderwerp of index.topics.filter((t) => t.parent === undefined)) {
+    const scripts = filterScripts(index.scripts, { topic: onderwerp.id, topics: index.topics });
     const live = onderwerp.status === 'live' && scripts.length > 0;
     const item = element(doc, 'li');
     // Een klikbare kaart opent het standaardscript van het onderwerp (laagste niveau, dan een gecontroleerd script) in de werkbank; een lege kaart is gewone tekst.
@@ -82,7 +83,7 @@ export function bouwKaarten(index, state, doc = globalThis.document) {
       const meta = metId(element(doc, 'p', 'kaartmeta', metaTekst(scripts)), 'meta');
       kaart.append(meta);
       beschrijving.push(meta.id);
-      const voortgang = voortgangTekst(voortgangOnderwerp(state, index.scripts, onderwerp.id));
+      const voortgang = voortgangTekst(voortgangOnderwerp(state, index.scripts, onderwerp.id, index.topics));
       if (voortgang) {
         const voortgangElement = metId(element(doc, 'p', 'kaartvoortgang', voortgang), 'voortgang');
         kaart.append(voortgangElement);

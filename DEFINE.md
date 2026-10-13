@@ -1,6 +1,6 @@
 # DEFINE – PowerShell Leestrainer
 
-Status: versie 0.8 (11 oktober 2026). Wijziging t.o.v. 0.7, op verzoek van Peter: de werkbank filtert niet meer op niveau, alleen op onderwerp en soort vraag (het niveau blijft wel een eigenschap van elk script). Eerdere wijzigingen (0.7, akkoord van Peter op 11 oktober 2026), t.o.v. 0.6: omvang release 2.0 bevestigd, geen ShareGate-toegang vastgelegd, Foundry-scripts omvatten zowel beheer als aanmaken. Geen open vragen meer.
+Status: versie 0.9 (13 oktober 2026). Wijziging t.o.v. 0.8, op verzoek van Peter (issue #35): Exchange is wel een eigen onderwerp, en er komen PowerShell-basis, Security, Azure en Microsoft 365 bij, met subcategorieen (Migraties onder SharePoint, Entra ID en Purview onder Security, Foundry onder Azure). De nieuwe onderwerpen starten zonder scripts ("nog in opbouw"). Eerdere wijziging (0.8), t.o.v. 0.7, op verzoek van Peter: de werkbank filtert niet meer op niveau, alleen op onderwerp en soort vraag (het niveau blijft wel een eigenschap van elk script). Eerdere wijzigingen (0.7, akkoord van Peter op 11 oktober 2026), t.o.v. 0.6: omvang release 2.0 bevestigd, geen ShareGate-toegang vastgelegd, Foundry-scripts omvatten zowel beheer als aanmaken. Geen open vragen meer.
 
 ## Besluiten
 
@@ -11,7 +11,7 @@ Status: versie 0.8 (11 oktober 2026). Wijziging t.o.v. 0.7, op verzoek van Peter
 | AI | Via Microsoft Foundry (gpt-5-mini), niet via de Claude API |
 | Stack | Eerst de huidige HTML-pagina uitbreiden en de inhoud naar JSON-bestanden verplaatsen; geen herbouw in React |
 | Scope | Alle 12 functies uit de lijst hieronder, gefaseerd opgeleverd |
-| Inhoud | Gericht op de functie AI, Apps & Agents Consultant bij InSpark (start als engineer). Prioriteit: **Migraties, SharePoint en Foundry**. Minder belangrijk: Purview, Entra ID. Exchange Online is geen eigen onderwerp. |
+| Inhoud | Gericht op de functie AI, Apps & Agents Consultant bij InSpark (start als engineer). Prioriteit: **Migraties, SharePoint en Foundry**. Minder belangrijk: Purview, Entra ID. Exchange Online is een eigen onderwerp (sinds 0.9). |
 | Migratiescenario's | (1) Fileshare naar SharePoint Online, met SPMT of ShareGate; (2) SharePoint on-premises naar SharePoint Online. Tenant-to-tenant valt buiten scope. |
 | Verwijzen agent ↔ website | De PS Coach (Foundry) linkt vanuit de chat naar de website voor onderdelen als examenmodus en flashcards. De website linkt niet terug naar de agent. |
 | Fasering | Volgorde 2.0, 2.1, 2.2, 2.3 blijft zoals voorgesteld. Het alvast aanmaken van `rg-ps-trainer` en het Foundry-project tijdens 2.1 is een optionele stap voor Design. |
@@ -124,7 +124,7 @@ Daarna: aanvullen van Purview en Entra ID tot het eindbeeld van 3 scripts per ni
 - Echte klantscripts of tenantgegevens opslaan
 - Publiceren naar Teams of Microsoft 365 Copilot (later, bij collega's)
 - Tenant-to-tenant-migraties
-- Exchange Online als eigen onderwerp
+- Scripts voor Exchange, Security, Azure, Microsoft 365 en PowerShell-basis in release 2.0 (de onderwerpen staan er wel, nog zonder scripts)
 - Copilot Studio, Power Platform en adviesvaardigheden (geen PowerShell)
 
 ## Succescriteria

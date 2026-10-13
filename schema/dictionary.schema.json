@@ -28,7 +28,7 @@
         "topics": {
           "type": "array",
           "minItems": 1,
-          "items": { "enum": ["migraties", "sharepoint", "foundry", "purview", "entra-id"] }
+          "items": { "enum": ["algemeen", "sharepoint", "migraties", "exchange", "security", "entra-id", "purview", "azure", "foundry", "m365"] }
         }
       }
     }

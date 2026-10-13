@@ -160,6 +160,11 @@ a.kaart:hover { border-color: var(--accent); }
 #scriptkeuze .chip[data-onderwerp="foundry"] { --tint: var(--p-foundry); --rand: var(--t-foundry); }
 #scriptkeuze .chip[data-onderwerp="purview"] { --tint: var(--p-purview); --rand: var(--t-purview); }
 #scriptkeuze .chip[data-onderwerp="entra-id"] { --tint: var(--p-entra-id); --rand: var(--t-entra-id); }
+#scriptkeuze .chip[data-onderwerp="algemeen"] { --tint: var(--p-algemeen); --rand: var(--t-algemeen); }
+#scriptkeuze .chip[data-onderwerp="exchange"] { --tint: var(--p-exchange); --rand: var(--t-exchange); }
+#scriptkeuze .chip[data-onderwerp="security"] { --tint: var(--p-security); --rand: var(--t-security); }
+#scriptkeuze .chip[data-onderwerp="azure"] { --tint: var(--p-azure); --rand: var(--t-azure); }
+#scriptkeuze .chip[data-onderwerp="m365"] { --tint: var(--p-m365); --rand: var(--t-m365); }
 /* Soort vraag: rechts uitgelijnd, elk soort een eigen pastelkleur (kleuren: --sp- en --st-, bij de onderwerpkleuren) */
 .chips.rechts { margin-left: auto; }
 @media (max-width: 700px) { .chips.rechts { margin-left: 0; } }
@@ -171,6 +176,11 @@ a.kaart:hover { border-color: var(--accent); }
 .chip.filter[data-onderwerp="foundry"] { --tint: var(--p-foundry); --rand: var(--t-foundry); }
 .chip.filter[data-onderwerp="purview"] { --tint: var(--p-purview); --rand: var(--t-purview); }
 .chip.filter[data-onderwerp="entra-id"] { --tint: var(--p-entra-id); --rand: var(--t-entra-id); }
+.chip.filter[data-onderwerp="algemeen"] { --tint: var(--p-algemeen); --rand: var(--t-algemeen); }
+.chip.filter[data-onderwerp="exchange"] { --tint: var(--p-exchange); --rand: var(--t-exchange); }
+.chip.filter[data-onderwerp="security"] { --tint: var(--p-security); --rand: var(--t-security); }
+.chip.filter[data-onderwerp="azure"] { --tint: var(--p-azure); --rand: var(--t-azure); }
+.chip.filter[data-onderwerp="m365"] { --tint: var(--p-m365); --rand: var(--t-m365); }
 .scorerij { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 1.6em; }
 .score { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
@@ -254,6 +264,11 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
 .ico-migraties { --ico: url('/assets/img/icons/migraties.svg'); background-color: currentColor; }
 .ico-sharepoint { --ico: url('/assets/img/icons/sharepoint.svg'); background-color: currentColor; }
 .ico-purview { --ico: url('/assets/img/icons/purview.svg'); background-color: currentColor; }
+.ico-algemeen { --ico: url('/assets/img/icons/algemeen.svg'); background-color: currentColor; }
+.ico-exchange { --ico: url('/assets/img/icons/exchange.svg'); background-color: currentColor; }
+.ico-security { --ico: url('/assets/img/icons/security.svg'); background-color: currentColor; }
+.ico-azure { --ico: url('/assets/img/icons/azure.svg'); background-color: currentColor; }
+.ico-m365 { --ico: url('/assets/img/icons/m365.svg'); background-color: currentColor; }
 .ico-mc { --ico: url('/assets/img/icons/mc.svg'); background-color: currentColor; }
 .ico-bug { --ico: url('/assets/img/icons/bug.svg'); background-color: currentColor; }
 .ico-open { --ico: url('/assets/img/icons/open.svg'); background-color: currentColor; }
@@ -274,6 +289,11 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-foundry: #4a43c9; --p-foundry: #cfd1ff;
   --t-purview: #c42b63; --p-purview: #ffc2d6;
   --t-entra-id: #0f6cbd; --p-entra-id: #bfe3ff;
+  --t-algemeen: #4b5b6b; --p-algemeen: #d5dde6;
+  --t-exchange: #2b7a2b; --p-exchange: #c9eec3;
+  --t-security: #8a5a00; --p-security: #ffe08a;
+  --t-azure: #00789a; --p-azure: #aee6f5;
+  --t-m365: #8a35b5; --p-m365: #e6c8f7;
   --st-mc: #2e7d32; --sp-mc: #bfe8b8;
   --st-bug: #8a6d00; --sp-bug: #fbe48a;
   --st-open: #7d62a3; --sp-open: #e8dff3;
@@ -284,6 +304,11 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-foundry: #a5a6ff; --p-foundry: #4141b5;
   --t-purview: #ff7fa8; --p-purview: #b22f5e;
   --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
+  --t-algemeen: #b4c2d0; --p-algemeen: #4a5866;
+  --t-exchange: #7fd27a; --p-exchange: #2f6a2b;
+  --t-security: #ffc94d; --p-security: #7a5a00;
+  --t-azure: #5fd3f0; --p-azure: #0f6a84;
+  --t-m365: #d8a1f5; --p-m365: #7a3a9c;
   --st-mc: #7fd67f; --sp-mc: #2f6b31;
   --st-bug: #f2c94c; --sp-bug: #7a5f00;
   --st-open: #b8a2d8; --sp-open: #4d3b70;
@@ -294,6 +319,11 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
   --t-foundry: #a5a6ff; --p-foundry: #4141b5;
   --t-purview: #ff7fa8; --p-purview: #b22f5e;
   --t-entra-id: #6cc4ff; --p-entra-id: #1d5f9f;
+  --t-algemeen: #b4c2d0; --p-algemeen: #4a5866;
+  --t-exchange: #7fd27a; --p-exchange: #2f6a2b;
+  --t-security: #ffc94d; --p-security: #7a5a00;
+  --t-azure: #5fd3f0; --p-azure: #0f6a84;
+  --t-m365: #d8a1f5; --p-m365: #7a3a9c;
   --st-mc: #7fd67f; --sp-mc: #2f6b31;
   --st-bug: #f2c94c; --sp-bug: #7a5f00;
   --st-open: #b8a2d8; --sp-open: #4d3b70;
@@ -307,6 +337,11 @@ textarea { width: 100%; min-height: 70px; font: inherit; color: var(--ink); back
 .kaart[data-onderwerp="foundry"] { --tint: var(--t-foundry); --pastel: var(--p-foundry); }
 .kaart[data-onderwerp="purview"] { --tint: var(--t-purview); --pastel: var(--p-purview); }
 .kaart[data-onderwerp="entra-id"] { --tint: var(--t-entra-id); --pastel: var(--p-entra-id); }
+.kaart[data-onderwerp="algemeen"] { --tint: var(--t-algemeen); --pastel: var(--p-algemeen); }
+.kaart[data-onderwerp="exchange"] { --tint: var(--t-exchange); --pastel: var(--p-exchange); }
+.kaart[data-onderwerp="security"] { --tint: var(--t-security); --pastel: var(--p-security); }
+.kaart[data-onderwerp="azure"] { --tint: var(--t-azure); --pastel: var(--p-azure); }
+.kaart[data-onderwerp="m365"] { --tint: var(--t-m365); --pastel: var(--p-m365); }
 .kaart > .icoon, .kaart.in-opbouw > .icoon { color: var(--tint); }
 a.kaart:hover { border-color: var(--tint); box-shadow: 0 0 0 1px var(--tint); }
 

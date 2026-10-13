@@ -702,3 +702,51 @@ test('werkbank: de soort-vraag-badge heeft een verborgen pictogram bij elk vraag
   for (const b of badges) assert.equal(b.kinderen[0].attributen['aria-hidden'], 'true');
   assert.deepEqual(badges.map((b) => b.kinderen[1].textContent), ['Meerkeuze', 'Zoek de fout', 'Zelf formuleren']);
 });
+
+// --- Subcategorieen in het filter ---
+
+const boomIndex = () => {
+  const i = testIndex();
+  i.topics = [
+    { id: 'eerste', name: 'Eerste', summary: 's', order: 1, status: 'live' },
+    { id: 'tweede', name: 'Tweede', summary: 's', order: 1, status: 'live', parent: 'eerste' }
+  ];
+  return i;
+};
+const groepVan = (p, label) => vind(p.els.filters, (k) => k.attributen?.['aria-label'] === label);
+const groepNamen = (p) => vindAlle(p.els.filters, (k) => k.attributen?.role === 'group').map((g) => g.attributen['aria-label']);
+const knopTeksten = (p, label) => knoppen(groepVan(p, label)).map((k) => k.textContent);
+const ingedrukt = (p, label) => knoppen(groepVan(p, label)).filter((k) => k.attributen['aria-pressed'] === 'true').map((k) => k.textContent);
+const aantalScripts = (p) => vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').length;
+
+test('werkbank: zonder onderwerp geen subcategoriefilter, en alleen hoofdonderwerpen als knop', async () => {
+  const p = await start({ haalIndex: async () => boomIndex() });
+  assert.deepEqual(groepNamen(p), ['Onderwerp', 'Soort vraag']);
+  assert.deepEqual(knopTeksten(p, 'Onderwerp'), ['Alle onderwerpen', 'Eerste']);
+});
+
+test('werkbank: een oude URL met een subcategorie (?topic=tweede) blijft werken en toont de subcategorieknoppen', async () => {
+  const p = await start({ zoek: '?script=c-basis&topic=tweede', haalIndex: async () => boomIndex() });
+  assert.deepEqual(groepNamen(p), ['Onderwerp', 'Subcategorie', 'Soort vraag']);
+  assert.deepEqual(ingedrukt(p, 'Onderwerp'), ['Eerste'], 'het hoofdonderwerp is gekozen');
+  assert.deepEqual(knopTeksten(p, 'Subcategorie'), ['Alles', 'Tweede']);
+  assert.deepEqual(ingedrukt(p, 'Subcategorie'), ['Tweede']);
+  assert.deepEqual(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').map((k) => k.kinderen[0].textContent), ['Titel c-basis', 'Titel b-gev']);
+});
+
+test('werkbank: een hoofdonderwerp kiezen toont zijn hele boom; "Alles" en een subcategorie wisselen het filter', async () => {
+  const p = await start({ haalIndex: async () => boomIndex() });
+  klik(knopMetTekst(groepVan(p, 'Onderwerp'), 'Eerste'));
+  await wacht();
+  assert.equal(aantalScripts(p), 3, 'eigen scripts en die van de subcategorie');
+  assert.deepEqual(ingedrukt(p, 'Subcategorie'), ['Alles']);
+  assert.equal(p.urls.at(-1), '/oefenen/?script=a-basis&topic=eerste');
+  klik(knopMetTekst(groepVan(p, 'Subcategorie'), 'Tweede'));
+  await wacht();
+  assert.equal(aantalScripts(p), 2);
+  assert.match(p.urls.at(-1), /&topic=tweede$/);
+  klik(knopMetTekst(groepVan(p, 'Subcategorie'), 'Alles'));
+  await wacht();
+  assert.equal(aantalScripts(p), 3);
+  assert.match(p.urls.at(-1), /&topic=eerste$/);
+});

@@ -146,10 +146,11 @@ export function voortgangScript(state, script) {
   };
 }
 
-// Voortgang van een onderwerp: som over de scripts van dat onderwerp.
-export function voortgangOnderwerp(state, scripts, topicId) {
+// Voortgang van een onderwerp: som over de scripts van dat onderwerp en van zijn subcategorieen (topics: index.topics).
+export function voortgangOnderwerp(state, scripts, topicId, topics = []) {
+  const ids = [topicId, ...topics.filter((t) => t.parent === topicId).map((t) => t.id)];
   return scripts
-    .filter((s) => s.topic === topicId)
+    .filter((s) => ids.includes(s.topic))
     .map((s) => voortgangScript(state, s))
     .reduce((som, v) => ({ beantwoord: som.beantwoord + v.beantwoord, goed: som.goed + v.goed, totaal: som.totaal + v.totaal }),
       { beantwoord: 0, goed: 0, totaal: 0 });

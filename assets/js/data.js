@@ -39,9 +39,22 @@ export function werkbankUrl(scriptId, { topic = null, type = null } = {}) {
 
 // --- Filteren ---
 
-// Scripts voor de chips bovenin: alleen op onderwerp (ontbrekend filter = alles).
-export function filterScripts(scripts, { topic = null } = {}) {
-  return scripts.filter((s) => !topic || s.topic === topic);
+// Een onderwerp en zijn subcategorieen (topics: index.topics, met een optioneel `parent`). Een subcategorie heeft geen eigen subcategorieen.
+export function onderwerpIds(topics, id) {
+  return [id, ...topics.filter((t) => t.parent === id).map((t) => t.id)];
+}
+
+// Het hoofdonderwerp van een onderwerp: het onderwerp zelf, of zijn parent als het een subcategorie is.
+export function hoofdOnderwerp(topics, id) {
+  return topics.find((t) => t.id === id)?.parent ?? id;
+}
+
+// Scripts voor de chips bovenin: alleen op onderwerp (ontbrekend filter = alles). Een hoofdonderwerp
+// omvat ook zijn subcategorieen; zonder topics (de lijst uit index.topics) telt alleen een exacte overeenkomst.
+export function filterScripts(scripts, { topic = null, topics = [] } = {}) {
+  if (!topic) return scripts;
+  const ids = onderwerpIds(topics, topic);
+  return scripts.filter((s) => ids.includes(s.topic));
 }
 
 // Het standaardscript uit een lijst: het laagste niveau eerst, en bij gelijk niveau eerst een script dat

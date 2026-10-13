@@ -10,7 +10,7 @@
     "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
     "legacyId": { "type": "string", "minLength": 1 },
     "title": { "type": "string", "minLength": 1 },
-    "topic": { "enum": ["migraties", "sharepoint", "foundry", "purview", "entra-id"] },
+    "topic": { "enum": ["algemeen", "sharepoint", "migraties", "exchange", "security", "entra-id", "purview", "azure", "foundry", "m365"] },
     "level": { "enum": ["basis", "gevorderd", "expert"] },
     "tag": { "type": "string", "minLength": 1 },
     "summary": { "type": "string", "minLength": 1 },
