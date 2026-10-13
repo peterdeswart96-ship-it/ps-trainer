@@ -1,0 +1,152 @@
+{
+  "id": "foundry-opruimen-whatif",
+  "title": "Verlopen AI-resources opruimen met droge run",
+  "topic": "foundry",
+  "level": "expert",
+  "tag": "Get-AzCognitiveServicesAccount · TryParseExact · Remove-AzCognitiveServicesAccount · ConfirmImpact · -WhatIf",
+  "summary": "Zoekt Foundry- en OpenAI-resources met een verlopen datum-tag, slaat resources met deployments over en verwijdert de rest pas na bevestiging. Met -WhatIf zie je eerst welke resources het zou verwijderen.",
+  "risk": "write",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving; dit script verwijdert resources. Doe eerst altijd een droge run met `-WhatIf` en lees de lijst na met de eigenaar. De documentatie van `Remove-AzCognitiveServicesAccount` toont `-WhatIf`, `-Confirm` en `-Force`. Een verwijderde Foundry-resource is volgens de documentatie 48 uur te herstellen; in die tijd kun je geen resource met dezelfde naam maken, en daarna is hij weg. `Remove-AzCognitiveServicesAccount` heeft ook een parameterset met `-Location` en `-InRemovedState` voor verwijderde accounts; wat die precies doet, is niet uitgezocht en het script gebruikt hem niet. Definitief verwijderen (purge) gaat volgens de herstel-en-purgepagina met een apart commando (`Remove-AzResource` op het pad `deletedAccounts`) en zit niet in dit script. Volgens dezelfde documentatie lopen de kosten van provisioned deployments op een verwijderde resource door tot de resource is gepurged, en wordt aangeraden eerst de deployments te verwijderen; daarom slaat het script resources met deployments over. De portal blokkeert het verwijderen van een resource met deployments, een programmatische route (REST) doet dat volgens de quotadocumentatie niet. De datum staat in een tag; het script verwacht het formaat `yyyy-MM-dd` en slaat resources met een ontbrekende of ongeldige datum over. Of `Tags` van het resourceobject een woordenboek is waarop je met een sleutel kunt zoeken, is niet bevestigd (het type staat niet in de documentatie). Bij een resource zonder tags is de waarde leeg, en indexeren op een lege waarde geeft in PowerShell een niet-afbrekende fout waarna de variabelen van de vorige ronde blijven staan (in een test met nagebootste cmdlets kwam een resource zonder tags daardoor ten onrechte in de kandidatenlijst); daarom zet het script `$geldig` vooraf op onwaar en slaat het resources zonder tags expliciet over. Ook de opzoekingen stoppen bij een fout (`-ErrorAction Stop`), zodat een mislukte telling van deployments nooit als nul wordt gelezen. Dat `AccountType` de waarden `AIServices` en `OpenAI` heeft, is eveneens niet bevestigd. Wat er met projecten, agents en gegevens in de resource gebeurt bij verwijderen, staat niet in de gelezen documentatie. Het script werkt in het abonnement van je huidige Az-context. De rechten om te purgen (Cognitive Services Contributor of Contributor op abonnementsniveau) heb je alleen nodig voor de aparte purge-stap.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Remove-AzCognitiveServicesAccount (syntax met -WhatIf, -Confirm, -Force), Get-AzCognitiveServicesAccount, Get-AzCognitiveServicesAccountDeployment, Recover or purge deleted Microsoft Foundry resources (48 uur herstel, naam bezet, kosten van provisioned deployments tot purge, rechten voor purge), Manage Azure OpenAI quota (alleen voor Azure OpenAI-resources beschreven: verwijderen via de portal geblokkeerd bij deployments, via REST niet; voor andere accounts een aanname), Use tags to organize your Azure resources (tagnamen niet hoofdlettergevoelig, waarden wel). Open punten: het type van `Tags`, de waarden van `AccountType`, wat er met projecten en agents gebeurt bij verwijderen, en of een Remove-aanroep zonder deployments altijd slaagt."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        3,
+        6
+      ],
+      "prompt": "Welke resources komen volgens de standaardwaarden van regel 3 tot 6 in aanmerking om te worden verwijderd?",
+      "options": [
+        "Resources die al meer dan een maand geen aanroepen hebben gekregen, volgens de metingen van Azure",
+        "Resources met de tag Omgeving gelijk aan test en een tag VerlooptOp met een datum voor vandaag",
+        "Alle resources waarvan de naam het woord test bevat, ongeacht de tags die erop staan in Azure",
+        "Alle resources zonder tags, omdat niemand die lijkt te beheren en ze dus waarschijnlijk ongebruikt zijn"
+      ],
+      "answer": 1,
+      "explanation": "De standaardwaarden zeggen: de tag `Omgeving` moet `test` zijn (regel 4 en 5) en de tag `VerlooptOp` moet een datum vóór de peildatum bevatten (regel 3 en 6, standaard vandaag). Het script kijkt dus niet naar gebruik, naam of leeftijd, maar naar tags die iemand zelf heeft gezet. Daardoor vallen resources zonder die tags nooit onder het opruimen, wat veilig is, maar ook betekent dat de lijst alleen klopt als er consequent getagd wordt. De namen van de tags en de omgeving zijn voorbeelden: gebruik die van je eigen tagbeleid."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        18,
+        20
+      ],
+      "prompt": "Wat gebeurt er met een resource waarvan de tag VerlooptOp de waarde 31-12-2026 heeft, dus niet in het formaat yyyy-MM-dd?",
+      "options": [
+        "Het script leest de datum toch goed, omdat PowerShell elke datumnotatie zelf herkent en omzet",
+        "De resource telt als verlopen, omdat een datum die niet te lezen is als onbetrouwbaar wordt gezien",
+        "Het script stopt met een foutmelding en verwijdert niets, omdat het datumformaat niet klopt",
+        "De resource wordt overgeslagen en blijft staan, omdat TryParseExact onwaar geeft en continue volgt"
+      ],
+      "answer": 3,
+      "explanation": "`TryParseExact` leest alleen een datum die precies het opgegeven formaat heeft (`yyyy-MM-dd`) en geeft anders onwaar terug, zonder fout. Regel 20 slaat resources met `-not $geldig` over met `continue`: de resource komt niet in `$kandidaten` en wordt dus niet verwijderd. Dat is de veilige uitkomst: bij twijfel niets doen. De keerzijde is dat een resource met een typefout in de datum nooit wordt opgeruimd; laat de lijst daarom regelmatig nakijken. `[cultureinfo]::InvariantCulture` zorgt dat de uitkomst niet afhangt van de taalinstelling van je computer."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        15,
+        17
+      ],
+      "prompt": "Waarom begint de lus met $geldig = $false (regel 15) en slaat regel 17 resources zonder tags expliciet over?",
+      "options": [
+        "Indexeren op een lege waarde geeft een fout die de lus niet stopt; waarden van de vorige resource blijven staan",
+        "Zonder die regels is het script trager, omdat PowerShell dan elke tag opnieuw moet opzoeken in Azure",
+        "Azure vereist dat elke resource minstens één tag heeft, en het script controleert dat vooraf in de lus",
+        "De regels zijn alleen bedoeld om de uitvoer netjes te sorteren voordat de tabel wordt getoond in het scherm"
+      ],
+      "answer": 0,
+      "explanation": "Bij een resource zonder tags is `$resource.Tags` leeg, en `$tags[$VerlooptTag]` indexeren op een lege waarde geeft in PowerShell een fout die niet afbreekt: de lus gaat door met de volgende regel. De variabelen `$geldig` en `$datum` houden dan de waarde van de vorige ronde (een `foreach` heeft geen eigen scope per ronde). In een test met nagebootste cmdlets kwam een resource zonder tags zo ten onrechte als verlopen kandidaat in de lijst. `$geldig = $false` aan het begin zorgt dat een mislukte stap als 'niet geldig' telt, en `if (-not $tags) { continue }` slaat zulke resources meteen over. Controle in een opruimscript hoort veilig te falen: bij twijfel niet verwijderen."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        23,
+        29
+      ],
+      "prompt": "Waarom telt het script op regel 23 de deployments van elke kandidaat, en wat gebeurt er met resources die er nog hebben (regel 35 tot 38)?",
+      "options": [
+        "Het script verwijdert eerst alle deployments zelf; de telling toont hoeveel het er heeft opgeruimd",
+        "Een resource met deployments is niet ongebruikt en kosten kunnen doorlopen; het script slaat hem over",
+        "Azure weigert in alle gevallen een resource met deployments te verwijderen, dus het script slaat ze over",
+        "Het is een kostenberekening: resources met de meeste deployments worden als eerste verwijderd"
+      ],
+      "answer": 1,
+      "explanation": "Een resource met deployments wordt blijkbaar gebruikt of is zo ingericht, en volgens de documentatie lopen de kosten van provisioned deployments door na het verwijderen van de resource, tot de resource is gepurged. Daarom slaat regel 35 tot 38 zo'n resource over met een waarschuwing en moet iemand eerst bewust de deployments opruimen. Het is niet zo dat Azure het altijd weigert: de portal blokkeert het verwijderen met deployments, maar een programmatische route doet dat volgens de quotadocumentatie niet, en dan blijft de quotatoewijzing 48 uur bezet. Daarom is de controle in het script nodig."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        20
+      ],
+      "prompt": "Je typt op regel 20 per ongeluk -le in plaats van -ge in $datum -ge $Peildatum.Date. Wat is het gevolg?",
+      "options": [
+        "Er verandert niets, want -le en -ge geven bij datums altijd precies dezelfde uitkomst in PowerShell",
+        "Het script stopt met een foutmelding, omdat datums niet met -le vergeleken kunnen worden in PowerShell",
+        "Resources die nog niet zijn verlopen worden kandidaat, en de verlopen resources blijven juist staan",
+        "Alleen resources die vandaag verlopen worden kandidaat, alle andere resources blijven staan in Azure"
+      ],
+      "answer": 2,
+      "explanation": "Regel 20 slaat een resource over als de verloopdatum op of na de peildatum ligt (`-ge`): alleen resources met een datum in het verleden blijven over. Met `-le` wordt het omgekeerde overgeslagen: resources met een datum in het verleden of vandaag vallen af, en resources die nog moeten verlopen blijven als kandidaat staan, dus precies de verkeerde. In een droge run lijkt de lijst nog gewoon een lijst; je merkt het alleen als je de data in de kolom VerlooptOp vergelijkt met vandaag. Een foute vergelijking in een opruimscript is daarom het eerste wat je met een droge run nakijkt."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        39,
+        41
+      ],
+      "prompt": "Je start het script zonder -WhatIf. Wat gebeurt er bij een kandidaat zonder deployments?",
+      "options": [
+        "PowerShell vraagt per resource om bevestiging (ConfirmImpact High); pas na ja wordt hij verwijderd",
+        "Het script toont alleen de lijst; verwijderen doet het nooit, ook niet zonder -WhatIf",
+        "Alle kandidaten worden meteen verwijderd, omdat de droge run alleen bij -WhatIf wordt gevraagd",
+        "De resource wordt definitief verwijderd, zodat de naam meteen opnieuw gebruikt kan worden"
+      ],
+      "answer": 0,
+      "explanation": "`ConfirmImpact = 'High'` op regel 1 zorgt dat `$PSCmdlet.ShouldProcess` op regel 39 bij een gewone start om bevestiging vraagt (de standaardinstelling van PowerShell vraagt bij hoge impact). Alleen na ja volgt de verwijdering op regel 40; met `-WhatIf` wordt alleen getoond wat er zou gebeuren. `-Confirm:$false` op de aanroep zelf voorkomt een tweede vraag van de cmdlet. De resource wordt daarbij zacht verwijderd: volgens de documentatie is hij 48 uur te herstellen en blijft de naam in die tijd bezet. Definitief verwijderen (purge) gebeurt in dit script niet."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        32,
+        42
+      ],
+      "prompt": "Het script meldt geen fouten en de resource is uit de lijst verdwenen. Wat is dan waar?",
+      "options": [
+        "De resource en alle gegevens zijn direct en onherstelbaar verwijderd en de naam is meteen weer vrij",
+        "De resource is alleen uitgeschakeld en kan met een sleutel van de eigenaar opnieuw worden ingeschakeld",
+        "De resource is verwijderd en het script heeft ook alle kosten stopgezet, ook van provisioned deployments",
+        "De resource is verwijderd, maar nog 48 uur te herstellen en de naam is bezet; purge is een aparte stap"
+      ],
+      "answer": 3,
+      "explanation": "Een verwijderde Foundry-resource wordt volgens de documentatie niet meteen definitief verwijderd: hij is 48 uur te herstellen (als hij nog niet gepurged is en de resourcegroep nog bestaat), en je kunt in die tijd geen resource met dezelfde naam maken. Purge, het definitieve verwijderen, is een apart commando met eigen rechten en kan niet worden teruggedraaid; het zit niet in dit script. Kosten van provisioned deployments lopen volgens de documentatie door tot de purge, daarom slaat het script resources met deployments over."
+    },
+    {
+      "id": "q8",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat controleert dit script niet, en wat laat je door de eigenaar nakijken voordat je een opruimactie zonder -WhatIf uitvoert?",
+      "explanation": "Bijvoorbeeld: (1) het script kijkt alleen naar tags, niet naar echt gebruik: een resource kan verlopen zijn en toch nog worden gebruikt, of omgekeerd; (2) een resource zonder tags valt buiten het opruimen en blijft dus onopgemerkt staan, en de tags zijn door mensen gezet: een tag met een typefout in de datum of een verkeerde omgeving zorgt dat een resource ten onrechte wel of niet in de lijst staat; (3) het script telt alleen deployments; wat er met projecten, agents en gegevens in de resource gebeurt bij verwijderen, staat niet in de gelezen documentatie en is dus niet bevestigd; (4) afhankelijke resources (opslag, zoekdienst, sleutelkluis) en roltoewijzingen die naar de resource verwezen worden niet opgeruimd; (5) alleen het abonnement van je huidige context wordt bekeken; (6) het is zacht verwijderen: 48 uur herstel, naam bezet en kosten van provisioned deployments tot de purge; (7) de eigenaar moet de lijst lezen voordat je zonder -WhatIf start, en je bewaart de lijst: bij een fout is herstellen mogelijk zolang de 48 uur nog lopen en de resourcegroep nog bestaat. Het script zelf kan niets herstellen; dat gaat met een apart commando."
+    }
+  ]
+}
