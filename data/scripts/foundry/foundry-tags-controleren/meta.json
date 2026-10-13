@@ -1,0 +1,132 @@
+{
+  "id": "foundry-tags-controleren",
+  "title": "Verplichte tags controleren op Foundry-resources",
+  "topic": "foundry",
+  "level": "basis",
+  "tag": "Get-AzCognitiveServicesAccount · Tags · PSCustomObject · Sort-Object · Export-Csv",
+  "summary": "Controleert bij elke Foundry- en OpenAI-resource of een lijst verplichte tags aanwezig is, en laat zien welke tags per resource ontbreken. Zo vind je resources zonder eigenaar of kostenplaats.",
+  "risk": "read",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving. De documentatie van `PSCognitiveServicesAccount` noemt de eigenschap `Tags`, maar geeft het type niet; dat het een hashtable (of ander woordenboek) is waarvan `.Keys` de tagnamen geeft, is niet bevestigd. Dat `AccountType` voor Foundry en Azure OpenAI de waarden `AIServices` en `OpenAI` heeft, is eveneens niet bevestigd (zie het eerdere script in dit onderwerp). Het script ziet alleen Cognitive Services-accounts (`Microsoft.CognitiveServices/accounts`): hub-gebaseerde Foundry-hubs en -projecten zijn Azure Machine Learning-workspaces en een Foundry-project onder een account heeft eigen tags; die staan niet in dit rapport. Het script kijkt alleen of een tagnaam bestaat: een tag met een lege of verkeerde waarde telt als aanwezig. Tagnamen zijn volgens de documentatie niet hoofdlettergevoelig, waarden wel. Resources erven geen tags van de resourcegroep of het abonnement; wil je dat, dan is Azure Policy daarvoor bedoeld. Het script werkt in het abonnement van je huidige Az-context. Kosten staan niet in dit script: via tags kun je kosten groeperen, maar het script haalt geen kosten op. De namen in `-VerplichteTags` zijn voorbeelden; gebruik de namen uit jullie eigen tagbeleid.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-AzCognitiveServicesAccount (eigenschap Tags in de uitvoer), PSCognitiveServicesAccount (eigenschappenlijst), Use tags to organize your Azure resources (tagnamen niet hoofdlettergevoelig, waarden wel; resources erven geen tags; tags opgeslagen als platte tekst). Open punten: het type van `Tags`, de exacte waarden van `AccountType`, en gedrag bij een resource zonder tags (leeg of null)."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        2
+      ],
+      "prompt": "Wat is de parameter -VerplichteTags, en wat doe je met de standaardlijst?",
+      "options": [
+        "Het is de lijst tagnamen die elke resource moet hebben; pas de voorbeeldnamen aan naar je eigen tagbeleid",
+        "Het is de lijst van resources die je wilt controleren; de standaardnamen zijn resources die het script aanmaakt",
+        "Het is de lijst tags die het script aan elke resource toevoegt; de standaardnamen zijn waarden die je mag laten staan",
+        "Het is de lijst abonnementen die worden doorzocht; de standaardnamen zijn namen van abonnementen van Contoso"
+      ],
+      "answer": 0,
+      "explanation": "`[string[]]` betekent: een lijst met tekst. De standaardlijst `Eigenaar`, `Kostenplaats`, `Omgeving` zijn voorbeelden van tagnamen. Het script vergelijkt die namen met de tags die op elke resource staan (regel 16). Gebruik de namen uit jullie eigen tagbeleid, bijvoorbeeld `-VerplichteTags 'Owner','CostCenter'`. Het script voegt zelf nooit tags toe: de lijst is alleen de maatstaf."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        8,
+        9
+      ],
+      "prompt": "Welke resources worden gecontroleerd door de opdracht op regel 8 en 9?",
+      "options": [
+        "Alle resources van elk type in alle abonnementen die bij de organisatie horen, ook uit andere tenants",
+        "Alle AI-accounts in het huidige abonnement, gefilterd op de soorten AIServices en OpenAI",
+        "Alleen de Foundry-resources van de resourcegroep waarin je het laatst hebt gewerkt in het portaal",
+        "Alleen resources die al minstens één tag hebben; resources zonder tags worden dus overgeslagen"
+      ],
+      "answer": 1,
+      "explanation": "`Get-AzCognitiveServicesAccount` zonder `-ResourceGroupName` geeft alle Cognitive Services-accounts van het abonnement van je huidige Az-context. `Where-Object` houdt alleen de accounts van de soort `AIServices` of `OpenAI` over. Andere abonnementen worden niet bekeken: staan er resources in een ander abonnement, kies dat dan eerst met `Set-AzContext` en draai het script opnieuw. Resources zonder tags worden juist niet overgeslagen: die staan door de sortering op regel 26 juist bovenaan."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        11,
+        24
+      ],
+      "prompt": "Wat doet het script per resource in de lus van regel 11 tot 24?",
+      "options": [
+        "Het leest de tagnamen die er staan, ziet welke verplichte namen ontbreken en maakt een rapportregel",
+        "Het leest de tagwaarden, controleert of die kloppen met het beleid en corrigeert ze waar nodig",
+        "Het telt de resources per resourcegroep en schrijft alleen de groepen met de meeste resources weg",
+        "Het haalt de kosten per tag op en rekent die om naar een bedrag per maand voor elke resource"
+      ],
+      "answer": 0,
+      "explanation": "Voor elke resource zet het script de tagnamen die er staan in `$aanwezig` (regel 12 tot 15; zonder tags blijft de lijst leeg). Regel 16 bewaart de verplichte namen die daar niet in staan in `$ontbreekt`. Regel 17 tot 23 bouwen met `[PSCustomObject]@{...}` een nieuw object met de kolommen `Resource`, `ResourceGroup`, `AantalTags`, `Ontbreekt` en `Compleet`. Alles komt in `$rapport` te staan; er wordt niets aangepast, en kosten komen er niet in voor. De lus staat in `@( )` (regel 11 en 24), zodat `$rapport` ook bij nul resources een lege lijst is en de telling op regel 30 dan 0 geeft."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        16
+      ],
+      "prompt": "Je typt op regel 16 per ongeluk -in in plaats van -notin. Wat is het gevolg?",
+      "options": [
+        "Het script stopt met een foutmelding, omdat -in niet samen met een lijst kan worden gebruikt",
+        "Het rapport blijft kloppen; alleen de kolom Ontbreekt komt in een andere volgorde te staan",
+        "Ontbreekt toont nu de tags die er wel zijn, en een resource zonder tags lijkt compleet",
+        "Het script voegt nu zelf de ontbrekende tags toe, zodat het rapport altijd compleet blijkt"
+      ],
+      "answer": 2,
+      "explanation": "Met `-in` houdt `Where-Object` de verplichte tags over die wel op de resource staan, in plaats van die ontbreken. De kolom `Ontbreekt` toont dan precies het omgekeerde, en een resource zonder enige tag heeft niets in `$ontbreekt`, dus `Compleet` wordt `True`. Het rapport ziet er netjes uit maar zegt het tegenovergestelde van de werkelijkheid. Controleer daarom bij het eerste gebruik een resource waarvan je weet dat er een tag mist."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        6,
+        27
+      ],
+      "prompt": "Verandert dit script iets aan de tags in Azure?",
+      "options": [
+        "Ja, het voegt de ontbrekende tags toe met een lege waarde zodat elke resource compleet wordt",
+        "Ja, het verwijdert alle tags die niet in de lijst met verplichte tags voorkomen op een resource",
+        "Nee, het maakt alleen een lege CSV aan; het leest zelf geen tags van de resources uit Azure",
+        "Nee, het leest de tags alleen; wat het bewaart is een CSV op je eigen schijf, in Azure verandert niets"
+      ],
+      "answer": 3,
+      "explanation": "Er staat geen cmdlet in die tags wijzigt (zoals `Update-AzTag` of `Set-AzResource`). `Get-AzCognitiveServicesAccount` leest alleen, `[PSCustomObject]` maakt alleen een object in het geheugen en `Export-Csv` schrijft op regel 27 een bestand op je eigen schijf. Wil je ontbrekende tags corrigeren, dan is dat een aparte stap met een eigen droge run."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        26
+      ],
+      "prompt": "Regel 26 sorteert op Compleet en dan op Resource. Welke resources staan bovenaan de tabel?",
+      "options": [
+        "De resources die compleet zijn, omdat True alfabetisch gezien voor False komt in de volgorde",
+        "De resources die niet compleet zijn, omdat False voor True gaat bij oplopend sorteren",
+        "De resources met de meeste tags, omdat Sort-Object hier op het aantal tags sorteert",
+        "De resources van de resourcegroep die als eerste in alfabetische volgorde staat in Azure"
+      ],
+      "answer": 1,
+      "explanation": "`Sort-Object` sorteert standaard oplopend. Bij een waar-of-niet-waar-waarde komt `False` vóór `True`. Resources met een ontbrekende tag staan dus bovenaan, en daarbinnen op alfabet van de naam. Dat is handig voor een rapport, omdat je de problemen meteen ziet; de CSV op regel 27 heeft de volgorde van `$rapport`, niet die van de tabel, want regel 26 wijst het gesorteerde resultaat niet terug aan `$rapport` toe."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat controleert dit script niet, en waarom is een groen rapport (alles compleet) nog geen bewijs dat het tagbeleid wordt gevolgd?",
+      "explanation": "Bijvoorbeeld: (1) het script kijkt alleen of een tagnaam bestaat, niet of de waarde klopt: een tag `Eigenaar` met een lege waarde of de waarde `test` telt als aanwezig, en waarden zijn volgens de documentatie hoofdlettergevoelig, dus `Prod` en `prod` zijn verschillend; (2) tagnamen zijn niet hoofdlettergevoelig, dus `eigenaar` telt voor `Eigenaar`; dat is wat Azure zelf ook doet, maar het rapport laat het verschil niet zien; (3) alleen het abonnement van je huidige context wordt bekeken; (4) resources erven geen tags van de resourcegroep, dus tags op de groep zeggen niets over de resource; (5) kosten staan er niet in: tags helpen kosten te groeperen, maar het script toont geen bedragen; (6) het is een momentopname: een nieuwe resource zonder tag blijft ongemerkt tot je het script weer draait, tenzij je Azure Policy gebruikt om tags af te dwingen; (7) hub-gebaseerde Foundry-hubs en -projecten zijn andere resources en staan niet in dit rapport; (8) of `Tags` echt een woordenboek is waarvan `.Keys` de namen geeft, is niet bevestigd: vergelijk een paar regels met de portal. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
