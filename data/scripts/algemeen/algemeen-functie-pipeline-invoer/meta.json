@@ -1,0 +1,145 @@
+{
+  "id": "algemeen-functie-pipeline-invoer",
+  "title": "Functie met pipeline-invoer",
+  "topic": "algemeen",
+  "level": "gevorderd",
+  "tag": "function · [CmdletBinding()] · process",
+  "summary": "Definieert een eigen functie die postvakken uit de pipeline leest, het gebruikte percentage berekent en een status teruggeeft.",
+  "risk": "read",
+  "modules": [],
+  "note": "De postvakken staan in het script zelf; er wordt niets opgehaald. Zo kun je de functie veilig uitproberen en daarna dezelfde opbouw gebruiken met echte cmdlets.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Functions, about_Functions_Advanced_Parameters, about_Functions_CmdletBindingAttribute, about_Functions_Advanced_Methods en about_Pipelines. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [4, 5],
+      "prompt": "Wat betekent `ValueFromPipelineByPropertyName` bij de parameter `$Naam`?",
+      "options": [
+        "De parameter accepteert alleen een tekst die door de pipeline komt, geen object",
+        "De parameter krijgt de naam van de variabele waarin het object staat",
+        "De parameter neemt het hele object uit de pipeline over, zonder eigenschappen",
+        "De parameter krijgt de waarde van de eigenschap `Naam` van elk object"
+      ],
+      "answer": 3,
+      "explanation": "Met `ByPropertyName` zoekt PowerShell in elk binnenkomend object een eigenschap met dezelfde naam als de parameter (`Naam`) en gebruikt die waarde. Hetzelfde geldt voor `GebruiktGB`. Staat er in plaats daarvan `ValueFromPipeline`, dan wordt het hele object de waarde van de parameter."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [11, 12],
+      "prompt": "Wat gebeurt er als je de functie aanroept met `-LimietGB 0`?",
+      "options": [
+        "De functie rekent door en deelt door nul, wat `Infinity` geeft",
+        "PowerShell weigert de waarde nog voordat de functie draait",
+        "De functie vervangt de 0 stilzwijgend door de standaardwaarde 50 en rekent verder",
+        "De functie draait wel, maar het percentage blijft leeg"
+      ],
+      "answer": 1,
+      "explanation": "`[ValidateRange(1, 1000)]` controleert de waarde bij het binden van de parameters. Valt hij erbuiten, dan geeft PowerShell een fout en wordt het `process`-blok niet uitgevoerd. Zo voorkom je een deling door nul zonder eigen `if`. De controle staat bij de parameter en niet in de code, dus je leest hem in één oogopslag."
+    },
+    {
+      "id": "q3",
+      "type": "bug",
+      "step": "bron",
+      "lines": [26, 27, 28],
+      "prompt": "Bij één postvak heet de eigenschap `Name` in plaats van `Naam`. Wat gebeurt er met dat postvak en met de andere?",
+      "options": [
+        "Dat postvak geeft een fout, de andere worden gewoon verwerkt",
+        "Het hele script stopt bij dat postvak en toont daarna helemaal niets meer",
+        "PowerShell herkent `Name` als `Naam` en verwerkt het postvak toch gewoon mee",
+        "Het postvak krijgt een lege naam in de tabel en wordt wel meegeteld"
+      ],
+      "answer": 0,
+      "explanation": "Binden op eigenschapsnaam werkt alleen bij een exacte naam. Omdat `Naam` verplicht is, kan dit object niet worden gebonden en volgt een gewone fout (`The input object cannot be bound ... Naam`). De andere objecten gaan gewoon door, dus je tabel is onopgemerkt onvolledig. Let dus op de eigenschapsnamen van de cmdlet vóór je pipet."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [15, 16, 22],
+      "prompt": "Hoe vaak wordt het `process`-blok uitgevoerd als er drie postvakken door de pipeline komen?",
+      "options": [
+        "Eén keer, met alle drie de postvakken tegelijk",
+        "Drie keer, maar pas nadat alle postvakken binnen zijn",
+        "Drie keer: één keer per object dat binnenkomt",
+        "Vier keer: één keer extra aan het eind"
+      ],
+      "answer": 2,
+      "explanation": "`process` draait voor elk object dat binnenkomt, zodra het er is. Dat maakt een pipeline zuinig: het eerste resultaat kan al verderop in de pipeline staan terwijl de rest nog wordt opgehaald. Daarnaast bestaan `begin` (eenmaal vooraf) en `end` (eenmaal achteraf)."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [15],
+      "prompt": "Een collega vervangt `process {` door `end {` en laat de rest ongewijzigd. Wat toont de tabel?",
+      "options": [
+        "Alle drie de postvakken, hetzelfde als voorheen",
+        "Alleen het laatste postvak, chantal",
+        "Geen enkel postvak, want `end` draait voordat er objecten zijn",
+        "Een foutmelding omdat `end` niet bij een functie met parameters hoort"
+      ],
+      "answer": 1,
+      "explanation": "Het `end`-blok draait pas als alle invoer binnen is, en dan staan de parameters op de waarden van het laatste object. De functie werkt dus zonder fout, maar geeft maar één resultaat. Dat is een stille fout die je alleen ziet als je het aantal regels vergelijkt met wat je verwacht."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [16, 20],
+      "prompt": "Een postvak gebruikt 44,9 GB van een limiet van 50 GB. Welke status krijgt het?",
+      "options": [
+        "OK, want 44,9 is minder dan 45",
+        "Waarschuwing, want het percentage is lager dan 90",
+        "Er komt geen status, want de uitkomst is geen geheel getal",
+        "Kritiek, want het percentage wordt eerst afgerond naar 90"
+      ],
+      "answer": 3,
+      "explanation": "44,9 van 50 is 89,8 procent. Regel 16 rondt dat af naar 90, en pas daarna vergelijkt regel 20 met `-ge 90`. De status is dus `Kritiek`. Rond je pas na de vergelijking af, dan zou het `Waarschuwing` zijn. Let altijd op de volgorde van afronden en vergelijken."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [17, 18, 19, 20, 21],
+      "prompt": "Wat doet de functie met de postvakken zelf?",
+      "options": [
+        "Niets: ze geeft nieuwe objecten terug en laat de invoer ongemoeid",
+        "Ze zet de status in een extra eigenschap van het oorspronkelijke object",
+        "Ze past de limiet van het postvak aan op de ingevoerde waarde",
+        "Ze schrijft het resultaat naar een bestand"
+      ],
+      "answer": 0,
+      "explanation": "`[pscustomobject]@{ ... }` maakt een nieuw object, en dat wordt de uitvoer. De objecten in `$postvakken` blijven zoals ze waren, en er worden geen bestanden of instellingen aangepast. Dat past bij `risk: read`. Een functie die wel zou wijzigen, krijgt `SupportsShouldProcess` en roept `$PSCmdlet.ShouldProcess()` aan, zodat `-WhatIf` ook echt iets voorkomt."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [31],
+      "prompt": "Waarom kun je op de uitvoer van de functie `Sort-Object -Property Percentage` gebruiken?",
+      "options": [
+        "Omdat de functie tekst op het scherm schrijft die PowerShell kan sorteren",
+        "Omdat `Format-Table` de kolommen sorteert",
+        "Omdat de functie objecten met een eigenschap `Percentage` teruggeeft, geen losse tekst",
+        "Omdat `Sort-Object` altijd de laatste kolom gebruikt"
+      ],
+      "answer": 2,
+      "explanation": "De functie geeft objecten terug in de pipeline, en dus niet met `Write-Host` tekst op het scherm. Daardoor kunnen `Sort-Object`, `Where-Object` of `Export-Csv` er direct mee verder. Pas helemaal aan het eind zet `Format-Table` de objecten om in tekst voor de weergave. Daarna kun je ze niet meer sorteren of exporteren."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt met `-Verbose` kunnen zien welk postvak de functie op dat moment verwerkt. Wat voeg je toe, en waarom werkt `-Verbose` bij deze functie?",
+      "explanation": "Een sterk antwoord voegt in het `process`-blok een regel toe zoals `Write-Verbose \"Verwerk $Naam\"`. De melding verschijnt alleen als je de functie aanroept met `-Verbose`. Dat werkt omdat de functie met `[CmdletBinding()]` een geavanceerde functie is: die ondersteunt de gemeenschappelijke parameters zoals `-Verbose`, `-ErrorAction` en `-Debug`, net als een echte cmdlet. Een bonus is `SupportsShouldProcess` met `ShouldProcess()` voor `-WhatIf`, maar dat hoort alleen bij een functie die iets wijzigt."
+    }
+  ]
+}
