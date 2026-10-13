@@ -1,0 +1,133 @@
+{
+  "id": "foundry-netwerk-en-sleutels",
+  "title": "Netwerktoegang en lokale sleutels controleren",
+  "topic": "foundry",
+  "level": "gevorderd",
+  "tag": "Get-AzCognitiveServicesAccount · PublicNetworkAccess · NetworkRuleSet · DisableLocalAuth",
+  "summary": "Controleert bij elke Foundry- en OpenAI-resource of publieke netwerktoegang openstaat en of aanmelden met een sleutel is toegestaan, en geeft elke resource een risico: hoog, middel of laag. De sleutels zelf worden niet opgehaald.",
+  "risk": "read",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving. De voorbeelduitvoer van `Get-AzCognitiveServicesAccount` toont de eigenschappen `PublicNetworkAccess`, `NetworkRuleSet`, `PrivateEndpointConnections` en `DisableLocalAuth`; de documentatie legt niet uit wat `DefaultAction` binnen `NetworkRuleSet` kan zijn en dat `DisableLocalAuth` leeg is als de instelling niet is gezet (in het voorbeeld is hij leeg). Niet bevestigd is ook of `NetworkRuleSet` is gevuld als je alle accounts in één keer ophaalt (de voorbeelduitvoer is van één account en toont het veld leeg); blijft het leeg, dan telt een resource met firewall op `Deny` ten onrechte als publiek open, en zou je per account `Get-AzCognitiveServicesAccountNetworkRuleSet` moeten aanroepen. Dat `AccountType` voor Foundry en Azure OpenAI de waarden `AIServices` en `OpenAI` heeft, is eveneens niet bevestigd. Het script gaat ervan uit dat `DefaultAction` de waarde `Deny` heeft als alleen geselecteerde netwerken of IP-adressen toegang hebben, en behandelt een lege `DisableLocalAuth` als: sleutels toegestaan. Dat is niet bevestigd. Het script beoordeelt alleen deze vier instellingen: het zegt niets over de regels zelf (welke IP-adressen of netwerken zijn toegestaan), de status van de private endpoints (Approved of Pending), de DNS-instelling, de instellingen op projectniveau, de uitgaande netwerkbeveiliging (virtual network injection voor agents) of de uitzondering voor vertrouwde Azure-services. Een resource zonder publieke toegang is ook niet veilig als de private endpoint niet goed is ingesteld. Wie lokale authenticatie uitschakelt, moet eerst zeker weten dat alle aanroepers met Microsoft Entra ID werken (Entra-tokens vereisen volgens de documentatie een eigen subdomein op de resource); het script past niets aan. Het script werkt in het abonnement van je huidige Az-context en haalt geen sleutels op. `Connect-AzAccount` kan je sessie op een standaardabonnement zetten, en `Export-Csv` overschrijft een bestaand bestand zonder waarschuwing. De sortering met `IndexOf` is alleen in PowerShell 7 getest.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-AzCognitiveServicesAccount (voorbeelduitvoer met PublicNetworkAccess, NetworkRuleSet, PrivateEndpointConnections, DisableLocalAuth), Get-AzCognitiveServicesAccountNetworkRuleSet, New-AzCognitiveServicesAccount (-PublicNetworkAccess Enabled of Disabled, -DisableLocalAuth), How to configure network isolation for Microsoft Foundry (inbound toegang via de publieke-netwerktoegangsvlag, optie voor geselecteerde IP-adressen, private endpoints, vertrouwde services), Authentication and authorization in Microsoft Foundry (Entra ID aanbevolen voor productie, sleutels geven volledige toegang, lokale authenticatie kan in sjablonen worden uitgeschakeld). Open punten: of `NetworkRuleSet` bij het ophalen van alle accounts is gevuld, de waarden van `AccountType` en van `DefaultAction`, hoe `DisableLocalAuth` eruitziet als hij niet is gezet, en de koppeling tussen de portalinstelling 'geselecteerde netwerken' en `PublicNetworkAccess`/`NetworkRuleSet`."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        2
+      ],
+      "prompt": "Wat bepaalt -Uitvoer op regel 2, en wat staat er in het CSV-bestand dat het script maakt?",
+      "options": [
+        "Het is het pad van het CSV-bestand; daarin staan de API-sleutels van elke resource om ze te controleren",
+        "Het is het pad van het CSV-bestand; daarin staan netwerkinstellingen en sleutelregels, maar geen sleutels",
+        "Het is de naam van de resource die wordt gecontroleerd; het bestand bevat de sleutels van die resource",
+        "Het is het wachtwoord van het bestand; daarin staat een versleuteld overzicht van alle sleutels"
+      ],
+      "answer": 1,
+      "explanation": "`-Uitvoer` is alleen het pad van de CSV (regel 30). Er staan nergens sleutels in het script: het kijkt alleen of aanmelden met een sleutel is toegestaan (`DisableLocalAuth`), niet wat de sleutels zijn. Daarom bevat het bestand geen geheimen en kun je het delen, al staan er wel resourcenamen en instellingen in. Er is geen parameter om resources te kiezen: het script bekijkt alle Foundry- en OpenAI-resources van het huidige abonnement."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        7,
+        8
+      ],
+      "prompt": "Waar haalt het script de netwerk- en sleutelinstellingen vandaan?",
+      "options": [
+        "Uit aparte aanroepen per instelling: één voor het netwerk, één voor de sleutels, één voor private endpoints en DNS",
+        "Uit de eigenschappen van de objecten die Get-AzCognitiveServicesAccount teruggeeft, zonder aparte aanroepen",
+        "Uit de Azure-portal, die het script opent en uitleest zodra het wordt gestart door de beheerder",
+        "Uit een lijst die je zelf vooraf moet aanleveren met daarin de instellingen die je verwacht te zien"
+      ],
+      "answer": 1,
+      "explanation": "De voorbeelduitvoer van `Get-AzCognitiveServicesAccount` toont de eigenschappen `PublicNetworkAccess`, `NetworkRuleSet`, `PrivateEndpointConnections` en `DisableLocalAuth`. Regel 7 en 8 halen de accounts op en filteren op de soorten `AIServices` en `OpenAI` (of die namen kloppen, is niet bevestigd). De rest van het script leest alleen eigenschappen van die objecten, en haalt dus geen sleutels op: daar is een aparte cmdlet voor die het script niet gebruikt. Niet bevestigd is of `NetworkRuleSet` bij het ophalen van alle accounts in één keer ook is gevuld; de aparte cmdlet `Get-AzCognitiveServicesAccountNetworkRuleSet` bestaat daarom voor het geval het veld leeg blijft."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        11,
+        13
+      ],
+      "prompt": "Wanneer beschouwt regel 13 een resource als publiek open?",
+      "options": [
+        "Alleen als er geen enkele private endpoint aan de resource is gekoppeld, wat het script telt op regel 12",
+        "Als publieke toegang niet is uitgeschakeld en er geen firewall met standaardactie Deny is ingesteld",
+        "Alleen als de resource in een abonnement zonder enig netwerkbeleid staat, zoals een proefabonnement",
+        "Altijd als de resource een eigen subdomein heeft, omdat dat adres daardoor vanaf internet bereikbaar is"
+      ],
+      "answer": 1,
+      "explanation": "Regel 13 combineert twee voorwaarden met `-and`: de publieke toegang staat niet op `Disabled` én de standaardactie van de firewall is niet `Deny`. Staat publieke toegang aan maar is de firewall op `Deny` gezet met toegestane IP-adressen of netwerken, dan is de resource niet open voor iedereen. Een lege waarde (niet gezet) telt als open, omdat `$null -ne 'Disabled'` waar is: dat is de voorzichtige keuze. Of een private endpoint aanwezig is, speelt in deze berekening geen rol; dat telt regel 12 alleen als aantal."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        14
+      ],
+      "prompt": "Je vervangt op regel 14 -ne $true door -eq $false. Wat is het gevolg als DisableLocalAuth niet is gezet en dus leeg is?",
+      "options": [
+        "Er verandert niets, want een lege waarde en onwaar zijn in PowerShell altijd precies hetzelfde, ook hier",
+        "Het script stopt met een foutmelding, omdat een lege waarde niet met een boolean kan worden vergeleken door PowerShell",
+        "Zo'n resource telt nu als: sleutels niet toegestaan, terwijl ze vermoedelijk werken; het risico lijkt kleiner",
+        "Zo'n resource telt nu twee keer mee in het rapport, omdat de test dan twee uitkomsten tegelijk geeft"
+      ],
+      "answer": 2,
+      "explanation": "`$null -eq $false` is in PowerShell onwaar: een lege waarde is niet gelijk aan `$false`. Met `-eq $false` krijgt een resource waarvan de instelling niet is gezet dus `SleutelsToegestaan` gelijk aan onwaar, terwijl aanmelden met een sleutel dan waarschijnlijk wél werkt (in het voorbeeld in de documentatie is `DisableLocalAuth` leeg). De test `-ne $true` zegt: alleen als sleutels expliciet zijn uitgezet, zijn ze niet toegestaan. Dat is de voorzichtige keuze, maar of een lege waarde echt 'toegestaan' betekent, is niet bevestigd (zie de opmerking bij het script)."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        5,
+        30
+      ],
+      "prompt": "Verandert dit script iets aan de beveiliging van de resources, bijvoorbeeld aan sleutels of netwerktoegang?",
+      "options": [
+        "Ja, het vernieuwt de sleutels van elke resource met risico hoog, zodat oude sleutels niet meer werken",
+        "Ja, het zet publieke toegang uit en schakelt lokale authenticatie uit bij elke resource met risico hoog",
+        "Nee, het leest alleen instellingen en schrijft een CSV; sleutels worden niet gelezen of veranderd",
+        "Nee, het leest niets van de resources; alle waarden in het rapport zijn vaste voorbeeldwaarden"
+      ],
+      "answer": 2,
+      "explanation": "Er is geen `Set-`, `Update-` of `New-` cmdlet die iets aanpast, en geen cmdlet die sleutels ophaalt of vernieuwt. Het script leest instellingen van de accountobjecten, berekent het risico in het geheugen en schrijft een CSV op je eigen schijf (regel 30). Beveiliging verbeteren, bijvoorbeeld publieke toegang uitzetten of lokale authenticatie uitschakelen, is een aparte stap, en kan bestaande aanroepers breken als die nog een sleutel gebruiken. Let wel: `Connect-AzAccount` kan je sessie op een standaardabonnement zetten, en `Export-Csv` overschrijft een bestaand bestand zonder waarschuwing."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        28,
+        29
+      ],
+      "prompt": "Waarom sorteert regel 29 met $volgorde.IndexOf(...) in plaats van gewoon op de kolom Risico?",
+      "options": [
+        "Alfabetisch staat laag vóór middel, en je wilt de volgorde van ernst: hoog, middel, laag",
+        "Sort-Object kan niet op tekst sorteren, het werkt alleen op getallen en op datums in de tabel",
+        "IndexOf versnelt het sorteren, zodat het rapport ook bij duizenden resources snel klaar is",
+        "Alfabetisch staat hoog vóór laag vóór middel, en dat is voor het rapport precies de bedoeling"
+      ],
+      "answer": 0,
+      "explanation": "`$volgorde` is de lijst `'hoog', 'middel', 'laag'`. `IndexOf` geeft de plaats in de lijst: hoog is 0, middel 1, laag 2. Sorteren op dat getal zet de ernstigste resources bovenaan. Alfabetisch zou `hoog`, `laag`, `middel` opleveren, dus laag vóór middel. `Sort-Object` kan wel op tekst sorteren, maar dan op alfabet. Binnen hetzelfde risico staat de lijst op `Resource`. De CSV op regel 30 heeft de volgorde van `$rapport`, niet die van de tabel. Alfabetisch sorteren is hier dus niet gewenst: de volgorde van ernst is geen alfabetische volgorde."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat controleert dit script niet, en waarom is Risico laag voor een resource geen bewijs dat die resource goed is afgeschermd?",
+      "explanation": "Bijvoorbeeld: (1) het script kijkt alleen naar vier instellingen op de resource; of een private endpoint echt is goedgekeurd (Approved) en of de DNS goed staat, ziet het niet: een resource met publieke toegang uit en een kapotte private endpoint is dan onbereikbaar of lek; (2) bij de firewall ziet het alleen of de standaardactie `Deny` is, niet welke IP-adressen of netwerken zijn toegestaan; een range die te groot is, is bijna open; (3) de uitzondering voor vertrouwde Azure-services en de instellingen op projectniveau komen niet voor; (4) uitgaand verkeer (virtual network injection voor agents) wordt niet bekeken; (5) sleutels uitgezet zegt niets over wie de sleutels al hebben: bestaande kopieën hebben tot het uitschakelen van lokale authenticatie volledige toegang (de documentatie zegt dat sleutels geen onderscheid tussen gebruikers of acties maken), en wat er daarna gebeurt is niet bevestigd; (6) hoe `DefaultAction` en `DisableLocalAuth` eruitzien als ze niet zijn gezet, is niet bevestigd: vergelijk een paar resources met de portal; (7) alleen het abonnement van je huidige context wordt bekeken. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
