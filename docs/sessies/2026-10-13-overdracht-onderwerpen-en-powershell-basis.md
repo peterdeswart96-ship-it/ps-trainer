@@ -77,7 +77,7 @@ Werkwijze per script: gedrag eerst in `pwsh` en `powershell` testen in een tijde
 
 ## Wat er nog open staat
 
-1. **Issue #72**: knop om bij elke vraag een Copilot-prompt te genereren. Open vragen voor Peter staan in het issue (waar de knop komt, welke Copilot, het antwoord meesturen of niet).
+1. **Issue #72 is klaar** (PR 78, na het schrijven van dit document): de knop Kopieer Copilot-prompt staat tussen Vorige en Volgende. Besluiten van Peter: alleen kopieren (geen link), en het goede antwoord, de uitleg en de note staan er nooit in. De prompt komt uit assets/js/prompt.js; de grens van 8000 tekens is een aanname die nog niet is geverifieerd (de langste prompt is 4721 tekens). Niet gebouwd: een eigen tekstveld, voorgestelde vervolgvragen en antwoord meesturen. DESIGN.md 1.22.
 2. **Issue #36**: zoekfunctie (label "later"): wacht op een besluit van Peter.
 3. **Scripts voor de overige onderwerpen**: Exchange en Microsoft 365 hebben er nog geen, Security heeft alleen Entra ID (2) en Purview (3), Azure alleen Foundry (9). Een nieuwe scriptlijst per onderwerp kiest Peter (CLAUDE.md, werkwijzepunt 3).
 4. **Controle van de scripts**: Migraties (zes), SharePoint (negen), Purview (drie) en Foundry (negen) blijven `nog_te_controleren`; echt draaien tegen een tenant of abonnement is een stoppunt.
