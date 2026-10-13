@@ -1,0 +1,143 @@
+{
+  "id": "m365-groepen-zonder-eigenaar",
+  "title": "Microsoft 365-groepen zonder eigenaar of verlenging",
+  "topic": "m365",
+  "level": "gevorderd",
+  "tag": "Get-MgGroup · Get-MgGroupOwner · geneste lus · alleen lezen",
+  "summary": "Haalt alle Microsoft 365-groepen op, telt per groep de eigenaren en toont de groepen zonder eigenaar of die lang niet zijn verlengd.",
+  "risk": "read",
+  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Groups"],
+  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets, parameters en eigenschappen (`-Filter`, `-All`, `-Property`, `RenewedDateTime`, `ResourceProvisioningOptions`) zijn getoetst in de module Microsoft.Graph 2.41; de logica is getest met nagebootste cmdlets. Open punten: of `RenewedDateTime` zonder vervalbeleid is gevuld (het script valt terug op `CreatedDateTime`), of het filter `groupTypes/any(g:g eq 'Unified')` zonder `-ConsistencyLevel` werkt, of `Group.Read.All` voldoende is, en dat `RenewedDateTime` volgens de documentatie het laatste verlengmoment is en geen maat voor gebruik.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 9, 19],
+      "prompt": "Wat gebeurt er met de lijst als je `-DagenGeenVerlenging` verhoogt van 365 naar 1000?",
+      "options": [
+        "Er komen meer groepen in de lijst, want de grens ligt verder weg",
+        "Minder groepen zijn `Verouderd`; groepen zonder eigenaar blijven in de lijst",
+        "De lijst blijft hetzelfde, want de parameter telt alleen in de samenvatting",
+        "Het script verwijdert groepen die langer dan 1000 dagen oud zijn"
+      ],
+      "answer": 1,
+      "explanation": "Regel 9 berekent de grens: vandaag min het aantal dagen. Een groep is `Verouderd` als het laatste verlengmoment vóór die grens ligt. Een grens verder in het verleden laat minder groepen voldoen. Groepen zonder eigenaar blijven in de lijst, want de voorwaarde heeft `-or`. Het script verwijdert niets."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [7],
+      "prompt": "Wat selecteert het filter `groupTypes/any(g:g eq 'Unified')`?",
+      "options": [
+        "Alle groepen waar minstens één gebruiker lid van is",
+        "Alleen beveiligingsgroepen, want `Unified` verwijst naar beveiliging",
+        "Alleen de groepen die als Teams zijn ingericht",
+        "De Microsoft 365-groepen, niet de beveiligings- of distributiegroepen"
+      ],
+      "answer": 3,
+      "explanation": "In Graph heet een Microsoft 365-groep een `Unified`-groep. `groupTypes` is een lijst, en `any(g:g eq 'Unified')` betekent: minstens één element voldoet. Teams zijn een deelverzameling van die groepen (ze hebben `Team` in `ResourceProvisioningOptions`). Of het filter zonder `-ConsistencyLevel` werkt, staat als open punt in de `note`."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [12, 16],
+      "prompt": "De groep `Kantine` heeft geen eigenaar. Wat bevat `$eigenaren` en wat is de kolom `Eigenaren`?",
+      "options": [
+        "Een lege lijst; de kolom toont 0",
+        "`$null`; de kolom toont een foutmelding",
+        "Een lijst met de leden in plaats van de eigenaren; de kolom toont het aantal leden",
+        "Een lege tekst; de kolom blijft leeg"
+      ],
+      "answer": 0,
+      "explanation": "`Get-MgGroupOwner` geeft voor een groep zonder eigenaar niets terug. Door `@( )` in regel 12 wordt dat een lege lijst met `Count` 0. Zonder `@( )` hing het af van de PowerShell-versie en de situatie of er een `Count` was. De getelde objecten zijn directory-objecten: meestal gebruikers, maar het kunnen ook andere objecten zijn."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [13],
+      "prompt": "De groep `Kantine` heeft geen `RenewedDateTime` maar toont wel een datum in `LaatstVerlengd`. Hoe kan dat?",
+      "options": [
+        "PowerShell vult een ontbrekende datum automatisch met de datum van vandaag",
+        "Graph vult de datum zelf in bij het ophalen van de groepen",
+        "Het script valt terug op `CreatedDateTime` als `RenewedDateTime` leeg is",
+        "De datum komt uit de laatste eigenaar van de groep"
+      ],
+      "answer": 2,
+      "explanation": "Regel 13 is een `if` als uitdrukking: `if ($groep.RenewedDateTime) { ... } else { ... }`. Is de verlengdatum leeg, dan neemt het script de aanmaakdatum. Dat is een keuze van het script, niet van Graph. Het gevolg is dat een groep die nooit is verlengd er hetzelfde uitziet als een groep die op de aanmaakdatum is verlengd."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [17],
+      "prompt": "Een collega schrijft `-eq 'Team'` in plaats van `-contains 'Team'` in regel 17. Wat staat er dan in de kolom `IsTeam`?",
+      "options": [
+        "Hetzelfde als eerder: `True` voor teams en `False` voor de rest",
+        "`{Team}` voor teams en `{}` voor de rest, in plaats van True en False",
+        "Een foutmelding omdat `-eq` niet voor lijsten mag worden gebruikt",
+        "`False` voor alle groepen, want een lijst is nooit gelijk aan een tekst"
+      ],
+      "answer": 1,
+      "explanation": "Staat links van `-eq` een lijst, dan werkt `-eq` als filter: het geeft de elementen terug die gelijk zijn. Dat is dus een lijst met `Team` of een lege lijst (in een tabel te zien als `{Team}` of `{}`), geen `True` of `False`. Voor een lijst gebruik je `-contains` (is dit element in de lijst) of `-in`. Getest met nagebootste gegevens in beide PowerShell-versies."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [18, 19],
+      "prompt": "Een groep wordt dagelijks gebruikt maar staat toch als `Verouderd`. Hoe kan dat?",
+      "options": [
+        "Een actieve groep wordt alleen als verouderd getoond als er geen eigenaren zijn",
+        "Het script meet de laatste activiteit en de groep had vorige maand even geen berichten",
+        "Graph telt de leden niet mee en daardoor lijkt de groep leeg",
+        "`RenewedDateTime` is het laatste verlengmoment, geen maat voor gebruik"
+      ],
+      "answer": 3,
+      "explanation": "De kolom heet `LaatstVerlengd` en niet `LaatsteActiviteit`, met reden. `RenewedDateTime` is het moment waarop de groep voor het laatst is verlengd, en wordt volgens de documentatie alleen bijgewerkt door die verlengactie. Zonder vervalbeleid verandert het dus niet door gebruik. Met een vervalbeleid is het hooguit een indirecte aanwijzing, want de verlenging kan daar op activiteit zijn gebaseerd. Voor echt gebruik heb je activiteitsrapporten nodig. Dit staat in de `note` als open punt."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [5, 7, 12],
+      "prompt": "Welke gegevens in de tenant wijzigt dit script?",
+      "options": [
+        "Niets: het leest groepen en eigenaren met een leesscope",
+        "Het verwijdert de groepen zonder eigenaar uit de tenant",
+        "Het wijst de beheerder als eigenaar toe aan groepen zonder eigenaar",
+        "Het verlengt de groepen die verouderd zijn"
+      ],
+      "answer": 0,
+      "explanation": "Alleen `Connect-MgGraph`, `Get-MgGroup` en `Get-MgGroupOwner` praten met de tenant, en met de leesscope `Group.Read.All`. Het resultaat is een rapport. Eigenaren toekennen of groepen opruimen zou een apart script met `-WhatIf` moeten zijn."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [23],
+      "prompt": "`Oude werkgroep` heeft wel een eigenaar maar staat toch in de lijst. Waarom?",
+      "options": [
+        "Omdat het script elke groep met één eigenaar verdacht vindt",
+        "Omdat het filter alle groepen toont die ouder dan een jaar zijn",
+        "Omdat `-or` één voorwaarde genoeg laat zijn: ook verouderd is voldoende",
+        "Omdat de eigenaar van die groep een gast is, en gasten niet meetellen"
+      ],
+      "answer": 2,
+      "explanation": "Regel 23 gebruikt `-or`: een groep komt in de lijst als er geen eigenaar is of als hij verouderd is. Bij `-and` zouden beide moeten gelden, en dan zou `Oude werkgroep` ontbreken. Let bij het lezen van een filter altijd op het woord tussen de voorwaarden."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Het script weet niet of een groep nog wordt gebruikt. Hoe kom je dat te weten, en wat doe je met een groep zonder eigenaar voordat je iets verwijdert?",
+      "explanation": "Een sterk antwoord noemt dat verlenging geen gebruik meet en dat je daarvoor de gebruiksrapporten van Microsoft 365 nodig hebt (de module heeft daarvoor onder meer `Get-MgReportOffice365GroupActivityDetail`), of de activiteit van het gekoppelde team en de SharePoint-site bekijkt. Voor een groep zonder eigenaar: eerst proberen een eigenaar te vinden (via de leden of de beheerder van de afdeling), dan pas waarschuwen en opruimen, en bij verwijderen eerst een droge run met `-WhatIf` en een bewaartermijn. Noem eventueel een vervalbeleid voor groepen of toegangsbeoordelingen, en dat je de licentie-eisen daarvan moet controleren."
+    }
+  ]
+}
