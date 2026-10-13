@@ -1,0 +1,134 @@
+{
+  "id": "foundry-deployment-aanmaken",
+  "title": "Modeldeployment aanmaken met quotacontrole vooraf",
+  "topic": "foundry",
+  "level": "expert",
+  "tag": "New-AzCognitiveServicesAccountDeployment · Get-AzCognitiveServicesUsage · ShouldProcess · throw · splatting",
+  "summary": "Controleert eerst of de deployment al bestaat en of er genoeg quota is in de regio, en maakt daarna pas een modeldeployment aan. Met -WhatIf zie je alleen wat het zou doen, en bij te weinig quota stopt het script met een duidelijke fout.",
+  "risk": "write",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving; dit script maakt een deployment aan die quota in beslag neemt. Doe eerst altijd een droge run met `-WhatIf`. De aanmaakaanroep volgt het voorbeeld in de documentatie (Automate Azure OpenAI deployments with quota): `Properties` met `Model` (`Name`, `Version`, `Format`) en `Sku` met `Name` en `Capacity` als hashtables. Volgens die documentatie staat 1 eenheid capaciteit bij Standard-deployments van veel chatmodellen voor 1.000 tokens per minuut, maar de verhouding verschilt per model; het script gaat ervan uit dat de eenheid van `Capaciteit` gelijk is aan die van de quotaregel (in de REST-uitvoer is dat duizenden tokens per minuut). Dat de eigenschap `Name` van een quotaregel in PowerShell de vorm `OpenAI.Standard.gpt-4o` heeft, is niet bevestigd: de REST-documentatie toont die vorm (`{Provider}.{DeploymentType}.{Model}`), maar het PowerShell-voorbeeld toont alleen `CustomVision.Prediction.Transactions`. Daarom stopt het script als er geen regel wordt gevonden, in plaats van door te gaan zonder controle. `CurrentValue` is de aan deployments toegewezen quota, niet het verbruik. De controle is een momentopname: volgens de documentatie wordt quota toegewezen op het moment dat een deployment wordt aangemaakt, dus een andere aanvraag kan de ruimte in de tussentijd gebruiken (een afleiding, niet letterlijk beschreven). Welke modelversies in een regio beschikbaar zijn, controleert het script niet (de Foundry-documentatie noemt de fout `ServiceModelDeprecating` bij een verouderde versie); `Get-AzCognitiveServicesModel` bestaat om modellen per regio op te vragen, maar de eigenschappen van de uitvoer zijn in de documentatie niet uitgewerkt. De documentatie noemt de rol Cognitive Services Contributor op het resourcescope voor het aanmaken van deployments en Cognitive Services Usages Reader op abonnementsniveau voor quota. Het script werkt in het abonnement van je huidige Az-context; het opzoeken van de resource stopt bij een fout (`-ErrorAction Stop`), zodat de regio nooit leeg doorgaat naar de quotacontrole. `Connect-AzAccount` krijgt `-WhatIf:$false` mee, zodat ook een droge run inlogt.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: New-AzCognitiveServicesAccountDeployment (syntax, -Properties, -Sku, -WhatIf), Get-AzCognitiveServicesAccountDeployment, Get-AzCognitiveServicesUsage, Get-AzCognitiveServicesModel, New-AzCognitiveServicesObject, Automate Azure OpenAI deployments with quota (PowerShell-voorbeeld met hashtables, Capacity 10 = 10K TPM, rol Cognitive Services Contributor), Manage Azure OpenAI in Microsoft Foundry Models quota (quotaregels per abonnement, regio, model en type; naamvorm Provider.Type.Model; rol Cognitive Services Usages Reader), Deploy a Foundry resource by using Bicep (ServiceModelDeprecating). Open punten: de naamvorm van `Name` in de PowerShell-uitvoer van de usage, de eenheid van `Limit` en `CurrentValue` in PowerShell, het gedrag van de cmdlet als de deployment al bestaat, en of PowerShell de hashtables voor `-Properties` en `-Sku` altijd omzet naar de juiste typen (het Learn-voorbeeld doet dit zo, maar het is hier niet getest)."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        5,
+        9
+      ],
+      "prompt": "Wat betekent -Capaciteit 10 op regel 9, en waarvan is dat een hoeveelheid?",
+      "options": [
+        "10 deployments van het opgegeven model, die tegelijk worden aangemaakt in de resource van het account",
+        "10 eenheden quota; bij veel chatmodellen is dat 10.000 tokens per minuut, maar het verschilt per model",
+        "Een maandbudget van 10 euro voor de deployment, waarna Azure de deployment automatisch stopzet",
+        "10 verzoeken per seconde, een vaste limiet die voor elk model in Azure op dezelfde manier geldt"
+      ],
+      "answer": 1,
+      "explanation": "`$Capaciteit` komt in `Capacity` van de `Sku` (regel 41): de hoeveelheid quota die je aan deze deployment toewijst. Volgens de documentatie is een capaciteit van 10 bij veel chatmodellen 10.000 tokens per minuut (TPM); de verhouding tussen eenheid, TPM en verzoeken per minuut verschilt per model. Het is geen aantal deployments, geen geldbedrag en geen vaste limiet. Het getal komt van de beschikbare quota van het abonnement in die regio: wat je hier toewijst, kun je niet meer aan een andere deployment geven."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        17,
+        21
+      ],
+      "prompt": "Wat doet het script als de deployment op regel 17 al bestaat?",
+      "options": [
+        "Het meldt dat de deployment al bestaat en stopt met return, zonder iets aan de deployment of Azure te wijzigen",
+        "Het vervangt de bestaande deployment door de nieuwe instellingen en meldt dat de deployment is bijgewerkt",
+        "Het maakt een tweede deployment aan met een nummer achter de naam, om een conflict te voorkomen",
+        "Het stopt met een rode foutmelding, zodat de beheerder het probleem eerst handmatig moet oplossen"
+      ],
+      "answer": 0,
+      "explanation": "Op regel 17 zoekt het script de deployment op naam; `-ErrorAction SilentlyContinue` zorgt dat een niet-gevonden deployment geen foutmelding geeft, maar een lege waarde. Bestaat hij, dan meldt regel 19 het en stopt `return` op regel 20 het script: er wordt niets aangepast. Dat is de veilige keuze: een deployment met dezelfde naam opnieuw aanmaken kan instellingen of capaciteit veranderen waar een app van afhangt (wat de cmdlet precies doet bij een bestaande naam, is niet bevestigd). De keerzijde van `SilentlyContinue` is dat ook andere fouten, zoals een ontbrekend recht, onzichtbaar worden."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        23,
+        27
+      ],
+      "prompt": "Je typt bij -Model per ongeluk gpt-4oo. Wat doet het script bij de quotacontrole op regel 23 tot 27?",
+      "options": [
+        "Het neemt aan dat er genoeg quota is en gaat door met aanmaken, want zonder regel is er geen limiet",
+        "Het zoekt zelf het dichtstbijzijnde bestaande model en maakt daar in plaats daarvan een deployment van",
+        "Het stopt met throw en een duidelijke melding, in plaats van door te gaan zonder te weten of er quota is",
+        "Het maakt een deployment met capaciteit 0, zodat de naam alvast in Azure is gereserveerd voor later"
+      ],
+      "answer": 2,
+      "explanation": "Regel 23 bouwt de naam van de quotaregel uit het type en het model (`OpenAI.Standard.gpt-4oo`). `Where-Object Name -eq` vindt dan niets, `$regel` blijft leeg en `if (-not $regel)` op regel 25 gooit een fout met `throw`. Dat is 'falen met een melding' in plaats van 'doorgaan zonder controle': een controle die stilzwijgend overgeslagen wordt als hij niets vindt, zou de beveiliging van het script teniet doen. Of de naam van een quotaregel in PowerShell echt die vorm heeft, is niet bevestigd; juist daarom is stoppen de veilige reactie."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        29
+      ],
+      "prompt": "Je schrijft op regel 29 per ongeluk $vrij = $regel.Limit, zonder CurrentValue af te trekken. Wat is het gevolg?",
+      "options": [
+        "Het script stopt altijd met de melding dat er te weinig quota is, ook als er genoeg quota vrij is",
+        "Het script vraagt automatisch meer quota aan bij Microsoft zodra de limiet van het abonnement wordt overschreden",
+        "Azure past de capaciteit automatisch aan naar wat er werkelijk vrij is, zodat de deployment toch lukt",
+        "De controle keurt te vaak goed en ook een droge run lijkt in orde, terwijl het aanmaken in Azure kan mislukken"
+      ],
+      "answer": 3,
+      "explanation": "`Limit` is het totaal dat je abonnement in die regio voor dit model en type heeft; `CurrentValue` is wat al aan deployments is toegewezen. Alleen het verschil is vrij. Zonder het af te trekken, wordt een aanvraag goedgekeurd die de resterende ruimte overschrijdt. Een droge run geeft dan geen fout (de aanmaak wordt overgeslagen) en toont een misleidend groen resultaat; pas bij een echte run kan Azure de aanmaak weigeren. Een fout in een controle is daarom gevaarlijker dan een ontbrekende controle: je vertrouwt erop."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        44,
+        46
+      ],
+      "prompt": "Welk gevolg heeft een echte (niet-WhatIf) run, behalve dat er een deployment bestaat?",
+      "options": [
+        "Geen verder gevolg; de quota van het abonnement blijven precies zoals ze waren voordat het script draaide",
+        "De toegewezen capaciteit gaat af van de vrije quota van het abonnement in die regio, voor alle resources",
+        "De sleutels van de Foundry-resource worden vernieuwd, zodat de nieuwe deployment een eigen sleutel heeft",
+        "Het script verhoogt het quotaplafond van het abonnement met de gevraagde capaciteit, zodat er ruimte is"
+      ],
+      "answer": 1,
+      "explanation": "Volgens de quotadocumentatie wordt quota per abonnement, regio, model en deployment-type toegewezen: elke deployment krijgt een deel, en de beschikbare quota voor dat model daalt met dat bedrag. Dat geldt voor alle resources in het abonnement in die regio. Een volle quota kan dus een volgende, onverwante aanmaak blokkeren. Verhogen van het plafond gaat via een aanvraagformulier, niet via dit script; sleutels worden niet aangeraakt. Met `-WhatIf` wordt `ShouldProcess` op regel 44 onwaar en blijft de aanmaak op regel 45 achterwege."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        44,
+        46
+      ],
+      "prompt": "De droge run meldt alleen 'What if: Performing the operation ...'. Wat bewijst dat de echte run zal slagen?",
+      "options": [
+        "Niets over Azure zelf: alleen de controles vooraf in het script zijn gelopen en de aanmaak is overgeslagen",
+        "Dat Azure Policy de aanmaak heeft goedgekeurd en dat Azure daarom niets meer zal weigeren bij de echte run",
+        "Dat de modelversie in deze regio beschikbaar is en dat de naam van de deployment nog vrij is in het account",
+        "Dat de quota voor jou zijn gereserveerd tot het moment waarop je de echte run start in het abonnement"
+      ],
+      "answer": 0,
+      "explanation": "Een droge run laat alleen zien wat het script zou doen. Alle controles vóór regel 44 (bestaat de deployment, is er quota) zijn echt uitgevoerd. De aanmaakaanroep zelf is niet gedaan, dus niets bewijst dat Azure hem accepteert: de modelversie kan niet (meer) beschikbaar zijn (de documentatie noemt de fout `ServiceModelDeprecating`), beleid kan de aanmaak weigeren, of een andere aanvraag kan de quota in de tussentijd gebruiken, want volgens de documentatie wordt quota toegewezen op het moment dat een deployment wordt aangemaakt. Een groene droge run is een goede voorbereiding en geen garantie."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat controleert dit script niet, en wat doe je na een geslaagde aanmaak voordat je zegt dat het model bruikbaar is?",
+      "explanation": "Bijvoorbeeld: (1) of de modelversie in de regio beschikbaar is en niet wordt uitgefaseerd: dat controleert het script niet; (2) of Azure Policy of een naamregel de aanmaak toch tegenhoudt; (3) de quotaregel kan door een andere aanvraag zijn gebruikt tussen de controle en de aanmaak; (4) de eenheid van de capaciteit verschilt per model, dus kijk of de gevraagde capaciteit werkelijk de TPM geeft die je wilde; (5) de naamvorm van de quotaregel in PowerShell is niet bevestigd, dus vergelijk een regel met de portal; (6) de aanroepers hebben nog toegang nodig tot de deployment, via een geschikte rol of een sleutel (en bij lokale authenticatie uit alleen via Microsoft Entra ID); welke rol dat is, staat niet in dit script en niet in de bronnen hierboven; (7) het script test het model niet: doe een kleine aanroep voordat je het doorgeeft aan een app; (8) kosten komen van het gebruik van het model en de gekozen deployment-vorm; het script zegt daar niets over. Ruim een proefdeployment op door hem zelf weer te verwijderen, zodat de quota vrijkomt."
+    }
+  ]
+}
