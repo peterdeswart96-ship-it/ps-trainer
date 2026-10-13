@@ -1,0 +1,145 @@
+{
+  "id": "algemeen-groeperen-rapporteren",
+  "title": "Groeperen en rapporteren naar CSV en JSON",
+  "topic": "algemeen",
+  "level": "expert",
+  "tag": "Group-Object · Export-Csv · ConvertTo-Json",
+  "summary": "Groepeert voorbeeldgebeurtenissen per gebruiker, sorteert op aantal en schrijft het rapport weg als CSV- en JSON-bestand.",
+  "risk": "write",
+  "modules": [],
+  "note": "De gebeurtenissen staan in het script zelf; er wordt niets opgehaald. Het script schrijft twee bestanden in `-Uitvoermap` (standaard een map in de tijdelijke map van de gebruiker) en overschrijft ze bij elke run. Open de bestanden na afloop en vergelijk ze tussen Windows PowerShell 5.1 en PowerShell 7 als je beide hebt.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: Group-Object, Sort-Object, Measure-Object, Export-Csv, ConvertTo-Json, Set-Content (-Encoding) en about_Calculated_Properties. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1, met een Nederlandse taalinstelling. Datumnotatie in de CSV en het gedrag van -Encoding UTF8 verschillen per versie en instelling."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [3, 29],
+      "prompt": "Je roept het script aan met `-Top 2`. Wat verandert er?",
+      "options": [
+        "Het script verwerkt alleen de eerste twee gebeurtenissen uit de lijst met acht",
+        "Het CSV- en JSON-bestand bevatten alleen de twee gebruikers met de meeste gebeurtenissen",
+        "De tabel toont twee gebruikers; de bestanden bevatten er nog alle vier",
+        "Het script schrijft maar twee bestanden weg in plaats van drie"
+      ],
+      "answer": 2,
+      "explanation": "`$Top` wordt alleen gebruikt in regel 29, voor de tabel op het scherm. De bestanden in regel 32 en 33 komen uit `$perGebruiker`, en die bevat alle vier de gebruikers. Een parameter die op één plek wordt gebruikt, kun je zo snel in de code terugvinden."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [18, 21, 22],
+      "prompt": "Wat zijn `$_.Name` en `$_.Count` in het ForEach-Object-blok na `Group-Object -Property Gebruiker`?",
+      "options": [
+        "`Name` is de waarde waarop is gegroepeerd en `Count` het aantal objecten in die groep",
+        "`Name` is de naam van de eigenschap, `Gebruiker`, en `Count` het aantal groepen in totaal",
+        "`Name` is de eerste gebeurtenis van de groep en `Count` het aantal eigenschappen van die gebeurtenis",
+        "`Name` en `Count` bestaan niet; je moet ze eerst zelf berekenen"
+      ],
+      "answer": 0,
+      "explanation": "Group-Object geeft per groep een object met `Name` (de waarde van de groepeereigenschap, altijd als tekst), `Count` (hoeveel objecten in de groep zitten) en `Group` (de oorspronkelijke objecten zelf). Met deze drie eigenschappen bouw je elk groepsrapport."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [23],
+      "prompt": "Wat levert `$_.Group.Actie` op in regel 23?",
+      "options": [
+        "Een foutmelding, want `Group` is een lijst en een lijst heeft geen eigenschap `Actie`",
+        "Alleen de actie van het eerste object in de groep",
+        "De naam van de eigenschap `Actie` als tekst",
+        "De actie van elk object in de groep, als lijst"
+      ],
+      "answer": 3,
+      "explanation": "Vraag je een eigenschap op van een lijst, dan geeft PowerShell die eigenschap van elk item terug (member enumeration). Daarna haalt `Sort-Object -Unique` de dubbele acties weg en maakt `-join '; '` er één tekst van. Voor Anna levert dat `FileDeleted; FileDownloaded` op, ook al heeft ze drie gebeurtenissen."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [27],
+      "prompt": "Een collega vervangt regel 27 door `Sort-Object -Property Aantal, Gebruiker -Descending`. Wat wordt de volgorde van de gebruikers?",
+      "options": [
+        "Hetzelfde als voorheen: anna, bram, chantal, daan",
+        "Aflopend op aantal én aflopend op gebruiker: bram, anna, daan, chantal",
+        "Oplopend op aantal en aflopend op gebruiker: daan, chantal, bram, anna",
+        "Het script stopt, omdat `-Descending` niet bij twee eigenschappen mag"
+      ],
+      "answer": 1,
+      "explanation": "`-Descending` geldt voor alle opgegeven eigenschappen, dus ook voor `Gebruiker`. Wil je per eigenschap een eigen richting, dan gebruik je zoals in regel 27 een hashtable met `Expression` en `Descending`. Let ook op de tweede sleutel: sorteer je alleen op `Aantal`, dan blijft de volgorde van gelijke aantallen in PowerShell 7 gelijk aan de invoer, maar in Windows PowerShell 5.1 niet gegarandeerd. Een tweede sleutel maakt het resultaat in beide versies vast."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [32],
+      "prompt": "Hoe staat de kolom `Laatste` in `per-gebruiker.csv`?",
+      "options": [
+        "Altijd als internationale tekst, zoals `2026-10-12T11:00:00`",
+        "Als Unix-tijd, een aantal seconden sinds 1970",
+        "Als tekst in de datumnotatie van je taalinstelling, zoals `12-10-2026 11:00:00`",
+        "Als een echte datumcel die Excel direct herkent, onafhankelijk van de taalinstelling van de computer"
+      ],
+      "answer": 2,
+      "explanation": "`Export-Csv` zet elke waarde om naar tekst met de huidige taalinstelling. Op een Nederlandse computer staat er `12-10-2026 11:00:00`, op een Amerikaanse `10/12/2026 11:00:00 AM`. Het bestand is dus niet overal hetzelfde te lezen. Ook de getallen in `Aantal` staan tussen aanhalingstekens. Wil je een vaste notatie, zet de datum dan zelf om, bijvoorbeeld met `.ToString('s')`."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [33],
+      "prompt": "Hoe staat `Laatste` in `per-gebruiker.json`?",
+      "options": [
+        "In 7 als `2026-10-12T11:00:00`; in 5.1 als `\\/Date(1791795600000)\\/`",
+        "In beide versies als internationale tekst, namelijk `2026-10-12T11:00:00`",
+        "In beide versies als `12-10-2026 11:00:00`, net als in de CSV, volgens de taalinstelling",
+        "In beide versies als het aantal seconden dat sinds 1970 is verstreken"
+      ],
+      "answer": 0,
+      "explanation": "`ConvertTo-Json` schrijft een datum in PowerShell 7 als ISO 8601-tekst. In Windows PowerShell 5.1 gebruikt het een oud Microsoft-formaat, `\\/Date(milliseconden)\\/`, dat veel andere programma's niet begrijpen. Zet je de datum zelf om naar tekst met `.ToString('s')`, dan is de JSON in beide versies gelijk."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [32, 33],
+      "prompt": "Wat is het verschil in de bestanden die `-Encoding UTF8` schrijft in Windows PowerShell 5.1 en PowerShell 7?",
+      "options": [
+        "In 5.1 staat er geen UTF-8 in, alleen ANSI-tekst; in 7 wel UTF-8",
+        "Er is geen verschil: beide schrijven precies dezelfde bytes naar schijf",
+        "In 7 staan er extra lege regels aan het einde van elk bestand",
+        "In 5.1 staat vooraan een BOM; in 7 niet"
+      ],
+      "answer": 3,
+      "explanation": "In Windows PowerShell 5.1 schrijft `-Encoding UTF8` een BOM (de bytes `EF BB BF`) vooraan. PowerShell 7 schrijft UTF-8 zonder BOM. Een BOM helpt Excel bij het herkennen van tekens, maar kan een JSON-lezer of een ander programma laten struikelen. Wil je in PowerShell 7 juist een BOM, dan gebruik je `utf8BOM`."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [31, 32, 33],
+      "prompt": "Welke gegevens wijzigt het script bij het draaien?",
+      "options": [
+        "De gebeurtenissen in `$events`, die worden gegroepeerd en daarna aangepast",
+        "Twee bestanden in de uitvoermap, die steeds worden overschreven",
+        "Niets: het script toont alleen een tabel en een regel tekst op het scherm",
+        "Alle bestanden in de tijdelijke map van de gebruiker, ook die van andere programma's"
+      ],
+      "answer": 1,
+      "explanation": "Regel 31 maakt de map aan als die ontbreekt (`-Force` geeft geen fout als ze er al is). Regel 32 en 33 schrijven de twee bestanden, en overschrijven een eerdere versie zonder te vragen. De gebeurtenissen zelf blijven ongewijzigd. Daarom staat `risk` op `write`: het wijzigt geen gegevens in Microsoft 365, maar het schrijft wel lokale bestanden."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Het CSV- en JSON-bestand zijn niet in elke PowerShell-versie en taalinstelling gelijk. Welke twee aanpassingen maken ze voorspelbaar?",
+      "explanation": "Een sterk antwoord noemt de datum en de codering. Zet `Laatste` zelf om naar tekst met een vaste notatie, bijvoorbeeld `Laatste = $max.ToString('s')` in een berekende eigenschap, zodat CSV en JSON overal `2026-10-12T11:00:00` tonen. En kies de codering bewust: wil je zeker zijn van UTF-8 zonder BOM in elke versie, dan schrijf je de tekst met `[System.IO.File]::WriteAllText($pad, $tekst, [System.Text.UTF8Encoding]::new($false))`. Wil je juist een BOM voor Excel, dan gebruik je `-Encoding UTF8` in 5.1 of `utf8BOM` in 7. Noem ook dat een tweede sorteersleutel de volgorde vastzet."
+    }
+  ]
+}
