@@ -1,0 +1,143 @@
+{
+  "id": "m365-teams-eigenaren",
+  "title": "Teams en hun eigenaren inventariseren",
+  "topic": "m365",
+  "level": "basis",
+  "tag": "Get-Team · Get-TeamUser · foreach · alleen lezen",
+  "summary": "Loopt langs alle actieve teams, telt per team de eigenaren en leden en toont de teams met te weinig eigenaren.",
+  "risk": "read",
+  "modules": ["MicrosoftTeams"],
+  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets en parameters (`Get-Team -Archived`, `Get-TeamUser -GroupId`) zijn getoetst in de module MicrosoftTeams 8.0; de logica is getest met nagebootste cmdlets. De eigenschapsnamen in de uitvoer (`GroupId`, `DisplayName`, `Visibility`, `User`, `Role`) zijn teruggevonden in de modeltypes van de module, en de help van `Get-Team` zegt dat de cmdlet alle teams van de organisatie kan teruggeven. Open punten: in welke hoofdletters `Role` terugkomt, en of `Get-TeamUser` zonder `-Role` ook gasten teruggeeft.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 21],
+      "prompt": "Wat verandert er als je het script aanroept met `-MinEigenaren 1`?",
+      "options": [
+        "Alleen teams zonder eigenaar komen nog in het overzicht",
+        "Alle teams met precies één eigenaar komen in het overzicht",
+        "Teams met minstens één eigenaar worden aan de lijst toegevoegd",
+        "Het script wijst automatisch een eigenaar toe aan elk team"
+      ],
+      "answer": 0,
+      "explanation": "Regel 21 houdt de teams over met minder eigenaren dan `$MinEigenaren`. Bij 1 zijn dat de teams met 0 eigenaren. Met de standaardwaarde 2 komen ook teams met één eigenaar mee, die kwetsbaar zijn als die ene persoon vertrekt. Het script wijst nergens iets toe."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [7],
+      "prompt": "Wat bepaalt `-Archived $false` in `Get-Team -Archived $false`?",
+      "options": [
+        "Alleen gearchiveerde teams, om ze te kunnen opruimen",
+        "Alle teams, want `$false` schakelt het filter uit",
+        "Alleen teams die niet zijn gearchiveerd",
+        "Alleen teams zonder leden, zodat lege teams opvallen"
+      ],
+      "answer": 2,
+      "explanation": "`-Archived` is een filter: `$true` geeft alleen gearchiveerde teams, `$false` alleen de actieve teams. Gearchiveerde teams zijn alleen-lezen en hebben meestal geen beheerder nodig, dus ze horen niet in dit overzicht. De parameter accepteert zowel `$true` als `$false` en kan ook weg."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [9, 10],
+      "prompt": "Het script ziet 200 actieve teams. Hoeveel aanroepen naar Teams doet het ongeveer?",
+      "options": [
+        "Eén aanroep voor alle teams en eigenaren samen",
+        "Twee aanroepen: één voor de teams en één voor alle gebruikers",
+        "Eén aanroep per team voor de gebruikers, en geen aanroep voor de teams zelf",
+        "Eén aanroep voor de lijst met teams plus één per team: ongeveer 201"
+      ],
+      "answer": 3,
+      "explanation": "`Get-Team` haalt de lijst op (regel 7) en `Get-TeamUser` wordt in de lus voor elk team aangeroepen (regel 10). Dat geeft ongeveer 201 aanroepen. Bij honderden of duizenden teams duurt dat lang en kan Teams vertragen (throttling). Zie de laatste vraag."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [11],
+      "prompt": "Waarom vindt `$_.Role -eq 'owner'` ook een eigenaar als `Role` als `Owner` wordt teruggegeven?",
+      "options": [
+        "Omdat `-eq` bij tekst standaard hoofdletterongevoelig is",
+        "Omdat PowerShell hoofdletters in de uitvoer van cmdlets altijd automatisch omzet",
+        "Omdat `Owner` en `owner` in .NET altijd dezelfde tekst zijn, ook bij `-ceq`",
+        "Omdat `-eq` alleen de eerste letter van de tekst vergelijkt, en de rest negeert"
+      ],
+      "answer": 0,
+      "explanation": "In PowerShell is `-eq` op tekst standaard niet hoofdlettergevoelig. Voor een hoofdlettergevoelige vergelijking gebruik je `-ceq`. Dat is handig omdat de uitvoer van een module soms in een andere schrijfwijze terugkomt. In welke hoofdletters `Role` precies terugkomt, staat als open punt in de `note`."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [10, 11, 16],
+      "prompt": "Wie telt de kolom `Leden` mee?",
+      "options": [
+        "Alleen gebruikers met de rol `member`, zonder de gasten in het team",
+        "Iedereen die geen eigenaar is, ook gasten als die worden teruggegeven",
+        "Alleen de gebruikers van binnen de organisatie, dus zonder externe gebruikers",
+        "Alle gebruikers in het team, de eigenaren en de gasten inbegrepen"
+      ],
+      "answer": 1,
+      "explanation": "De formule in regel 16 is het aantal gebruikers min het aantal eigenaren. Alles wat geen eigenaar is, telt dus als lid, ook een gast als `Get-TeamUser` die teruggeeft (dat is niet bevestigd, zie de `note`). Wil je gasten apart zien, dan filter je op de rol `guest`. Een kolom die anders wordt berekend dan de naam doet vermoeden, is een veelvoorkomende bron van misverstanden."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [17],
+      "prompt": "Het team `Kantine` heeft geen eigenaar. Wat toont de kolom `Eigenaar1` en wat gebeurt er met het script?",
+      "options": [
+        "Een foutmelding, want er is geen eerste eigenaar om op te halen",
+        "De tekst `null`, zodat je de lege plek kunt zien",
+        "De naam van het eerste lid van het team als vervanger voor de eigenaar",
+        "Een lege waarde zonder foutmelding; het script gaat door"
+      ],
+      "answer": 3,
+      "explanation": "`Select-Object -First 1` op een lege lijst geeft niets terug, en een eigenschap opvragen van niets geeft `$null` zonder fout. De cel blijft dus leeg. Een lege cel is makkelijk te missen. Kijk daarom ook naar de kolom `Eigenaren`: daar staat voor een team zonder eigenaar een 0."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [5, 7, 10],
+      "prompt": "Welke gegevens in de tenant wijzigt dit script?",
+      "options": [
+        "Het maakt een nieuwe eigenaar aan voor teams zonder eigenaar",
+        "Het archiveert teams zonder eigenaar",
+        "Niets: het leest teams en gebruikers en toont het overzicht",
+        "Het verwijdert gebruikers uit teams met te veel leden"
+      ],
+      "answer": 2,
+      "explanation": "Alleen `Connect-MicrosoftTeams`, `Get-Team` en `Get-TeamUser` praten met de tenant, en die lezen alleen. `| Out-Null` verbergt het object dat `Connect-MicrosoftTeams` teruggeeft, zodat het niet in de tabel komt; het wijzigt niets."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [21],
+      "prompt": "In de tabel staat `Kantine` (0 eigenaren) boven `Finance` (1 eigenaar). Waarom?",
+      "options": [
+        "Omdat `Kantine` alfabetisch voor `Finance` komt in de lijst met teams",
+        "Omdat de eerste sorteersleutel `Eigenaren` is, oplopend",
+        "Omdat `Kantine` een openbaar team is en openbare teams eerst staan",
+        "Omdat `Kantine` als laatste is aangemaakt, dus de nieuwste staat bovenaan"
+      ],
+      "answer": 1,
+      "explanation": "Sorteer je op twee eigenschappen, dan telt de eerste eerst en de tweede alleen bij een gelijke stand. 0 komt voor 1. Alfabetisch zou `Finance` vóór `Kantine` staan, dus dat is het niet. De tweede sleutel `Team` maakt de volgorde bij gelijke aantallen voorspelbaar."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "bewerking",
+      "prompt": "In een tenant met 3000 teams duurt dit script erg lang. Welke aanpassingen overweeg je, en waar moet je op letten?",
+      "explanation": "Een sterk antwoord noemt dat de aanroepen per team de bottleneck zijn (ongeveer één per team). Opties: `Get-TeamUser -Role Owner` laat alleen de eigenaren ophalen (dan klopt de kolom `Leden` niet meer, maar voor een eigenarencontrole is dat genoeg); `Get-Team -NumberOfThreads` versnelt volgens de help het ophalen van de lijst; voortgang tonen met `Write-Progress`; en de resultaten bewaren in een bestand zodat je niet steeds opnieuw begint. In PowerShell 7 kan `ForEach-Object -Parallel` met een bescheiden `-ThrottleLimit` helpen, maar controleer eerst of de Teams-verbinding in de parallelle sessies werkt. Let op throttling: te veel gelijktijdige aanroepen kunnen foutmeldingen geven, dus een retry met een groeiende wachttijd (zoals in het script over opnieuw proberen) hoort erbij."
+    }
+  ]
+}
