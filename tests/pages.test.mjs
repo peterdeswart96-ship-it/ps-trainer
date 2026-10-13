@@ -520,3 +520,12 @@ test('start: een hoofdonderwerp telt de scripts van zijn subcategorieen mee; sub
   assert.equal(meta.textContent, '2 scripts · 1 basis, 1 gevorderd');
   assert.equal(kaarten[1].className, 'kaart in-opbouw');
 });
+
+test('werkbank: de kop is compact (class compact op de werkbankpagina, met eigen regels in de CSS en een terugval op smalle schermen)', () => {
+  const html = readFileSync(join(root, 'oefenen', 'index.html'), 'utf8');
+  assert.match(html, /<div class="wrap compact">/);
+  const css = cssTekst();
+  for (const regel of [/\.compact header\s*\{/, /\.compact .sub\s*\{[^}]*flex-basis:\s*100%/, /\.compact .kopacties\s*\{[^}]*margin-left:\s*auto/, /\.compact header > div:first-child\s*\{\s*display:\s*contents/, /\.compact #score\s*\{/]) assert.match(css, regel);
+  assert.match(css, /@media \(max-width: 900px\)\s*\{\s*\.compact header > div:first-child\s*\{\s*display:\s*block/, 'op een smal scherm de gewone indeling');
+  for (const pagina of ['index.html', 'woordenboek/index.html']) assert.doesNotMatch(readFileSync(join(root, pagina), 'utf8'), /wrap compact/, `${pagina} blijft ongewijzigd`);
+});
