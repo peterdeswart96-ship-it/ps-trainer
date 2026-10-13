@@ -1,0 +1,145 @@
+{
+  "id": "algemeen-foreach-berekende-eigenschappen",
+  "title": "Foreach en berekende eigenschappen",
+  "topic": "algemeen",
+  "level": "basis",
+  "tag": "foreach · continue · Select-Object",
+  "summary": "Loopt met foreach door een lijst voorbeeldsites, slaat kleine sites over en toont het resultaat met zelf berekende kolommen.",
+  "risk": "read",
+  "modules": [],
+  "note": "De sites staan in het script zelf; er wordt niets opgehaald. Geef bij een proefrun een vaste `-Peildatum` mee, anders verandert de kolom DagenGeleden elke dag.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Foreach, about_Continue, Select-Object (calculated properties), Sort-Object, about_Arithmetic_Operators en about_Parameters. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2],
+      "prompt": "Wat doet het type `[double]` bij `$MinGB` met de waarde `-MinGB 0.5`?",
+      "options": [
+        "Het weigert de waarde, omdat een grens in gigabytes een geheel getal moet zijn",
+        "Het maakt er de tekst `0.5` van, die PowerShell daarna zelf vergelijkt",
+        "Het rondt de waarde af naar 0, omdat de grens in hele gigabytes werkt",
+        "Het bewaart de waarde als kommagetal, dus precies 0.5"
+      ],
+      "answer": 3,
+      "explanation": "Een `[double]` is een getal met decimalen. Daarom blijft `-MinGB 0.5` precies 0.5 en toont het script 3 van de 4 sites. Bij een `[int]` zou PowerShell de waarde stil afronden naar 0 (en `1.5` naar 2), zonder foutmelding. Een tekst zoals `abc` wordt bij beide types geweigerd met een omzettingsfout. Let op: tussen de tabel en de laatste regel zie je soms een komma en een punt door elkaar, omdat tabellen de taalinstelling van Windows volgen en de tekstregel altijd een punt gebruikt."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [3],
+      "prompt": "Wat gebeurt er met `$Peildatum` als je het script zonder die parameter aanroept?",
+      "options": [
+        "Het script gebruikt de huidige datum en tijd van het moment van draaien",
+        "Het script stopt en vraagt om een datum, want de parameter is verplicht voor het script",
+        "Het script gebruikt 1 januari 0001, de lege datum",
+        "Het script gebruikt de datum waarop het bestand is gemaakt"
+      ],
+      "answer": 0,
+      "explanation": "Een standaardwaarde mag een expressie zijn, hier `(Get-Date)`. Die wordt uitgerekend op het moment van de aanroep. Daarom verandert de kolom `DagenGeleden` elke dag. Voor een vergelijkbare proefrun geef je dus een vaste `-Peildatum` mee, zoals `-Peildatum 2026-10-13`."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [14],
+      "prompt": "Wat doet `continue` in regel 14?",
+      "options": [
+        "Het stopt de hele lus, zodat er geen andere sites meer worden bekeken door het script",
+        "Het slaat de rest van deze ronde over en gaat naar de volgende site",
+        "Het slaat de regel over en voert regel 15 nog wel uit",
+        "Het herhaalt dezelfde site totdat de voorwaarde niet meer klopt"
+      ],
+      "answer": 1,
+      "explanation": "In een `foreach`-lus springt `continue` naar de volgende ronde. Regel 15 wordt dan niet uitgevoerd, dus die site komt niet in `$groot`. Met `break` stop je de hele lus, wat hier een ander resultaat zou geven: na de eerste kleine site zouden de volgende sites nooit meer worden bekeken."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [13, 14, 15, 16],
+      "prompt": "In de lus staat alleen `$site` op een eigen regel, zonder `Write-Output`. Waarom komen de sites toch in `$groot` terecht?",
+      "options": [
+        "PowerShell kopieert bij elke ronde automatisch de variabele `$site` naar `$groot`, zonder dat je iets doet",
+        "Alle uitvoer van de lus wordt verzameld in de variabele links van het is-gelijk-teken",
+        "De variabele `$groot` wordt vanzelf gevuld met alle sites uit `$sites`",
+        "Het gaat niet vanzelf: zonder `Write-Output` blijft `$groot` leeg"
+      ],
+      "answer": 1,
+      "explanation": "Een losse waarde op een regel is uitvoer. Bij `$groot = foreach (...) { ... }` verzamelt PowerShell alle uitvoer van de lus in `$groot`: bij nul sites `$null`, bij één site dat ene object en bij meer sites een array. Daarom staat er in regel 25 `@($groot)`."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [10, 14],
+      "prompt": "Site `nieuw` heeft nog geen opslaggegevens (`$null`). Waarom ontbreekt die site in het standaardrapport, zonder foutmelding?",
+      "options": [
+        "`$null` telt in een deling als 0, dus 0 is kleiner dan 1 en de site valt stil af",
+        "Een deling met `$null` geeft een fout, die `continue` zonder melding opvangt en negeert",
+        "PowerShell slaat objecten met een lege eigenschap altijd over, ook zonder filter in de lus",
+        "De site is te nieuw: `Gewijzigd` ligt na de peildatum"
+      ],
+      "answer": 0,
+      "explanation": "Bij rekenen telt `$null` mee als 0, dus `$null / 1024` is 0 en `0 -lt 1` klopt. De site valt zonder melding af. Met `-MinGB 0` verschijnt `nieuw` juist wel, met 0 GB in de kolom (in PowerShell 7 als `0,00`): dat lijkt dan een lege site, terwijl de opslag onbekend is. Rapporteer zulke sites liever apart, bijvoorbeeld met een controle `$null -eq $site.OpslagMB`."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [19, 20, 21],
+      "prompt": "Wat doet `@{ Name = 'GB'; Expression = { ... } }` in Select-Object?",
+      "options": [
+        "Het wijzigt de eigenschap `OpslagMB` van de site zelf in gigabytes",
+        "Het filtert de sites waarvan de opslag in gigabytes bekend is",
+        "Het maakt een variabele `$GB` die je in de rest van het script kunt gebruiken",
+        "Het maakt een nieuwe kolom `GB`, met per site de uitkomst van het blok"
+      ],
+      "answer": 3,
+      "explanation": "Een hashtable met `Name` en `Expression` is een berekende eigenschap. Select-Object voert het blok uit voor elk object (met `$_` als dat object) en zet de uitkomst in een nieuwe kolom met die naam. De originele objecten blijven ongewijzigd. Typ je een sleutel verkeerd, zoals `Expresion`, dan stopt Select-Object met een foutmelding (in de geteste versies de weinig zeggende melding dat de methode niet wordt ondersteund)."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [18, 19, 20, 21, 22, 23],
+      "prompt": "Wat is na afloop veranderd aan de objecten in `$sites`?",
+      "options": [
+        "De eigenschap `OpslagMB` van elke site staat nu in gigabytes in plaats van in megabytes",
+        "De sites die te klein waren, zijn uit de lijst `$sites` verwijderd en komen niet terug",
+        "Niets: Select-Object maakt nieuwe objecten en leest de originelen alleen",
+        "De lijst is gesorteerd op `DagenGeleden`"
+      ],
+      "answer": 2,
+      "explanation": "Het script wijzigt niets. De lus leest `$sites`, `Select-Object` bouwt nieuwe objecten met de kolommen `Site`, `GB` en `DagenGeleden`, en `Sort-Object` sorteert alleen de stroom naar de tabel. `$sites` zelf blijft zoals in regel 6 tot en met 11."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [22],
+      "prompt": "Waarom staat `finance` bovenaan in de tabel?",
+      "options": [
+        "Omdat `finance` alfabetisch het eerst komt van alle sites in de lijst",
+        "Omdat `-Descending` het hoogste aantal dagen bovenaan zet",
+        "Omdat `finance` als eerste in `$sites` staat",
+        "Omdat de tabel met `-Descending` op de kolom GB is gesorteerd"
+      ],
+      "answer": 1,
+      "explanation": "`Sort-Object -Property DagenGeleden -Descending` zet het hoogste aantal dagen bovenaan. Finance is voor het laatst gewijzigd op 1 maart 2025 en dus het langst geleden. Dat gebeurt toevallig bij de site met de meeste opslag, maar de sortering gaat alleen over de dagen."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Het rapport toont site `nieuw` bij `-MinGB 0` met 0 GB. Hoe pas je het script aan zodat bij een onbekende opslag `onbekend` in de kolom GB staat?",
+      "explanation": "Een sterk antwoord past het blok van de berekende eigenschap `GB` aan: `if ($null -eq $_.OpslagMB) { 'onbekend' } else { [math]::Round($_.OpslagMB / 1024, 1) }`. De controle moet met `$null -eq ...` en niet met `-not $_.OpslagMB`, want een opslag van 0 MB is een geldige waarde en geen onbekende. Let op dat de filterregel in de lus dan ook moet worden aangepast, anders valt de site daar nog steeds af (zie vraag 5). Let op: de kolom GB bevat dan zowel tekst als getallen, dus sorteer je er niet meer op."
+    }
+  ]
+}
