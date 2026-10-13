@@ -15,6 +15,7 @@ Peter koos de besluiten voor issue #35, daarna de iconen, de naam en het menu. C
 | 71 | Reviewcorrecties op script 7, per ongeluk niet meegenomen in PR 70 |
 | 74 | Subcategorieën in een uitklapmenu onder het hoofdonderwerp (DESIGN 1.20) |
 | 75 | Compactere kop en scorerij op de werkbank (DESIGN 1.21) |
+| 78 | Knop Kopieer Copilot-prompt bij elke vraag, issue #72 (DESIGN 1.22) |
 
 ## Onderwerpen en subcategorieën (issue #35, gesloten)
 
@@ -38,6 +39,10 @@ Een klik op een hoofdonderwerp met subcategorieën (SharePoint, Security, Azure)
 ## Compacte werkbank (PR 75)
 
 Op de werkbankpagina (`<div class="wrap compact">`) staan logo, titel en menu op één rij, met de uitleg als smalle regel eronder; de scorerij kost minder hoogte. Onder de 900px blijft de gewone indeling (bij 700 tot 900px wrapte de kop niet netjes). Alleen `oefenen/index.html` heeft de class.
+
+## Copilot-prompt bij een vraag (issue #72, PR 78)
+
+Elke vraag heeft een knop "Kopieer Copilot-prompt" tussen Vorige en Volgende. `assets/js/prompt.js` (zuivere functie `bouwCopilotPrompt`) bouwt de prompt in de browser: rol en niveau, het hele script met regelnummers, de vraag met leesstap, regels en opties, en acht instructies (hele script uitleggen, elke cmdlet en parameter met verschillen tussen 5.1 en 7, uitvoervoorbeeld, valkuilen, links naar Microsoft Learn zonder verzinsels, niets uitvoeren, vaste opbouw, controlevragen en de vraag of alles duidelijk is). Besluiten van Peter: alleen kopieren (geen link naar een Copilot) en het goede antwoord, de uitleg en de note staan er nooit in. Mislukt het klembord, dan toont de kaart een tekstvak met de prompt. De melding verdwijnt bij een andere vraag. Een test controleert voor alle vragen van alle echte scripts dat de uitleg, note en check.source niet in de prompt staan en dat de prompt onder 8000 tekens blijft (de langste is 4721; die grens is een aanname over Copilot Chat). Niet gebouwd: een eigen tekstveld voor "dit snap ik niet", voorgestelde vervolgvragen en antwoord meesturen. Zie DESIGN.md 1.22.
 
 ## PowerShell-basis (`data/scripts/algemeen/`)
 
