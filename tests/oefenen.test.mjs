@@ -43,11 +43,13 @@ function maakPagina({ zoek = '' } = {}) {
     createElement: maakElement,
     createTextNode: (t) => ({ tag: '#tekst', textContent: t }),
     createDocumentFragment: () => maakElement('#fragment'),
-    getElementById: (id) => els[id] ?? null
+    getElementById: (id) => els[id] ?? null,
+    addEventListener: (soort, f) => { (docHandlers[soort] ??= []).push(f); }
   };
+  const docHandlers = {};
   const urls = [];
   const win = { location: { search: zoek }, history: { replaceState: (a, b, url) => urls.push(url) } };
-  return { doc, win, els, urls };
+  return { doc, win, els, urls, docHandlers };
 }
 
 const alle = (knoop) => [knoop, ...(knoop.kinderen ?? []).flatMap(alle)];
@@ -703,7 +705,7 @@ test('werkbank: de soort-vraag-badge heeft een verborgen pictogram bij elk vraag
   assert.deepEqual(badges.map((b) => b.kinderen[1].textContent), ['Meerkeuze', 'Zoek de fout', 'Zelf formuleren']);
 });
 
-// --- Subcategorieen in het filter ---
+// --- Subcategorieen in het uitklapmenu ---
 
 const boomIndex = () => {
   const i = testIndex();
@@ -718,35 +720,134 @@ const groepNamen = (p) => vindAlle(p.els.filters, (k) => k.attributen?.role === 
 const knopTeksten = (p, label) => knoppen(groepVan(p, label)).map((k) => k.textContent);
 const ingedrukt = (p, label) => knoppen(groepVan(p, label)).filter((k) => k.attributen['aria-pressed'] === 'true').map((k) => k.textContent);
 const aantalScripts = (p) => vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').length;
+const hoofdKnop = (p) => vind(p.els.filters, (k) => k.attributen?.['aria-haspopup'] === 'true');
+const klikBuiten = (p) => { for (const f of p.docHandlers.click ?? []) f({}); };
 
-test('werkbank: zonder onderwerp geen subcategoriefilter, en alleen hoofdonderwerpen als knop', async () => {
+test('werkbank: zonder onderwerp geen menu, en alleen hoofdonderwerpen als knop', async () => {
   const p = await start({ haalIndex: async () => boomIndex() });
   assert.deepEqual(groepNamen(p), ['Onderwerp', 'Soort vraag']);
   assert.deepEqual(knopTeksten(p, 'Onderwerp'), ['Alle onderwerpen', 'Eerste']);
+  assert.equal(hoofdKnop(p).attributen['aria-expanded'], 'false');
 });
 
-test('werkbank: een oude URL met een subcategorie (?topic=tweede) blijft werken en toont de subcategorieknoppen', async () => {
+test('werkbank: een oude URL met een subcategorie (?topic=tweede) blijft werken; het menu is dicht en de knop toont de keuze', async () => {
   const p = await start({ zoek: '?script=c-basis&topic=tweede', haalIndex: async () => boomIndex() });
-  assert.deepEqual(groepNamen(p), ['Onderwerp', 'Subcategorie', 'Soort vraag']);
-  assert.deepEqual(ingedrukt(p, 'Onderwerp'), ['Eerste'], 'het hoofdonderwerp is gekozen');
-  assert.deepEqual(knopTeksten(p, 'Subcategorie'), ['Alles', 'Tweede']);
-  assert.deepEqual(ingedrukt(p, 'Subcategorie'), ['Tweede']);
+  assert.deepEqual(groepNamen(p), ['Onderwerp', 'Soort vraag'], 'het menu is dicht');
+  assert.equal(hoofdKnop(p).textContent, 'Eerste \u203a Tweede');
+  assert.equal(hoofdKnop(p).attributen['aria-pressed'], 'true', 'het hoofdonderwerp is gekozen');
   assert.deepEqual(vindAlle(p.els.scriptkeuze, (k) => k.tag === 'button').map((k) => k.kinderen[0].textContent), ['Titel c-basis', 'Titel b-gev']);
 });
 
-test('werkbank: een hoofdonderwerp kiezen toont zijn hele boom; "Alles" en een subcategorie wisselen het filter', async () => {
+test('werkbank: een klik op het hoofdonderwerp kiest het en klapt het menu uit; een subcategorie of "Alles" kiest en sluit het', async () => {
   const p = await start({ haalIndex: async () => boomIndex() });
-  klik(knopMetTekst(groepVan(p, 'Onderwerp'), 'Eerste'));
+  klik(hoofdKnop(p));
   await wacht();
   assert.equal(aantalScripts(p), 3, 'eigen scripts en die van de subcategorie');
+  assert.equal(hoofdKnop(p).attributen['aria-expanded'], 'true');
+  assert.deepEqual(groepNamen(p), ['Onderwerp', 'Subcategorie', 'Soort vraag']);
+  assert.deepEqual(knopTeksten(p, 'Subcategorie'), ['Alles', 'Tweede']);
   assert.deepEqual(ingedrukt(p, 'Subcategorie'), ['Alles']);
   assert.equal(p.urls.at(-1), '/oefenen/?script=a-basis&topic=eerste');
+
   klik(knopMetTekst(groepVan(p, 'Subcategorie'), 'Tweede'));
   await wacht();
   assert.equal(aantalScripts(p), 2);
   assert.match(p.urls.at(-1), /&topic=tweede$/);
+  assert.deepEqual(groepNamen(p), ['Onderwerp', 'Soort vraag'], 'het menu sluit na een keuze');
+  assert.equal(hoofdKnop(p).textContent, 'Eerste \u203a Tweede');
+
+  klik(hoofdKnop(p));
+  await wacht();
   klik(knopMetTekst(groepVan(p, 'Subcategorie'), 'Alles'));
   await wacht();
   assert.equal(aantalScripts(p), 3);
   assert.match(p.urls.at(-1), /&topic=eerste$/);
+  assert.equal(hoofdKnop(p).textContent, 'Eerste');
+});
+
+test('werkbank: nog een klik op het hoofdonderwerp sluit het menu weer, zonder het filter te wijzigen', async () => {
+  const p = await start({ haalIndex: async () => boomIndex() });
+  klik(hoofdKnop(p));
+  await wacht();
+  assert.equal(groepNamen(p).includes('Subcategorie'), true);
+  klik(hoofdKnop(p));
+  await wacht();
+  assert.equal(groepNamen(p).includes('Subcategorie'), false);
+  assert.equal(hoofdKnop(p).attributen['aria-expanded'], 'false');
+  assert.equal(aantalScripts(p), 3);
+});
+
+test('werkbank: Escape en een klik buiten het menu sluiten het; een klik binnen het menu (die naar de pagina bubbelt) doet dat niet', async () => {
+  const p = await start({ haalIndex: async () => boomIndex() });
+  const wrap = () => vind(p.els.filters, (k) => k.className === 'menuwrap');
+  // Een klik op de knop bubbelt naar het omhulsel en daarna naar de pagina: dat sluit het menu niet.
+  const klikBinnen = (knop) => { const omhulsel = wrap(); klik(knop); klik(omhulsel); klikBuiten(p); };
+  klikBinnen(hoofdKnop(p));
+  await wacht();
+  assert.equal(groepNamen(p).includes('Subcategorie'), true, 'een klik binnen het menu sluit het niet');
+  klikBuiten(p);
+  assert.equal(groepNamen(p).includes('Subcategorie'), false, 'een klik daarbuiten sluit het wel');
+
+  klikBinnen(hoofdKnop(p));
+  await wacht();
+  for (const f of p.docHandlers.keydown ?? []) f({ key: 'Enter' });
+  assert.equal(groepNamen(p).includes('Subcategorie'), true, 'een andere toets sluit het niet');
+  for (const f of p.docHandlers.keydown ?? []) f({ key: 'Escape' });
+  assert.equal(groepNamen(p).includes('Subcategorie'), false);
+});
+
+test('werkbank: een ander onderwerp kiezen sluit het menu en het menu hoort alleen bij het gekozen hoofdonderwerp', async () => {
+  const p = await start({ haalIndex: async () => boomIndex() });
+  klik(hoofdKnop(p));
+  await wacht();
+  klik(knopMetTekst(groepVan(p, 'Onderwerp'), 'Alle onderwerpen'));
+  await wacht();
+  assert.equal(groepNamen(p).includes('Subcategorie'), false);
+  assert.equal(aantalScripts(p), 3);
+});
+
+test('werkbank: de toetsenbordfocus blijft op de knop na openen, kiezen, sluiten en Escape', async () => {
+  const p = await start({ haalIndex: async () => boomIndex() });
+  const gefocust = () => [...alle(p.els.filters)].filter((k) => k.tag === 'button' && k.gefocust).map((k) => k.textContent);
+  const wis = () => { for (const k of alle(p.els.filters)) k.gefocust = 0; };
+
+  klik(hoofdKnop(p));
+  await wacht();
+  assert.deepEqual(gefocust(), ['Eerste'], 'na het openen staat de focus op de hoofdknop');
+
+  wis();
+  klik(knopMetTekst(groepVan(p, 'Subcategorie'), 'Tweede'));
+  await wacht();
+  assert.deepEqual(gefocust(), ['Eerste › Tweede'], 'na een keuze terug op de hoofdknop, die de keuze toont');
+
+  klik(hoofdKnop(p));
+  await wacht();
+  wis();
+  for (const f of p.docHandlers.keydown ?? []) f({ key: 'Escape' });
+  assert.deepEqual(gefocust(), ['Eerste › Tweede'], 'ook na Escape');
+
+  wis();
+  klik(knopMetTekst(groepVan(p, 'Soort vraag'), 'Meerkeuze'));
+  await wacht();
+  assert.deepEqual(gefocust(), ['Meerkeuze'], 'een andere filterknop houdt de focus ook');
+});
+
+test('werkbank: een klik op Soort vraag sluit een open menu en meerdere hoofdonderwerpen hebben elk een eigen menu', async () => {
+  const i = boomIndex();
+  i.topics.push({ id: 'derde', name: 'Derde', summary: 's', order: 2, status: 'live' }, { id: 'vierde', name: 'Vierde', summary: 's', order: 1, status: 'live', parent: 'derde' });
+  i.scripts.push({ id: 'd-basis', topic: 'vierde', level: 'basis', title: 'Titel d-basis', tag: 'Tag d', counts: { mc: 1, bug: 1, open: 1 }, check: { status: 'gecontroleerd' }, path: 'data/scripts/vierde/d-basis' });
+  const p = await start({ haalIndex: async () => i, haalScript: async (entry) => GEGEVENS[entry.id] ?? GEGEVENS['a-basis'], haalMeta: async (entry) => (GEGEVENS[entry.id] ?? GEGEVENS['a-basis']).meta });
+  const menuKnoppen = () => vindAlle(p.els.filters, (k) => k.attributen?.['aria-haspopup'] === 'true');
+  assert.deepEqual(menuKnoppen().map((k) => k.textContent), ['Eerste', 'Derde']);
+  klik(menuKnoppen()[0]);
+  await wacht();
+  assert.deepEqual(menuKnoppen().map((k) => k.attributen['aria-expanded']), ['true', 'false']);
+  klik(menuKnoppen()[1]);
+  await wacht();
+  assert.deepEqual(menuKnoppen().map((k) => k.attributen['aria-expanded']), ['false', 'true'], 'het menu van het ene onderwerp sluit als je het andere kiest');
+  assert.deepEqual(knopTeksten(p, 'Subcategorie'), ['Alles', 'Vierde']);
+  klik(knopMetTekst(groepVan(p, 'Soort vraag'), 'Zoek de fout'));
+  await wacht();
+  assert.deepEqual(menuKnoppen().map((k) => k.attributen['aria-expanded']), ['false', 'false'], 'een klik op een ander filter sluit het menu');
+  assert.equal(groepNamen(p).includes('Subcategorie'), false);
 });

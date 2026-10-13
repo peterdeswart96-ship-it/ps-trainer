@@ -144,6 +144,17 @@ a.kaart:hover { border-color: var(--accent); }
   .filters .chip { flex: none; white-space: nowrap; }
 }
 .chip.filter { padding: 5px 12px; font-size: .9rem; display: block; }
+/* Uitklapmenu met de subcategorieen van een hoofdonderwerp: onder de knop, boven de rest van de pagina. */
+.menuwrap { position: relative; display: inline-block; }
+.chip.filter[aria-haspopup]::after { content: " \25BE" / ""; }
+.chip.filter[aria-haspopup][aria-expanded="true"]::after { content: " \25B4" / ""; }
+.submenu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; gap: 6px; min-width: 100%; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
+.submenu .chip { white-space: nowrap; }
+/* Op een smal scherm staat de filterrij in een zijwaarts schuifbare rij; een zwevend menu zou daar worden afgesneden, dus staat het menu dan naast de knop. */
+@media (max-width: 700px) {
+  .menuwrap { display: inline-flex; gap: 8px; flex: none; }
+  .submenu { position: static; display: flex; padding: 0; border: 0; box-shadow: none; background: none; min-width: 0; }
+}
 
 /* Onderwerpknoppen in het filter: elk onderwerp een eigen pastelkleur. De achtergrond is een lichte tint (4%) van de
    pastelkleur van het onderwerp; het randje heeft dezelfde kleurfamilie, iets steviger (de onderwerpkleur zelf; het

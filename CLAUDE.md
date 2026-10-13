@@ -7,7 +7,7 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 
 ## Lees eerst
 - `DEFINE.md`: wat en waarom (versie 0.9, akkoord).
-- `DESIGN.md`: hoe (versie 1.19, definitief). **Leidend voor alle technische keuzes.**
+- `DESIGN.md`: hoe (versie 1.20, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 - `docs/sessies/`: een overdracht per sessie. Begin een nieuwe sessie met het nieuwste bestand: de stand van zaken, besluiten en wat er openstaat.
 
