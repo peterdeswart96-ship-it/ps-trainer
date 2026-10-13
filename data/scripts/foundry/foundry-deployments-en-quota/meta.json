@@ -1,0 +1,133 @@
+{
+  "id": "foundry-deployments-en-quota",
+  "title": "Modeldeployments en quota opvragen",
+  "topic": "foundry",
+  "level": "gevorderd",
+  "tag": "Get-AzCognitiveServicesAccountDeployment · Get-AzCognitiveServicesUsage · Sort-Object · Select-Object",
+  "summary": "Toont de modeldeployments van één Foundry-resource met model, type en capaciteit, en laat daarna zien welke quotaregels in de regio van de resource bijna vol zitten. Zo zie je waar een nieuwe deployment tegen een limiet aanloopt.",
+  "risk": "read",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving. De cmdletpagina van `Get-AzCognitiveServicesAccountDeployment` toont als uitvoer alleen `SystemData`, `Etag`, `Properties`, `Id`, `Name` en `Type`; dat `Sku` bestaat (met `Name` en `Capacity`) en dat `Properties.Model` de eigenschappen `Name` en `Version` heeft, volgt uit de beschrijving van de REST-API en uit de voorbeelden voor het aanmaken (`Sku = @{ Name; Capacity }`, `Properties = @{ Model = @{ Name; Version; Format } }`), maar is niet bevestigd voor de uitvoerobjecten. Is een eigenschap er niet, dan geeft `Select-Object` geen fout maar een lege kolom. Volgens de quotadocumentatie staat 1 capaciteitseenheid bij een Standard-deployment van veel chatmodellen voor 1.000 tokens per minuut (TPM), maar de verhouding tussen eenheid, TPM en requests per minuut verschilt per model (bij sommige redeneermodellen is een eenheid 6.000 of 10.000 TPM). `Get-AzCognitiveServicesUsage` toont in het voorbeeld de eigenschappen `CurrentValue`, `Name`, `Limit`, `Status`, `Unit`, `QuotaPeriod` en `NextResetTime`; de leesbare naam met eenheid (bijvoorbeeld thousands) die de REST-API als `localizedValue` geeft, staat niet in de PowerShell-uitvoer die in de documentatie is getoond. `CurrentValue` is de quota die aan deployments is toegewezen, niet het aantal gebruikte tokens. De quota gelden per abonnement, regio, model en deployment-type, dus de regels gaan over alle deployments van het abonnement in die regio, niet alleen over deze resource. Dat `Location` van de resource in dezelfde schrijfwijze staat als `-Location` van `Get-AzCognitiveServicesUsage` verwacht (het voorbeeld gebruikt `WestUS`), is niet bevestigd; het script haalt daarom witruimte weg. Voor quota noemt de documentatie de rol Cognitive Services Usages Reader op abonnementsniveau als minimale rol (de abonnementsrol Reader geeft ook toegang); een toewijzing op de resourcegroep of resource is niet genoeg. Wat het script toont zonder zo'n rol, is niet bevestigd. Het script werkt in het abonnement van je huidige Az-context. `Get-AzCognitiveServicesUsage` geeft ook regels van andere Cognitive Services (in het voorbeeld CustomVision met eenheid `Count`); het filter werkt op alle regels, niet alleen op modelquota.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-AzCognitiveServicesAccountDeployment (syntax, voorbeelduitvoer), New-AzCognitiveServicesAccountDeployment, Get-AzCognitiveServicesUsage (syntax, voorbeelduitvoer), Manage Azure OpenAI in Microsoft Foundry Models quota (quota per abonnement, regio, model en type; Usages API; rol Cognitive Services Usages Reader op abonnement), Automate Azure OpenAI deployments with quota (Sku Capacity: bij het voorbeeld 10 = 10.000 TPM, verhouding verschilt per model; voorbeeld met Get-AzCognitiveServicesUsage). Open punten: de eigenschappen van het uitvoerobject van de deployment, de eenheid en naamvorm van de usage-regels in PowerShell, en de schrijfwijze van de regio."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        4
+      ],
+      "prompt": "De drempel op regel 4 staat standaard op 0.8. Wat gebeurt er als je het script start met -Drempel 80?",
+      "options": [
+        "Het script toont alleen quotaregels waarvan minstens 80 procent is gebruikt, zoals bedoeld",
+        "Het script stopt met een foutmelding, omdat 80 buiten het toegestane bereik van de parameter valt",
+        "Het script toont geen quotaregels, omdat geen enkele regel een gebruik van 80 keer de limiet haalt",
+        "Het script toont juist alle quotaregels, omdat 80 hoger is dan elke limiet die in de regio bestaat"
+      ],
+      "answer": 2,
+      "explanation": "`[double]` is een getal met decimalen (in PowerShell schrijf je 0.8 met een punt), en de drempel is een verhouding, geen percentage: 0.8 betekent 80 procent. Met 80 vraagt het filter op regel 22 om regels waarvan het gebruik 80 keer de limiet is (8000 procent). Dat komt niet voor, dus je krijgt de melding van regel 31 dat er niets boven de drempel is, terwijl er wel regels bijna vol kunnen zitten. Er is geen controle op het bereik van de parameter: een verkeerde invoer geeft dus geen fout, maar een misleidend leeg resultaat."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        9,
+        10
+      ],
+      "prompt": "Waarvoor dient regel 10, en welke quota worden daarna opgevraagd?",
+      "options": [
+        "De regio van de resource wordt opgehaald en opgeschoond; daarna worden de quota van die regio opgevraagd",
+        "Alle regio's worden opgehaald en samengevoegd; daarna worden de quota van de hele organisatie opgevraagd",
+        "De regio wordt gewijzigd naar een standaardregio; daarna worden de quota van die standaardregio opgevraagd",
+        "De naam van de resource wordt ingekort; daarna worden alleen de quota van deze ene resource opgevraagd"
+      ],
+      "answer": 0,
+      "explanation": "Regel 9 haalt de resource op, en regel 10 neemt de eigenschap `Location` en haalt met `-replace '\\s', ''` alle witruimte weg: een weergavenaam als `West Europe` wordt `WestEurope`, de schrijfwijze die `-Location` verwacht (dat laatste is niet bevestigd, zie de opmerking bij het script). Verderop geeft `Get-AzCognitiveServicesUsage` daarmee de quotaregels van het abonnement in die regio. Quota gelden per abonnement en regio: de regels gaan dus over alle deployments in die regio, niet alleen over deze resource."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        12,
+        17
+      ],
+      "prompt": "Wat staat er in de kolom Capaciteit die regel 17 bouwt?",
+      "options": [
+        "Het aantal servers dat voor de deployment is gereserveerd, zoals dat uit de eigenschap Sku.Name volgt",
+        "Het percentage van de quota dat de deployment gebruikt, berekend uit de eigenschap Sku.Capacity",
+        "De hoeveelheid geheugen in gigabyte die de deployment krijgt, uit de eigenschap Properties.Model",
+        "De toegewezen capaciteit uit Sku.Capacity; bij veel chatmodellen is 1 eenheid 1.000 tokens per minuut"
+      ],
+      "answer": 3,
+      "explanation": "Elke deployment is een object met een `Sku` (het type, bijvoorbeeld `Standard`, en de `Capacity`) en `Properties` met daarin `Model` (naam en versie). De berekende kolommen op regel 14 tot 17 halen die verborgen eigenschappen naar boven. Volgens de quotadocumentatie is bij veel chatmodellen 1 capaciteitseenheid 1.000 tokens per minuut (TPM): een capaciteit van 10 is dan 10.000 TPM. De verhouding verschilt per model (bij sommige redeneermodellen is een eenheid 6.000 of 10.000 TPM), dus reken niet blind met 1.000. Dat het uitvoerobject deze eigenschappen precies zo heeft, is niet bevestigd (zie de opmerking bij het script)."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        22
+      ],
+      "prompt": "Je typt op regel 22 per ongeluk -le in plaats van -ge. Wat is het gevolg?",
+      "options": [
+        "Het script toont nu alleen regels op of onder de drempel; de bijna volle quota blijven onzichtbaar",
+        "Het script stopt met een foutmelding, omdat -le niet samen met een berekening kan worden gebruikt",
+        "Het script toont nu dezelfde regels als eerst, alleen in een andere volgorde door de sortering",
+        "Het script past de drempel automatisch aan, zodat de bijna volle quota altijd bovenaan staan"
+      ],
+      "answer": 0,
+      "explanation": "`-ge` betekent groter dan of gelijk aan, `-le` kleiner dan of gelijk aan. Met `-le` houdt het filter de regels over die op of onder de drempel liggen: dat zijn vrijwel alle regels, ook die met een gebruik van nul. De regels boven 80 procent, waar het script voor bedoeld is, vallen nu af. Het rapport ziet er gewoon uit en geeft geen fout. Controleer daarom bij het eerste gebruik of de regels bovenaan echt het hoogste gebruik hebben."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        7,
+        36
+      ],
+      "prompt": "Wijzigt dit script deployments of quota in Azure?",
+      "options": [
+        "Ja, het verlaagt de capaciteit van deployments boven de drempel, zodat de quota weer vrij komen",
+        "Ja, het vraagt automatisch meer quota aan voor alle regels die boven de drempel uitkomen",
+        "Nee, het leest alleen deployments en quota; het toont ze op het scherm en schrijft niets weg",
+        "Nee, het verwijdert alleen deployments zonder enig verbruik; de quota zelf blijven ongewijzigd"
+      ],
+      "answer": 2,
+      "explanation": "In dit script staat geen cmdlet die deployments of quota wijzigt: alleen `Get-` voor de gegevens (`Connect-AzAccount` logt alleen in). `New-` en `Remove-AzCognitiveServicesAccountDeployment` bestaan wel, maar komen hier niet voor, en voor een quotaverzoek is geen cmdlet: dat gaat via een formulier. Het script toont alles op het scherm en schrijft zelfs geen bestand. Wil je een deployment verkleinen of aanmaken, dan is dat een aparte stap."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        23,
+        25
+      ],
+      "prompt": "Stel dat je op de kolom Gebruikt (regel 25) zou sorteren in plaats van op de berekening op regel 23. Wat is het risico?",
+      "options": [
+        "Sort-Object kan niet sorteren op een berekende kolom en stopt dan met een foutmelding",
+        "Gebruikt is tekst, dus de volgorde volgt de letters en niet de grootte van het percentage",
+        "De tabel verliest dan de kolommen CurrentValue en Limit, omdat Sort-Object ze weghaalt",
+        "Het risico is er niet: tekst en getallen sorteren in PowerShell altijd op dezelfde manier"
+      ],
+      "answer": 1,
+      "explanation": "De kolom `Gebruikt` is het resultaat van `'{0:P0}' -f ...`: een stukje tekst, bijvoorbeeld '85 %' (de exacte weergave hangt van de taalinstelling af). Tekst sorteert op de tekens, niet op de waarde, dus '100 %' kan tussen de verkeerde regels komen. Daarom sorteert het script op regel 23 op de onderliggende berekening `CurrentValue / Limit`, een echt getal, en maakt het de tekstkolom pas op regel 25. Opmaak is het laatste wat je doet; sorteer en filter nooit op de opgemaakte tekst."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat zegt dit overzicht niet, en waarom is een lege quotatabel geen bewijs dat je nieuwe deployments probleemloos kunt maken?",
+      "explanation": "Bijvoorbeeld: (1) `CurrentValue` is de quota die aan deployments is toegewezen, niet het aantal tokens dat is verbruikt: een deployment met 100.000 TPM toegewezen die niets gebruikt, telt volledig mee; omgekeerd kan een deployment 429-fouten geven terwijl er quota over is, omdat de limiet per deployment en per minuut geldt; (2) de regels gelden per abonnement, regio, model en deployment-type, niet per resource: andere resources in het abonnement gebruiken dezelfde quota; (3) alleen de regio van deze resource is bekeken; (4) de documentatie noemt de rol Cognitive Services Usages Reader op abonnementsniveau als minimale rol; wat het script toont zonder zo'n rol is niet bevestigd, en een leeg resultaat kan dus ook op een ontbrekend recht wijzen en niet op 'geen quota in gebruik'; (5) of de eenheid (duizenden tokens per minuut) uit de PowerShell-uitvoer blijkt, is niet bevestigd, dus vergelijk een regel met de portal; (6) een deployment van een bepaald type heeft een eigen quotaregel: Standard, GlobalStandard en provisioned zijn verschillend, en het script zegt niet welke regel bij welke deployment hoort; (7) quota is niet hetzelfde als beschikbare capaciteit van een model in een regio. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
