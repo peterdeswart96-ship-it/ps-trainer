@@ -1,0 +1,143 @@
+{
+  "id": "m365-gebruiksrapport-verwerken",
+  "title": "Gebruiksrapport van Microsoft 365-diensten verwerken",
+  "topic": "m365",
+  "level": "expert",
+  "tag": "Get-MgReportOffice365ActiveUserDetail · Import-Csv · ParseExact",
+  "summary": "Haalt het gebruiksrapport van Microsoft 365 op als CSV, zoekt per gebruiker de laatste activiteit over vier diensten en toont wie al lang niet actief is.",
+  "risk": "read",
+  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Reports"],
+  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlet en parameters (`-Period`, `-OutFile`) zijn getoetst in de module Microsoft.Graph 2.41; de logica is getest met een nagebootste cmdlet die een CSV schrijft. Het script schrijft het rapport, met gebruikersnamen, naar de tijdelijke map van de gebruiker. Open punten: de toegestane waarden voor `-Period` (de `ValidateSet` met D7, D30, D90 en D180 is een keuze van het script; de module toont dezelfde vier waarden als suggestie, maar valideert ze niet), de kolomnamen en de datumnotatie `yyyy-MM-dd` in de CSV, of `Last Activity Date` ook datums van vóór de gekozen periode toont, of `Reports.Read.All` voldoende is, en wat er gebeurt als de tenant gebruikersnamen in rapporten verbergt.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 3],
+      "prompt": "Wat gebeurt er als je het script aanroept met `-Periode D365`?",
+      "options": [
+        "Het script haalt het rapport over een heel jaar op, want 365 is een geldig aantal",
+        "Het script rondt de waarde af naar de dichtstbijzijnde periode, D180",
+        "PowerShell weigert de waarde voordat het script draait: niet in de lijst",
+        "Het script geeft de periode door en Graph weigert de aanvraag met een foutmelding"
+      ],
+      "answer": 2,
+      "explanation": "`[ValidateSet(...)]` controleert de waarde bij het binden van de parameters. Staat hij niet in de lijst, dan volgt een foutmelding en draait er niets, ook `Connect-MgGraph` niet. Zo vang je typfouten vroeg af. De lijst zelf is een keuze van het script, op basis van de documentatie; dat staat als open punt in de `note`."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [10, 11],
+      "prompt": "Wat levert `Get-MgReportOffice365ActiveUserDetail -OutFile` op, en hoe gebruikt het script dat?",
+      "options": [
+        "Een CSV-bestand op schijf, dat het script daarna met `Import-Csv` leest",
+        "Een lijst objecten in het geheugen; `-OutFile` bewaart alleen een extra kopie ervan",
+        "Een tekst op het scherm die het script daarna zelf moet afvangen en opslaan",
+        "Een verbinding met het rapport; het script moet daar zelf de rijen uit ophalen"
+      ],
+      "answer": 0,
+      "explanation": "De rapportcmdlets van Graph geven een CSV terug. Met `-OutFile` schrijft de cmdlet die naar een bestand, en `Import-Csv` maakt er weer objecten van (regel 13). In deze versie van de module is `-OutFile` verplicht: de cmdlet schrijft alleen een bestand en geeft zelf geen objecten terug. Let op: de CSV bevat gebruikersnamen en staat daarna in de tijdelijke map."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [14, 15],
+      "prompt": "Wat doet `$rij.\"$dienst Last Activity Date\"` in regel 15?",
+      "options": [
+        "Het zoekt de tekst `$dienst Last Activity Date` letterlijk op in de kolomnamen van de CSV",
+        "Het geeft een fout, omdat een eigenschapsnaam geen variabele mag bevatten volgens PowerShell",
+        "Het telt hoe vaak de dienst voorkomt in de kolomnamen",
+        "Het leest de kolom met de samengestelde naam, zoals `Teams Last Activity Date`"
+      ],
+      "answer": 3,
+      "explanation": "In dubbele aanhalingstekens vult PowerShell `$dienst` in. Het resultaat is de naam van een kolom met spaties, die je zo als eigenschap kunt aanspreken. Zo loop je met één regel langs vier kolommen. Dat de kolomnamen zo heten, is gebaseerd op de documentatie en staat als open punt in de `note`."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [16],
+      "prompt": "Waarom gebruikt het script `ParseExact` met `InvariantCulture` in plaats van simpelweg `[datetime]$tekst`?",
+      "options": [
+        "Omdat `ParseExact` sneller is dan een gewone omzetting van tekst naar datum",
+        "De notatie ligt vast; een afwijkende notatie geeft een fout in plaats van een gok",
+        "Omdat `[datetime]` geen jaartal van vier cijfers accepteert in een CSV-bestand",
+        "Omdat `InvariantCulture` de datum altijd automatisch naar UTC omzet"
+      ],
+      "answer": 1,
+      "explanation": "Een tekst als `11-10-2026` is dubbelzinnig. De omzetting `[datetime]` raadt: ze leest altijd maand-eerst (Amerikaans), dus dit wordt 10 november, ook op een Nederlandse computer. `[datetime]::Parse` en `Get-Date` volgen juist de taalinstelling en geven 11 oktober (getest in nl-NL). `ParseExact` met `yyyy-MM-dd` en `InvariantCulture` raadt niet: het leest alleen die ene notatie, op elke computer hetzelfde. Een andere notatie geeft een fout per rij, maar het script stopt dan niet: elke gebruiker krijgt een lege datum en staat in de lijst als inactief. Gebruik `-ErrorAction Stop` of `try/catch` als je wilt dat het script stopt. Dat de CSV die notatie gebruikt, staat als open punt in de `note`."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [26],
+      "prompt": "Een collega haalt `$null -eq $_.DagenInactief -or` uit de filter in regel 26. Wat is het gevolg?",
+      "options": [
+        "Er verandert niets: een lege waarde is altijd groter dan de ingestelde grens",
+        "Het script stopt omdat het een lege waarde niet kan vergelijken met een getal",
+        "Gebruikers zonder activiteitsdatum verdwijnen uit de lijst",
+        "Alle gebruikers komen in de lijst, ook de gebruikers die gewoon actief zijn"
+      ],
+      "answer": 2,
+      "explanation": "Een vergelijking met `$null` geeft `$false`: `$null -ge 60` is onwaar. Zonder de aparte controle valt een gebruiker zonder enige activiteit dus buiten de lijst. In de test met nagebootste gegevens gaat het van 2 naar 1 gebruiker. De gebruikers die je het meest zoekt, verdwijnen zo zonder foutmelding."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [10, 11],
+      "prompt": "Wat wijzigt of schrijft het script?",
+      "options": [
+        "Niets in de tenant; wel een CSV met namen in de tijdelijke map om op te ruimen",
+        "Het wijzigt de rapportinstellingen van de tenant naar de gekozen periode van het rapport",
+        "Het markeert inactieve gebruikers in Microsoft 365 met een label of categorie",
+        "Het schrijft niets weg: het rapport blijft helemaal in het geheugen van het script"
+      ],
+      "answer": 0,
+      "explanation": "Met de leesscope `Reports.Read.All` verandert er niets in de tenant. Maar de cmdlet schrijft het rapport naar een bestand in de tijdelijke map (regel 10 en 11), en dat bevat persoonsgegevens. Dat bestand blijft staan tot jij het verwijdert, bijvoorbeeld met `Remove-Item`. Een goed script ruimt dat zelf op of schrijft naar een beveiligde plek."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [22, 28],
+      "prompt": "`chantal@contoso.com` heeft een lege `LaatsteActiviteit`. Wat mag je daaruit afleiden?",
+      "options": [
+        "Dat Chantal nooit in Microsoft 365 heeft gewerkt, ook niet vóór de periode van het rapport",
+        "Dat haar account is verwijderd uit de tenant",
+        "Dat het script een fout heeft gemaakt bij het inlezen van haar rij",
+        "Dat het rapport voor haar geen datum heeft; of dat `nooit` is, hangt van de periode af"
+      ],
+      "answer": 3,
+      "explanation": "De samenvatting zegt `(of nooit)`, maar dat is stelliger dan het rapport toelaat. Het rapport heeft alleen gegevens over een periode (standaard 90 dagen) en het is niet bevestigd of er ook oudere datums in staan (zie de `note`). Een lege waarde betekent dus: geen activiteit gezien. Controleer die gebruikers nog op een andere manier voordat je iets besluit."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [20],
+      "prompt": "De tenant verbergt gebruikersnamen in rapporten. Wat toont de kolom `Gebruiker` dan?",
+      "options": [
+        "Een lege kolom, zodat het rapport niet meer te lezen is door de gebruiker",
+        "Een onleesbare code in plaats van een adres; het script werkt gewoon door",
+        "Een foutmelding dat de cmdlet geen toegang heeft tot de namen",
+        "Het e-mailadres van de beheerder die het script draait"
+      ],
+      "answer": 1,
+      "explanation": "Beheerders kunnen instellen dat namen in de gebruiksrapporten worden vervangen door onleesbare codes. Het script werkt dan zonder fout, maar het rapport is niet bruikbaar om mensen op te sporen. Kijk de kolom `Gebruiker` dus altijd na. Of dat ook zo is bij deze cmdlet, staat als open punt in de `note`."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt op basis van dit rapport licenties intrekken. Welke controles doe je eerst, en wat doe je met het CSV-bestand?",
+      "explanation": "Een sterk antwoord noemt: controleer de instelling voor verborgen gebruikersnamen; sluit gedeelde postvakken, serviceaccounts en nieuwe medewerkers uit; vergelijk met een tweede bron, zoals aanmeldactiviteit; kijk naar het aantal diensten (iemand die alleen Exchange gebruikt, is wel actief); en laat de beslissing door de leidinggevende bevestigen. Het CSV-bestand bevat persoonsgegevens: verwijder het na gebruik (`Remove-Item`) of schrijf het naar een beveiligde map met een bewaartermijn. Het intrekken zelf doe je in een apart script met `-WhatIf` (zie het script over licenties terughalen)."
+    }
+  ]
+}
