@@ -1,0 +1,143 @@
+{
+  "id": "m365-teams-beleid-vergelijken",
+  "title": "Teams-vergaderbeleid van twee gebruikers vergelijken",
+  "topic": "m365",
+  "level": "expert",
+  "tag": "Get-CsTeamsMeetingPolicy · PSObject.Properties · alleen lezen",
+  "summary": "Zoekt het Teams-vergaderbeleid van twee gebruikers op en toont alle instellingen waarin die beleiden van elkaar verschillen.",
+  "risk": "read",
+  "modules": ["MicrosoftTeams"],
+  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets en parameters (`Get-CsOnlineUser -Identity`, `Get-CsTeamsMeetingPolicy -Identity`, `Connect-MicrosoftTeams`) zijn getoetst in de module MicrosoftTeams 8.0; de logica is getest met nagebootste cmdlets. De uitvoertypen van de Teams-cmdlets staan niet in de modulemetadata. Open punten: of `Get-CsOnlineUser` bij een onbekende gebruiker een afbrekende fout geeft (anders valt het script stil terug op `Global`), of de eigenschap `TeamsMeetingPolicy` op een gebruiker leeg is als alleen het standaardbeleid geldt (het script gaat daarvan uit), of die eigenschap ook een beleid via een groep laat zien (de help van `Get-CsOnlineUser` noemt hiervoor `EffectivePolicyAssignments`), welke eigenschappen een vergaderbeleidobject heeft (het script loopt langs alle eigenschappen), en hoe `Identity` van een eigen beleid wordt teruggegeven.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [20, 21, 22, 23],
+      "prompt": "Beide gebruikers hebben geen eigen beleid toegewezen. Wat toont het script?",
+      "options": [
+        "Een tabel zonder rijen, met alleen de kolomkoppen van het resultaat",
+        "De melding dat het beleid gelijk is; het script stopt daarna",
+        "Een foutmelding omdat er geen verschillen te vinden zijn in de lijst",
+        "Een vergelijking van het standaardbeleid met zichzelf, met nul verschillen als uitkomst"
+      ],
+      "answer": 1,
+      "explanation": "Staat er geen eigen beleid, dan neemt regel 13 `Global`. Zijn de namen gelijk, dan meldt regel 21 dat en stopt `return` in regel 22 het script. Dat voorkomt dat het script een lege vergelijking toont. Een `return` op scriptniveau beëindigt het script."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [12, 13],
+      "prompt": "Wat gaat het script ervan uit als `TeamsMeetingPolicy` bij een gebruiker leeg is?",
+      "options": [
+        "Dat de gebruiker geen vergaderingen mag plannen of organiseren in Teams",
+        "Dat het beleid van de beheerder die het script draait wordt overgenomen",
+        "Dat er geen apart beleid is, dus `Global` geldt",
+        "Dat het account niet is gevonden in Teams en dus wordt overgeslagen"
+      ],
+      "answer": 2,
+      "explanation": "Regel 13 is een `if` als uitdrukking: is de eigenschap gevuld, dan gebruikt het script die naam, anders `Global`. Dat is een aanname, die in de `note` staat als open punt. De help van `Get-CsOnlineUser` noemt ook `EffectivePolicyAssignments`, voor het beleid dat echt geldt, inclusief toewijzingen via een groep."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [26],
+      "prompt": "Waarom loopt het script langs `$a.Beleid.PSObject.Properties.Name`?",
+      "options": [
+        "Omdat de eigenschappen van een beleid alleen via `PSObject` te lezen zijn",
+        "Zo krijgt het alle eigenschapsnamen, zonder ze zelf op te sommen",
+        "Omdat `PSObject.Properties.Name` de waarden van beide beleiden alvast vergelijkt",
+        "Omdat dit de enige manier is om verborgen eigenschappen van het object te zien"
+      ],
+      "answer": 1,
+      "explanation": "`PSObject.Properties` geeft de eigenschappen van een willekeurig object, en `.Name` de namen. Zo vergelijk je alle instellingen zonder er één te hoeven noemen, en komen nieuwe instellingen na een update vanzelf mee. De prijs: je kent de lijst niet vooraf, dus controleer de uitvoer goed op ruis."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [28, 29],
+      "prompt": "Waarom staan de waarden in regels 28 en 29 tussen aanhalingstekens, zoals `\"$($a.Beleid.$eigenschap)\"`?",
+      "options": [
+        "Omdat een eigenschap met een hoofdletter anders niet wordt gevonden in het beleid",
+        "Omdat PowerShell dan de waarde in een lijst bewaart voor later gebruik in het script",
+        "Omdat het script anders alleen de eerste eigenschap van het beleid vergelijkt",
+        "Zo worden waarden tekst: `$null` en een lege tekst zijn gelijk"
+      ],
+      "answer": 3,
+      "explanation": "Een waarde die tussen aanhalingstekens staat, wordt tekst. `$null` wordt dan een lege tekst, dus `$null` en `''` tellen als gelijk, en een lijst wordt de elementen met een spatie ertussen. Zonder die omzetting zou `$null -ne ''` een nepverschil geven. Het nadeel: een lijst met `a` en `b` en de tekst `a b` zijn voor het script gelijk."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [25, 27],
+      "prompt": "Een collega haalt regel 27 (`if ($eigenschap -in $negeer) { continue }`) weg. Wat verandert er in de uitvoer?",
+      "options": [
+        "Ook `Identity` en `Description` worden als verschil getoond",
+        "Er verandert niets, want `$negeer` wordt nergens anders gebruikt in het script",
+        "Het script stopt omdat `continue` ontbreekt in de lus",
+        "Alleen de instellingen die gelijk zijn komen in de lijst terecht"
+      ],
+      "answer": 0,
+      "explanation": "Het beleid heeft altijd een andere `Identity` en vaak een andere `Description`, dus zonder deze regel staan die twee in elke vergelijking. Regel 27 slaat ze over met `continue`: de lus gaat meteen naar de volgende eigenschap. In de test met nagebootste gegevens gaat het van 2 naar 4 verschillen. Wat je niet wilt zien, filter je bewust weg."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [30],
+      "prompt": "Welk verschil mist `-ne` in regel 30?",
+      "options": [
+        "Verschillen in de volgorde van de waarden van een lijst met opties",
+        "Een verschil tussen de waarden `True` en `False` van een instelling",
+        "Een verschil dat alleen in hoofdletters zit",
+        "Een verschil in het aantal beleiden dat een gebruiker heeft"
+      ],
+      "answer": 2,
+      "explanation": "`-ne` op tekst is standaard niet hoofdlettergevoelig, dus `EntireScreen` en `entirescreen` zijn gelijk. Dat kan goed zijn als Teams hoofdletters als gelijk behandelt (niet gecontroleerd), maar het is een bewuste beperking. Voor een hoofdlettergevoelige vergelijking gebruik je `-cne`. Dat is getest met nagebootste gegevens."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [8, 12, 14],
+      "prompt": "Welke instellingen in Teams wijzigt dit script?",
+      "options": [
+        "Het zet de afwijkende instellingen van gebruiker B gelijk aan die van A",
+        "Het wijst het beleid van gebruiker A toe aan gebruiker B",
+        "Het schrijft het verschil naar een bestand in de tenant",
+        "Geen enkele: het leest beleid en toewijzingen en toont de verschillen"
+      ],
+      "answer": 3,
+      "explanation": "Alleen `Connect-MicrosoftTeams`, `Get-CsOnlineUser` en `Get-CsTeamsMeetingPolicy` praten met Teams, en die lezen alleen. Een beleid toewijzen doe je met `Grant-CsTeamsMeetingPolicy`, en dat heeft `-WhatIf`. Dat staat niet in dit script."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [12, 13, 20],
+      "prompt": "Het script meldt dat beide gebruikers `Global` hebben, maar een van hen krijgt via een groep een ander beleid. Hoe kan dat?",
+      "options": [
+        "`TeamsMeetingPolicy` toont mogelijk alleen een direct beleid; een groepstoewijzing niet",
+        "Teams negeert elk beleid dat via een groep is toegewezen, ook zonder direct beleid",
+        "Het script vergelijkt de verkeerde gebruikers met elkaar vanwege de volgorde",
+        "Een groep kan geen vergaderbeleid krijgen, alleen een gebruiker zelf"
+      ],
+      "answer": 0,
+      "explanation": "De help van `Get-CsOnlineUser` noemt de eigenschap `EffectivePolicyAssignments` voor het beleid dat echt geldt. Het is niet bevestigd dat `TeamsMeetingPolicy` een beleid via een groep toont; dat staat als open punt in de `note`. Een vergelijking die alleen directe toewijzingen kent, kan dus een onjuist beeld geven van wat een gebruiker in de praktijk krijgt."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt 50 gebruikers vergelijken met één referentiegebruiker. Wat pas je aan, en wat toon je in plaats van de volledige tabel per gebruiker?",
+      "explanation": "Een sterk antwoord laat het script over een lijst gebruikers lopen en haalt elk beleid maar één keer op, bijvoorbeeld door beleidsobjecten in een hashtable te bewaren op naam (`$beleidPerNaam`), zodat 50 gebruikers met bijvoorbeeld drie verschillende beleiden maar drie aanroepen kosten. Toon per gebruiker één regel: de naam van het beleid en het aantal verschillen met de referentie, en bewaar de volledige verschillen in een CSV. Noem ook dat je het beleid via een groep moet meenemen als dat in jouw tenant voorkomt (zie `EffectivePolicyAssignments` in de `note`)."
+    }
+  ]
+}
