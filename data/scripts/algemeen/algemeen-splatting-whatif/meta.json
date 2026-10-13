@@ -1,0 +1,130 @@
+{
+  "id": "algemeen-splatting-whatif",
+  "title": "Splatting en -WhatIf",
+  "topic": "algemeen",
+  "level": "gevorderd",
+  "tag": "splatting · SupportsShouldProcess · -WhatIf",
+  "summary": "Maakt per team een map aan met parameters uit een hashtable (splatting) en ondersteunt een droge run met -WhatIf.",
+  "risk": "write",
+  "modules": [],
+  "note": "Het script maakt standaard mappen aan in de tijdelijke map van de gebruiker, onder `ps-trainer-demo`. Probeer het eerst met `-WhatIf`. Verwijder de mappen daarna zelf als je ze niet meer nodig hebt.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Splatting, about_Functions_CmdletBindingAttribute (SupportsShouldProcess), about_Preference_Variables (WhatIfPreference), New-Item en Join-Path. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1, met een eigen testmap in plaats van de standaardmap."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [1],
+      "prompt": "Wat levert `[CmdletBinding(SupportsShouldProcess)]` in regel 1 op?",
+      "options": [
+        "Het script vraagt voor elke actie automatisch om een bevestiging van de gebruiker",
+        "De parameters `-WhatIf` en `-Confirm` zijn beschikbaar voor `ShouldProcess()`",
+        "Het script draait automatisch met beheerdersrechten in een verhoogde sessie",
+        "Het script maakt van elke map eerst een back-up voordat het wijzigt"
+      ],
+      "answer": 1,
+      "explanation": "Het attribuut voegt `-WhatIf` (droge run) en `-Confirm` (bevestigen) toe aan het script. De bevestiging of droge run gebeurt echter pas als de code `$PSCmdlet.ShouldProcess()` aanroept, zoals in regel 15. Rechten of back-ups heeft het attribuut niets mee te maken."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [3],
+      "prompt": "Waar worden de mappen aangemaakt als je het script zonder parameters aanroept?",
+      "options": [
+        "In de map waarin je op dat moment in je sessie staat",
+        "In de map waarin het bestand `script.ps1` zelf staat opgeslagen",
+        "In `ps-trainer-demo` in de tijdelijke map van de gebruiker",
+        "In de hoofdmap van schijf C, direct onder de root"
+      ],
+      "answer": 2,
+      "explanation": "De standaardwaarde is een expressie: `Join-Path` plakt `ps-trainer-demo` achter de tijdelijke map die `[System.IO.Path]::GetTempPath()` teruggeeft. Een veilige standaard voor een script dat wijzigt: het raakt niets belangrijks aan en je kunt de map zo weer weggooien."
+    },
+    {
+      "id": "q3",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [7, 8, 9, 10, 11, 16],
+      "prompt": "Een collega schrijft in regel 16 `$mapOpties` in plaats van `@mapOpties`. Wat gebeurt er?",
+      "options": [
+        "Een foutmelding over een positionele parameter, er wordt niets aangemaakt",
+        "Het werkt hetzelfde, want `@` is alleen een andere schrijfwijze voor dezelfde hashtable",
+        "Alleen de eerste sleutel uit de hashtable wordt gebruikt, de rest wordt genegeerd",
+        "De hashtable wordt als pad gebruikt en er ontstaat een map met de naam van de hashtable"
+      ],
+      "answer": 0,
+      "explanation": "Met `@mapOpties` worden de sleutels uit de hashtable losse parameters: `-ItemType Directory -Force -ErrorAction Stop`. Met `$mapOpties` krijgt `New-Item` één extra argument (de hashtable zelf) zonder parameternaam, en dat past nergens. Dat geeft de fout `A positional parameter cannot be found that accepts argument 'System.Collections.Hashtable'`. Een verkeerd gespelde sleutel, zoals `Forced`, geeft een fout dat die parameter niet bestaat."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [15],
+      "prompt": "Wat geeft `$PSCmdlet.ShouldProcess($pad, 'Map aanmaken')` terug als je het script met `-WhatIf` draait?",
+      "options": [
+        "`$true`, en PowerShell toont zelf de waarschuwing erbij",
+        "Een foutmelding, omdat `-WhatIf` het aanroepen van de methode verbiedt",
+        "Niets, de methode doet alleen iets bij `-Confirm`",
+        "`$false`, en PowerShell toont zelf een regel `What if: ...`"
+      ],
+      "answer": 3,
+      "explanation": "Bij `-WhatIf` toont `ShouldProcess` de melding `What if: Performing the operation \"Map aanmaken\" on target ...` en geeft het `$false` terug. Daardoor wordt het blok in de `if` overgeslagen. Zonder `-WhatIf` geeft de methode `$true`. Zo schrijf je de wijziging maar één keer en krijg je beide gedragingen."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [9, 16, 17],
+      "prompt": "Je draait het script twee keer achter elkaar zonder `-WhatIf`. Wat gebeurt er de tweede keer?",
+      "options": [
+        "Een fout dat de map al bestaat, en het script stopt daarna met een foutmelding",
+        "De mappen worden verwijderd en opnieuw aangemaakt, dus leeg gemaakt",
+        "Geen fout: de bestaande map wordt teruggegeven en `Aangemaakt` verschijnt weer",
+        "De mappen krijgen een volgnummer erachter, zoals `finance2`"
+      ],
+      "answer": 2,
+      "explanation": "Met `-Force` geeft `New-Item` voor een bestaande map die map terug, zonder fout en zonder iets te wissen. Dat maakt het script herhaalbaar. Let wel op de melding: `Aangemaakt` verschijnt ook voor mappen die er al waren. Wil je dat onderscheiden, dan controleer je eerst met `Test-Path`."
+    },
+    {
+      "id": "q6",
+      "type": "bug",
+      "step": "wijziging",
+      "lines": [15],
+      "prompt": "Een collega vervangt regel 15 door `if ($true) {` en draait het script met `-WhatIf`. Wat gebeurt er?",
+      "options": [
+        "De mappen worden toch aangemaakt, omdat het script niet meer naar -WhatIf kijkt",
+        "Er wordt niets aangemaakt, maar het script meldt `Aangemaakt:` zonder pad",
+        "Het script stopt met een foutmelding dat -WhatIf hier niet wordt ondersteund",
+        "Er verschijnt niets op het scherm, want de droge run is uitgeschakeld"
+      ],
+      "answer": 1,
+      "explanation": "Draai je een script met `SupportsShouldProcess` met `-WhatIf`, dan staat `$WhatIfPreference` aan, en cmdlets zoals `New-Item` houden daar zelf rekening mee. Er worden dus geen mappen gemaakt en je ziet de meldingen van `New-Item`. Maar `$nieuw` is leeg, dus het script schrijft `Aangemaakt: ` zonder pad. Het eigen `ShouldProcess`-blok is dus niet alleen voor het beschermen van de actie, maar ook om je eigen meldingen in de droge run kloppend te houden."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [15, 17],
+      "prompt": "Je draait het script met `-WhatIf`. Wat zie je op het scherm?",
+      "options": [
+        "Per team een regel `What if: ...`, en geen regels met `Aangemaakt`",
+        "Alleen regels met `Aangemaakt:` en het pad van elke map die is gemaakt",
+        "Een lijst van alle bestaande mappen in de tijdelijke map van de gebruiker",
+        "Niets, want een droge run toont geen enkele uitvoer op het scherm"
+      ],
+      "answer": 0,
+      "explanation": "De droge run laat zien wat er zou gebeuren: één regel per team met de actie en het doel. Het blok met `New-Item` en `Write-Output` wordt overgeslagen, dus er komen geen regels met `Aangemaakt`. Daarmee is een droge run een goede eerste stap voordat je een script op echte gegevens loslaat."
+    },
+    {
+      "id": "q8",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Het script meldt `Aangemaakt` ook voor een map die er al was. Hoe pas je het aan zodat het in dat geval `Bestond al` meldt en niets doet?",
+      "explanation": "Een sterk antwoord controleert vóór de actie met `Test-Path -LiteralPath $pad`. Bestaat de map, dan toon je `Bestond al: $pad` en ga je met `continue` naar het volgende team. Anders volgt het bestaande blok met `ShouldProcess`. Zo blijft de droge run kloppend en geeft elke melding aan wat er echt gebeurde. Een extra punt: noem dat je de controle buiten het `ShouldProcess`-blok zet, omdat een droge run ook moet kunnen zeggen dat een map al bestaat."
+    }
+  ]
+}
