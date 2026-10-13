@@ -1,0 +1,136 @@
+{
+  "id": "foundry-rbac-toewijzen-managed-identity",
+  "title": "Managed identity een rol geven op een Foundry-resource",
+  "topic": "foundry",
+  "level": "expert",
+  "tag": "Get-AzADServicePrincipal · Get-AzRoleAssignment · New-AzRoleAssignment · ShouldProcess · RoleDefinitionId",
+  "summary": "Zoekt de service principal van een managed identity, controleert of die de rol al heeft, en wijst anders een rol toe op één Foundry-resource. Met -WhatIf zie je alleen wat het zou doen.",
+  "risk": "write",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices",
+    "Az.Resources"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving; dit script verleent toegang. Doe eerst altijd een droge run met `-WhatIf`. De standaardrol is de rol met ID `53ca6127-db72-4b80-b1b0-d745d6d5456d`, in de Foundry-documentatie de rol Foundry User (eerder Azure AI User); de documentatie raadt aan in code het ID te gebruiken in plaats van de naam, omdat de rollen zijn hernoemd. Het script gebruikt `-RoleDefinitionId`, dat samen met `-ObjectId` en `-Scope` een eigen parameterset heeft. De syntax van `New-AzRoleAssignment` in de documentatie toont geen `-WhatIf` of `-Confirm`; de droge run komt daarom van het script zelf (`ShouldProcess`). De documentatie zegt dat je voor het toewijzen van rollen de rol Owner of User Access Administrator op het betreffende scope nodig hebt. Wat `Get-AzADServicePrincipal -DisplayName` teruggeeft, is niet uitgewerkt voor managed identities: of de weergavenaam van de service principal van een managed identity gelijk is aan de naam van de resource, is niet bevestigd, en weergavenamen zijn niet uniek, daarom eist het script precies één treffer. Volgens de documentatie geeft `-Scope` de toewijzingen die op dat scope gelden, dus ook die van hogere niveaus; dat ook toewijzingen op lagere niveaus (een project) kunnen meekomen volgt uit de beschrijving van `-AtScope`, en daarom filtert het script het resultaat op toewijzingen op het scope zelf of erboven; de namen van de uitvoereigenschappen van `PSRoleAssignment` (hier `Scope`) staan niet op de cmdletpagina. Of een nieuwe toewijzing meteen werkt, is niet bevestigd. Een roltoewijzing op de resource geldt ook voor wat eronder valt, zoals een project (de documentatie noemt een project een sub-scope van de resource), maar niet voor andere resources in dezelfde groep. Voor toegang die alleen met agents hoeft te communiceren noemt de documentatie de rol Foundry Agent Consumer als minimale rol. Dat `Get-AzRoleAssignment` zonder `-Scope` het hele abonnement bekijkt, is afgeleid uit de beschrijving van de cmdlet en niet letterlijk voor deze parameterset beschreven. Of `-DisplayName` van `Get-AzADServicePrincipal` een exacte of een begint-met-zoekactie is, staat niet in de documentatie; het script controleert daarom op precies één treffer. `Connect-AzAccount -WhatIf:$false` is niet apart in de documentatie van die cmdlet gecontroleerd.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: New-AzRoleAssignment (parameterset met -ObjectId, -RoleDefinitionId en -Scope; -ObjectType, -Description; geen -WhatIf in de syntax), Get-AzRoleAssignment (-Scope geeft toewijzingen op dat scope en erboven), Get-AzADServicePrincipal (-DisplayName), Role-based access control for Microsoft Foundry (rollen en hernoeming, rol-ID's, Foundry Agent Consumer, minimale toewijzingen), Authentication and authorization in Microsoft Foundry (Entra ID, rol voor de eigenaar of User Access Administrator). Open punten: of `-DisplayName` exact zoekt, of `Connect-AzAccount` `-WhatIf` kent, het gedrag zonder `-Scope`, de weergavenaam van de service principal van een managed identity, de namen van de eigenschappen van PSRoleAssignment, het gedrag als de toewijzing al bestaat, en hoe snel een nieuwe toewijzing werkt."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        5,
+        6
+      ],
+      "prompt": "Wat is het GUID dat als standaardwaarde van -RolId staat op regel 6, en waarom staat er geen rolnaam?",
+      "options": [
+        "Het is het ID van het abonnement; een rolnaam zou voor elke tenant anders zijn, een ID niet",
+        "Het is het ID van de managed identity zelf; het script wijst de rol dus aan de identiteit zelf toe",
+        "Het is het ID van de rol Foundry User; de rollen zijn hernoemd, het ID niet, dus het ID is stabieler",
+        "Het is de sleutel van de Foundry-resource; zo hoeft het script zelf niet meer in te loggen in Azure"
+      ],
+      "answer": 2,
+      "explanation": "Een rol heeft een naam en een vast ID (`RoleDefinitionId`). De Foundry-documentatie noemt `53ca6127-db72-4b80-b1b0-d745d6d5456d` als het ID van de rol Foundry User en raadt aan in code het ID te gebruiken: de rollen zijn recent hernoemd (Foundry User heette Azure AI User), de ID's en rechten niet. `[guid]` zorgt dat PowerShell de tekst omzet naar een GUID en een typefout (een niet-geldig GUID) meteen weigert. Het is dus geen geheim, geen abonnement-ID en geen sleutel."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        11,
+        12
+      ],
+      "prompt": "Op welk niveau wordt de rol toegewezen, en waarom is dat belangrijk?",
+      "options": [
+        "Alleen op deze ene Foundry-resource; andere resources in dezelfde groep krijgen geen toegang",
+        "Op het hele abonnement; zo werkt de rol voor elke Foundry-resource die je later nog aanmaakt",
+        "Op de resourcegroep; zo geldt de rol voor alle resources die in die groep staan en erna komen",
+        "Op de identiteit zelf; een rol hoort bij de identiteit en niet bij een plek ergens in Azure"
+      ],
+      "answer": 0,
+      "explanation": "Regel 12 neemt het ID van de resource (`$resource.Id`) als scope. Een rol geldt op een scope en alles daaronder: een rol op het abonnement geldt voor alles in het abonnement, een rol op de resourcegroep voor alle resources in die groep. Hoe kleiner het scope, hoe kleiner wat er misgaat als de identiteit wordt misbruikt (least privilege). Deze toewijzing geldt voor deze resource en wat eronder valt, zoals een project (volgens de documentatie een sub-scope van de resource); andere resources in dezelfde groep krijgen niets."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        14,
+        18
+      ],
+      "prompt": "Waarom eist het script op regel 15 dat er precies één service principal met de opgegeven naam is?",
+      "options": [
+        "Get-AzADServicePrincipal geeft nooit meer dan één resultaat, dus de controle is alleen voor de zekerheid",
+        "Een weergavenaam is niet uniek; bij meer treffers kan de rol aan de verkeerde identiteit gaan",
+        "Zonder deze controle werkt New-AzRoleAssignment niet, omdat het altijd een lijst met één element wil hebben",
+        "Het script wil de toewijzing zo snel mogelijk uitvoeren en een enkel resultaat is sneller dan meerdere"
+      ],
+      "answer": 1,
+      "explanation": "Op regel 14 zoekt `Get-AzADServicePrincipal -DisplayName` op weergavenaam, en `@()` zorgt dat het resultaat altijd een lijst is, ook bij nul of één treffer. Weergavenamen zijn niet uniek in Microsoft Entra ID: twee identiteiten kunnen dezelfde naam hebben. Zou het script bij meerdere treffers de eerste nemen, dan kan een rol aan de verkeerde identiteit gaan en dat zie je pas als iemand toegang heeft die hij niet hoort te hebben. Bij nul of meer dan één treffer stopt `throw` daarom met een melding. Veiliger is zoeken op object-ID; de naam is hier gekozen omdat die leesbaar is."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bron",
+      "lines": [
+        20,
+        21
+      ],
+      "prompt": "Je laat per ongeluk -Scope $scope weg op regel 20. Wat is het gevolg?",
+      "options": [
+        "Het script stopt met een foutmelding, omdat Get-AzRoleAssignment altijd een scope verplicht stelt",
+        "Er verandert niets, want het scope wordt automatisch gelijk aan de eerder opgehaalde resource",
+        "Het script wijst de rol nu aan alle service principals toe die dezelfde naam hebben als de identiteit",
+        "De controle kijkt in het hele abonnement en meldt ten onrechte dat de rol er al is als hij elders staat"
+      ],
+      "answer": 3,
+      "explanation": "`Get-AzRoleAssignment` kijkt standaard naar het hele abonnement als je geen scope opgeeft. De controle zoekt dan of deze identiteit deze rol ergens heeft, niet of hij hem op deze resource heeft. Heeft de identiteit de rol bijvoorbeeld op een andere resource, dan meldt regel 23 dat hij hem al heeft en wijst het script niets toe: de identiteit krijgt geen toegang tot deze resource, terwijl alles in orde lijkt. Met `-Scope $scope` kijkt het script naar dit scope, en het filter op regel 21 houdt alleen toewijzingen op de resource zelf of erboven over (een toewijzing op een project eronder geeft de identiteit niet de rol op de resource zelf)."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        27,
+        29
+      ],
+      "prompt": "Wat verandert er door regel 27, en wat houdt de aanroep tegen als je alleen een droge run wilt?",
+      "options": [
+        "Er komt een roltoewijzing bij waarmee de identiteit toegang krijgt; de droge run komt van regel 27",
+        "Er verandert niets in Azure; de aanroep controleert alleen of de identiteit de rol al heeft gekregen",
+        "Het wachtwoord van de identiteit wordt vernieuwd; de droge run komt van de cmdlet zelf in Azure",
+        "De sleutels van de Foundry-resource worden aangepast; de droge run komt van Connect-AzAccount zelf"
+      ],
+      "answer": 0,
+      "explanation": "`New-AzRoleAssignment` maakt een roltoewijzing: de identiteit kan daarna doen wat de rol toestaat op deze resource. Toegang verlenen is een wijziging in je beveiliging, niet alleen in de configuratie. In de syntax in de documentatie staat geen `-WhatIf`, dus de beveiliging voor een droge run bouwt het script zelf met `$PSCmdlet.ShouldProcess(...)` op regel 27: bij `-WhatIf` geeft die onwaar en wordt de aanroep op regel 28 overgeslagen. De `-Description` laat in de roltoewijzing zien waarvoor hij is gemaakt."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        27,
+        29
+      ],
+      "prompt": "De aanroep toont na afloop de nieuwe roltoewijzing. Wat bewijst dat?",
+      "options": [
+        "Dat de app van de identiteit nu zeker werkt, want de toewijzing is vastgelegd in Azure en dus actief",
+        "Dat de toewijzing is aangemaakt; of de app er in de praktijk mee kan werken, moet je testen",
+        "Dat de identiteit nu ook de rol Owner heeft op de hele resourcegroep waarin de resource staat",
+        "Dat de sleutels van de Foundry-resource daarmee overbodig zijn geworden voor alle andere gebruikers"
+      ],
+      "answer": 1,
+      "explanation": "De uitvoer laat zien dat de toewijzing is aangemaakt (met onder meer het scope en de rol). Dat is niet hetzelfde als dat de app werkt: de app moet met de juiste identiteit inloggen en een token voor Foundry gebruiken, de resource heeft een eigen subdomein nodig voor Microsoft Entra-aanmelding, en of een nieuwe toewijzing meteen overal geldt, is niet bevestigd. Test daarom met een echte aanroep door de app. De toewijzing geldt alleen voor deze identiteit op deze resource; andere rollen, sleutels en gebruikers blijven zoals ze waren."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat controleert dit script niet, en waarom is de rol toewijzen aan een identiteit een handeling die je extra zorgvuldig nakijkt?",
+      "explanation": "Bijvoorbeeld: (1) toegang verlenen is een beveiligingsbesluit: wie een rol toewijst, bepaalt wie wat kan; de documentatie zegt dat je daarvoor Owner of User Access Administrator nodig hebt, en dat recht is zelf gevoelig; (2) het script kiest geen minimale rol: voor een app die alleen met agents praat noemt de documentatie de rol Foundry Agent Consumer als minimaal, terwijl Foundry User meer toestaat (ook bouwen en testen in een project); controleer of de rol bij het doel past; (3) de rol geldt op de resource en wat eronder valt (projecten), niet op andere resources; de beheerde identiteit van een project zelf is een andere identiteit met eigen toewijzingen, en de documentatie noemt voor die identiteit ook een rol op de resource; (4) de naam van de identiteit is niet uniek en het script controleert niet of de gevonden service principal ook echt een managed identity is: kijk naar het type; (5) er is geen opruimstap: een rol die later niet meer nodig is, blijft staan tot iemand hem verwijdert; (6) sleutels omzeilen RBAC volledig, dus een rol zegt niets als de resource nog sleutels toestaat; (7) of de weergavenaam van een managed identity gelijk is aan de naam van de resource en hoe snel de toewijzing werkt, is niet bevestigd. Herstellen betekent de toewijzing weer verwijderen (met de rol-ID en het scope) en kijken of de identiteit toegang kwijt is."
+    }
+  ]
+}
