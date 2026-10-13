@@ -50,59 +50,7 @@
       "prompt": "Een collega zet het filter in dubbele aanhalingstekens: `\"assignedLicenses/$count eq 0\"`. Wat gebeurt er?",
       "options": [
         "Er is geen verschil: dubbele en enkele aanhalingstekens werken hier precies hetzelfde",
-        "Graph weigert dubbele aanhalingstekens altijd, ook als er geen `{
-  "id": "m365-gebruikers-zonder-licentie",
-  "title": "Gebruikers zonder licentie vinden",
-  "topic": "m365",
-  "level": "basis",
-  "tag": "Get-MgUser · -Filter · splatting · alleen lezen",
-  "summary": "Zoekt met een filter naar gebruikers die geen enkele licentie hebben en splitst het resultaat in leden en gasten.",
-  "risk": "read",
-  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Users"],
-  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets en parameters (`-Filter`, `-ConsistencyLevel`, `-CountVariable`, `-All`, `-Property`) zijn getoetst in de module Microsoft.Graph 2.41; de logica is getest met nagebootste cmdlets. Open punten: dat een filter op `assignedLicenses/$count` volgens de documentatie een geavanceerde query is met `ConsistencyLevel: eventual` en een telling, welke eigenschappen `Get-MgUser` zonder `-Property` teruggeeft, en of `User.Read.All` voldoende is.",
-  "check": {
-    "status": "nog_te_controleren"
-  },
-  "questions": [
-    {
-      "id": "q1",
-      "type": "mc",
-      "step": "parameters",
-      "lines": [2, 16, 17, 18],
-      "prompt": "Wat doet de schakelaar `-AlleenIngeschakeld`?",
-      "options": [
-        "Hij zet alle gevonden accounts aan, zodat de gebruikers weer kunnen inloggen",
-        "Lokaal blijven alleen ingeschakelde accounts over; de Graph-telling blijft gelijk",
-        "Hij vraagt Graph alleen om ingeschakelde accounts, zodat er minder wordt opgehaald",
-        "Hij verbiedt het script om gasten mee te nemen in de telling en de tabel"
-      ],
-      "answer": 1,
-      "explanation": "Het filter gebeurt lokaal, op regel 17, nadat Graph alle gebruikers zonder licentie heeft teruggegeven. Dat is handig maar niet zuinig: er wordt toch alles opgehaald. De telling die Graph meegeeft (`$aantal`) blijft daardoor gelijk, ook als er lokaal accounts afvallen."
-    },
-    {
-      "id": "q2",
-      "type": "mc",
-      "step": "bron",
-      "lines": [8, 9, 10],
-      "prompt": "Waarom staan `-ConsistencyLevel eventual` en `-CountVariable` bij dit filter?",
-      "options": [
-        "Omdat dit filter een geavanceerde query is die beide nodig heeft",
-        "Omdat de parameters de zoekopdracht sneller maken zonder dat het resultaat verandert",
-        "Omdat Graph anders alleen de eerste 100 gebruikers teruggeeft, ook met -All",
-        "Omdat PowerShell dan pas begrijpt dat het om een tekstfilter gaat, en niet om code"
-      ],
-      "answer": 0,
-      "explanation": "Volgens de documentatie van Graph vereist een filter op `assignedLicenses/$count` een geavanceerde query: de kop `ConsistencyLevel: eventual` en een telling. `-ConsistencyLevel` zet die kop en `-CountVariable` vraagt de telling. De resultaten kunnen daardoor net achterlopen op de laatste wijzigingen. Dat staat als open punt in de `note`, want het is niet tegen een tenant geprobeerd."
-    },
-    {
-      "id": "q3",
-      "type": "bug",
-      "step": "bewerking",
-      "lines": [8],
-      "prompt": "Een collega zet het filter in dubbele aanhalingstekens: `\"assignedLicenses/$count eq 0\"`. Wat gebeurt er?",
-      "options": [
-        "Er is geen verschil: dubbele en enkele aanhalingstekens werken hier precies hetzelfde",
-         in staat",
+        "Graph weigert dubbele aanhalingstekens altijd, ook als er geen `$` in staat",
         "`$count` wordt vervangen door niets: het filter wordt `assignedLicenses/ eq 0`",
         "PowerShell telt zelf het aantal gebruikers zonder licentie en vult dat in"
       ],
@@ -122,79 +70,7 @@
         "De waarde verschijnt automatisch op het scherm zodra de cmdlet klaar is met ophalen"
       ],
       "answer": 1,
-      "explanation": "`-CountVariable` verwacht de naam van de variabele, zonder `$`. De cmdlet maakt die variabele aan en vult hem met de telling die Graph meestuurt. Volgens de beschrijving in de module gebeurt dat standaard in de globale scope van je sessie. Het script leest hem daarom als `$aantal` in regel 28. Dat betekent ook dat de variabele na afloop in je sessie blijft staan: bij een volgende run kan een oude waarde zichtbaar zijn als de telling ontbreekt. Met een `{
-  "id": "m365-gebruikers-zonder-licentie",
-  "title": "Gebruikers zonder licentie vinden",
-  "topic": "m365",
-  "level": "basis",
-  "tag": "Get-MgUser · -Filter · splatting · alleen lezen",
-  "summary": "Zoekt met een filter naar gebruikers die geen enkele licentie hebben en splitst het resultaat in leden en gasten.",
-  "risk": "read",
-  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Users"],
-  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets en parameters (`-Filter`, `-ConsistencyLevel`, `-CountVariable`, `-All`, `-Property`) zijn getoetst in de module Microsoft.Graph 2.41; de logica is getest met nagebootste cmdlets. Open punten: dat een filter op `assignedLicenses/$count` volgens de documentatie een geavanceerde query is met `ConsistencyLevel: eventual` en een telling, welke eigenschappen `Get-MgUser` zonder `-Property` teruggeeft, en of `User.Read.All` voldoende is.",
-  "check": {
-    "status": "nog_te_controleren"
-  },
-  "questions": [
-    {
-      "id": "q1",
-      "type": "mc",
-      "step": "parameters",
-      "lines": [2, 16, 17, 18],
-      "prompt": "Wat doet de schakelaar `-AlleenIngeschakeld`?",
-      "options": [
-        "Hij zet alle gevonden accounts aan, zodat de gebruikers weer kunnen inloggen",
-        "Lokaal blijven alleen ingeschakelde accounts over; de Graph-telling blijft gelijk",
-        "Hij vraagt Graph alleen om ingeschakelde accounts, zodat er minder wordt opgehaald",
-        "Hij verbiedt het script om gasten mee te nemen in de telling en de tabel"
-      ],
-      "answer": 1,
-      "explanation": "Het filter gebeurt lokaal, op regel 17, nadat Graph alle gebruikers zonder licentie heeft teruggegeven. Dat is handig maar niet zuinig: er wordt toch alles opgehaald. De telling die Graph meegeeft (`$aantal`) blijft daardoor gelijk, ook als er lokaal accounts afvallen."
-    },
-    {
-      "id": "q2",
-      "type": "mc",
-      "step": "bron",
-      "lines": [8, 9, 10],
-      "prompt": "Waarom staan `-ConsistencyLevel eventual` en `-CountVariable` bij dit filter?",
-      "options": [
-        "Omdat dit filter een geavanceerde query is die beide nodig heeft",
-        "Omdat de parameters de zoekopdracht sneller maken zonder dat het resultaat verandert",
-        "Omdat Graph anders alleen de eerste 100 gebruikers teruggeeft, ook met -All",
-        "Omdat PowerShell dan pas begrijpt dat het om een tekstfilter gaat, en niet om code"
-      ],
-      "answer": 0,
-      "explanation": "Volgens de documentatie van Graph vereist een filter op `assignedLicenses/$count` een geavanceerde query: de kop `ConsistencyLevel: eventual` en een telling. `-ConsistencyLevel` zet die kop en `-CountVariable` vraagt de telling. De resultaten kunnen daardoor net achterlopen op de laatste wijzigingen. Dat staat als open punt in de `note`, want het is niet tegen een tenant geprobeerd."
-    },
-    {
-      "id": "q3",
-      "type": "bug",
-      "step": "bewerking",
-      "lines": [8],
-      "prompt": "Een collega zet het filter in dubbele aanhalingstekens: `\"assignedLicenses/$count eq 0\"`. Wat gebeurt er?",
-      "options": [
-        "Er is geen verschil: dubbele en enkele aanhalingstekens werken hier precies hetzelfde",
-        "Graph geeft een fout omdat dubbele aanhalingstekens in een filter niet mogen",
-        "`$count` wordt vervangen door niets: het filter wordt `assignedLicenses/ eq 0`",
-        "PowerShell telt zelf het aantal gebruikers zonder licentie en vult dat in"
-      ],
-      "answer": 2,
-      "explanation": "In dubbele aanhalingstekens vervangt PowerShell elke `$naam` door de waarde van die variabele. Bestaat `$count` niet, dan blijft er niets over, en het filter wordt `assignedLicenses/ eq 0`. Dat is ongeldig. In enkele aanhalingstekens blijft de tekst letterlijk staan, zoals Graph hem nodig heeft. Gebruik enkele aanhalingstekens voor teksten met een `$`."
-    },
-    {
-      "id": "q4",
-      "type": "mc",
-      "step": "bewerking",
-      "lines": [10, 28],
-      "prompt": "Waarom staat er `CountVariable = 'aantal'` zonder dollarteken, en waar vind je de waarde terug?",
-      "options": [
-        "De cmdlet heeft de naam nodig als tekst; de waarde staat in `$zonderLicentie.Count`",
-        "De cmdlet maakt een variabele met die naam; de waarde staat in `$aantal`",
-        "Een dollarteken is verboden in een hashtable, dus de waarde blijft voor altijd onbereikbaar",
-        "De waarde verschijnt automatisch op het scherm zodra de cmdlet klaar is met ophalen"
-      ],
-      "answer": 1,
-      "explanation": "`-CountVariable` verwacht de naam van de variabele, zonder `$`.  ervoor zou PowerShell de waarde van een bestaande variabele gebruiken in plaats van de naam."
+      "explanation": "`-CountVariable` verwacht de naam van de variabele, zonder dollarteken. De cmdlet maakt die variabele aan en vult hem met de telling die Graph meestuurt. Volgens de beschrijving in de module gebeurt dat standaard in de globale scope van je sessie. Het script leest hem daarom als `$aantal` in regel 28. Dat betekent ook dat de variabele na afloop in je sessie blijft staan: bij een volgende run kan een oude waarde zichtbaar zijn als de telling ontbreekt. Met een dollarteken ervoor zou PowerShell de waarde van een bestaande variabele gebruiken in plaats van de naam."
     },
     {
       "id": "q5",
