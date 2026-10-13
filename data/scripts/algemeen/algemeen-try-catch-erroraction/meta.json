@@ -1,0 +1,130 @@
+{
+  "id": "algemeen-try-catch-erroraction",
+  "title": "Fouten afvangen met try, catch en finally",
+  "topic": "algemeen",
+  "level": "gevorderd",
+  "tag": "try/catch/finally · -ErrorAction · throw",
+  "summary": "Leest een lijst JSON-bestanden in, vangt een ontbrekend of kapot bestand af zonder te stoppen en houdt bij hoeveel er mislukten.",
+  "risk": "read",
+  "modules": [],
+  "note": "Het script leest alleen bestanden in de huidige map. Draai het vanuit de map met de bestanden. Maak om het te proberen een bestand `instellingen.json` met de inhoud `{ \"Omgeving\": \"test\" }` en een bestand `kapot.json` met de inhoud `{ kapot`. Het bestand `ontbreekt.json` laat je weg.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Try_Catch_Finally, about_Throw, about_CommonParameters (-ErrorAction), about_Parameters en Get-Content. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1. De tekst van foutmeldingen verschilt per versie en taalinstelling."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [3],
+      "prompt": "Hoe gebruik je de parameter `[switch]$StopBijFout` bij het aanroepen van het script?",
+      "options": [
+        "Met een getal erachter, zoals `-StopBijFout 1`, dat dan als waar telt",
+        "Met een tekst erachter, zoals `-StopBijFout ja`, die PowerShell omzet",
+        "Alleen de naam: `-StopBijFout`. Zonder de naam is de waarde `$false`",
+        "Met `$true` of `$false` als verplicht tweede woord, dus `-StopBijFout $true`"
+      ],
+      "answer": 2,
+      "explanation": "Een `[switch]` is een aan-uitschakelaar. Zet je de naam erbij, dan is de waarde `$true`. Laat je hem weg, dan is hij `$false`. Daarom kun je in regel 21 gewoon `if ($StopBijFout)` schrijven."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [2],
+      "prompt": "Welke map bedoelt het pad `.\\instellingen.json` in de standaardwaarde van `$Bestanden`?",
+      "options": [
+        "De huidige map van je PowerShell-sessie tijdens het draaien",
+        "De map waarin het bestand `script.ps1` staat, waar je het ook aanroept vandaan",
+        "De map `Documenten` van de gebruiker die het script draait",
+        "De map van het programma `pwsh.exe`"
+      ],
+      "answer": 0,
+      "explanation": "Een relatief pad wordt opgelost vanaf de huidige locatie (`Get-Location`), niet vanaf de map van het script. Draai je het script vanuit een andere map, dan zoekt `Get-Content` daar. Wil je naast het script zoeken, dan gebruik je `$PSScriptRoot`."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [11],
+      "prompt": "Wat doet `-ErrorAction Stop` achter `Get-Content` in regel 11?",
+      "options": [
+        "Het stopt het script meteen en sluit de sessie af",
+        "Het onderdrukt de foutmelding, zodat er niets te zien is",
+        "Het wacht op een toets voordat het script verdergaat na een fout, zodat je kunt kijken",
+        "Het maakt van een gewone fout een afbrekende fout die `catch` kan opvangen"
+      ],
+      "answer": 3,
+      "explanation": "Veel cmdlets geven een gewone (niet-afbrekende) fout: de melding verschijnt, maar het script gaat door. `try/catch` vangt alleen afbrekende fouten. Met `-ErrorAction Stop` wordt de fout afbrekend en komt hij in `catch` terecht. Zonder die parameter is `try/catch` bij zo'n cmdlet nutteloos."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [11],
+      "prompt": "Een collega haalt `-ErrorAction Stop` weg bij `Get-Content` (bij `ConvertFrom-Json` blijft het staan). Wat gebeurt er met het ontbrekende bestand `ontbreekt.json`?",
+      "options": [
+        "Het catch-blok voor een ontbrekend bestand vangt het nog steeds netjes af en telt het mee",
+        "Een rode foutmelding, `omgeving` blijft leeg en het bestand telt niet als mislukt",
+        "Het script stopt direct bij het ontbrekende bestand, met de foutmelding van Get-Content",
+        "Het bestand wordt overgeslagen zonder melding"
+      ],
+      "answer": 1,
+      "explanation": "Zonder `-ErrorAction Stop` geeft `Get-Content` een gewone fout: een rode melding, daarna gaat de pijplijn door. `ConvertFrom-Json` krijgt niets binnen, `$config` blijft leeg en regel 12 toont `omgeving ` zonder waarde. Het catch-blok wordt niet uitgevoerd, dus het bestand telt niet mee als mislukt. Dit is een stille fout in je eigen rapportage."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [14, 18],
+      "prompt": "Een collega zet het algemene `catch { ... }` (regel 18) boven het specifieke `catch [System.Management.Automation.ItemNotFoundException]` (regel 14). Wat gebeurt er?",
+      "options": [
+        "Het algemene blok vangt alles af en het specifieke blok wordt dan nooit meer gebruikt",
+        "Het specifieke blok blijft werken, omdat PowerShell altijd het meest specifieke blok kiest",
+        "PowerShell weigert het script te starten: een catch zonder type moet de laatste zijn",
+        "Beide blokken worden na elkaar uitgevoerd voor dezelfde fout"
+      ],
+      "answer": 2,
+      "explanation": "Een `catch` zonder type vangt elke fout. Daarom moet hij als laatste staan. PowerShell controleert dat bij het inlezen van het script en geeft een parserfout (`Catch block must be the last catch block`). Er wordt dus niets uitgevoerd. Bij meerdere `catch`-blokken met een type kiest PowerShell het eerste dat past, dus zet het meest specifieke type bovenaan."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [21, 23, 24, 25],
+      "prompt": "Het script draait met `-StopBijFout` en `kapot.json` geeft een fout. Wat gebeurt er met het blok `finally`?",
+      "options": [
+        "Het wordt nog uitgevoerd voordat het script stopt",
+        "Het wordt overgeslagen, omdat `throw` het script direct stopt",
+        "Het wordt alleen uitgevoerd als er géén fout is geweest",
+        "Het wordt uitgevoerd, maar pas nadat de slotregel is getoond"
+      ],
+      "answer": 0,
+      "explanation": "`finally` draait altijd: na een gewone afloop, na een afgevangen fout en ook als `catch` de fout met `throw` doorgeeft. Daarom is `finally` de plek voor opruimen, zoals een verbinding sluiten. Let op: het script stopt daarna, dus de slotregel op regel 28 wordt niet meer getoond."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [28],
+      "prompt": "Je draait het script zonder parameters, met `instellingen.json` en `kapot.json` in de map en zonder `ontbreekt.json`. Wat toont de laatste regel?",
+      "options": [
+        "`3 bestanden verwerkt, 0 mislukt.`",
+        "`1 bestanden verwerkt, 2 mislukt.`",
+        "`2 bestanden verwerkt, 1 mislukt.`",
+        "`3 bestanden verwerkt, 2 mislukt.`"
+      ],
+      "answer": 3,
+      "explanation": "`$verwerkt` wordt in `finally` opgehoogd en telt dus alle drie de bestanden, ook de mislukte. `$mislukt` bevat het ontbrekende en het kapotte bestand. De werkelijke tekst bij een gelukte regel is `.\\instellingen.json: omgeving test`. Let op de naam `verwerkt`: hij betekent hier `geprobeerd`, niet `gelukt`."
+    },
+    {
+      "id": "q8",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Met `-StopBijFout` stopt het script bij de eerste fout en toont het geen samenvatting. Hoe zorg je dat de samenvatting toch altijd verschijnt?",
+      "explanation": "Een sterk antwoord zet de hele `foreach`-lus in een eigen `try { ... } finally { ... }` en verplaatst de samenvattingsregel naar het `finally`-blok. Dat blok draait ook als `throw` de fout doorgeeft, zodat je altijd ziet hoeveel bestanden zijn verwerkt (getest: de samenvatting verschijnt dan met het aantal tot en met de fout). Een alternatief is niet te stoppen maar na de lus een foutcode terug te geven, bijvoorbeeld met `exit 1` als `$mislukt` niet leeg is. Een `exit` in een script zet de foutcode in `$LASTEXITCODE`; roep je het script aan met `&` vanuit je sessie, dan blijft die sessie open."
+    }
+  ]
+}
