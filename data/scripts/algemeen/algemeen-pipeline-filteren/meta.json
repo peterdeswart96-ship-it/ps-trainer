@@ -1,0 +1,130 @@
+{
+  "id": "algemeen-pipeline-filteren",
+  "title": "Pipeline en filteren",
+  "topic": "algemeen",
+  "level": "basis",
+  "tag": "Where-Object · Sort-Object · Select-Object",
+  "summary": "Filtert een lijst voorbeeldgebruikers met een pipeline: eerst Where-Object, dan sorteren, dan alleen de gewenste kolommen tonen.",
+  "risk": "read",
+  "modules": [],
+  "note": "De gebruikers staan in het script zelf; er wordt niets opgehaald. Zo kun je het script overal veilig draaien en het resultaat vergelijken met je verwachting.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Pipelines, Where-Object, Sort-Object, Select-Object, about_Comparison_Operators en about_Redirection. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2],
+      "prompt": "Wat verandert er als je het script aanroept met -MinLicenties 3?",
+      "options": [
+        "Het script toont alleen de eerste 3 gebruikers uit de lijst, ongeacht hun licenties",
+        "Het script wijst elke gebruiker 3 extra licenties toe in Microsoft 365",
+        "Alleen Anna Visser blijft over: zij is actief en heeft 3 licenties",
+        "Alle gebruikers met precies 3 licenties worden uitgesloten"
+      ],
+      "answer": 2,
+      "explanation": "`-MinLicenties` is alleen de ondergrens in het filter. Met `-ge 3` voldoet alleen Anna (3 licenties). Daan heeft er 2 en valt af. Het type `[int]` weigert een tekst zoals `drie`."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [5, 6, 7, 8, 9, 10],
+      "prompt": "Waar komen de gebruikers vandaan die het script filtert?",
+      "options": [
+        "Uit het script zelf: vier voorbeeldobjecten, er wordt niets opgehaald",
+        "Uit Microsoft 365, via een verbinding die het script zelf opzet met Connect-MgGraph",
+        "Uit een CSV-bestand dat naast het script moet staan en bij elke run wordt ingelezen",
+        "Uit de lokale gebruikers van de computer waarop je het draait"
+      ],
+      "answer": 0,
+      "explanation": "`[pscustomobject]@{ ... }` maakt een eigen object met de opgegeven eigenschappen. Er is geen `Connect-` en geen bestand: de bron is een vaste lijst in het script. In een echt script staat hier een cmdlet zoals `Get-MgUser`, en de rest van de pipeline blijft hetzelfde."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [13],
+      "prompt": "Wat is `$_` in het blok van Where-Object op regel 13?",
+      "options": [
+        "De hele lijst met gebruikers, die het blok in één keer als array ontvangt",
+        "Het resultaat van de laatste opdracht die je in de sessie hebt uitgevoerd",
+        "Een leeg object dat het script eerst moet vullen",
+        "De gebruiker die op dat moment door de pipeline komt, één per keer"
+      ],
+      "answer": 3,
+      "explanation": "Where-Object voert het blok uit voor elk object dat binnenkomt. `$_` is dan dat ene object (ook te schrijven als `$PSItem`). Bij `$_.Actief -and $_.Licenties -ge $MinLicenties` moeten beide delen waar zijn, anders valt de gebruiker af."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [14, 15],
+      "prompt": "Je wilt sorteren op Licenties, maar nog steeds alleen Naam en Afdeling tonen. Wat gebeurt er als je Select-Object vóór Sort-Object -Property Licenties zet?",
+      "options": [
+        "De lijst wordt twee keer gesorteerd, wat hetzelfde resultaat geeft",
+        "De sortering werkt niet meer: Licenties is dan al weggehaald",
+        "PowerShell geeft een foutmelding omdat de volgorde niet mag",
+        "Select-Object bewaart Licenties toch, omdat Sort-Object het later nodig heeft"
+      ],
+      "answer": 1,
+      "explanation": "Elke stap geeft nieuwe objecten door. Na `Select-Object -Property Naam, Afdeling` bestaat `Licenties` niet meer. Sort-Object geeft dan geen fout, maar de volgorde is niet meer betrouwbaar (in PowerShell 7 bleef de oorspronkelijke volgorde staan, in Windows PowerShell 5.1 kwam de lijst omgekeerd). Sorteer dus altijd vóór je kolommen weghaalt."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [13],
+      "prompt": "Een collega schrijft in regel 13 `$_.Licenties > $MinLicenties` in plaats van `-ge`. Wat gebeurt er?",
+      "options": [
+        "Het filter werkt hetzelfde: > is de korte schrijfwijze van -ge",
+        "Het script stopt met een syntaxfout bij regel 13",
+        "Niemand komt erdoor en er ontstaat een bestand met de naam 2",
+        "Iedereen komt door het filter, omdat > altijd waar teruggeeft"
+      ],
+      "answer": 2,
+      "explanation": "In PowerShell is `>` geen vergelijking maar een omleiding naar een bestand. De uitkomst van de conditie (`True` of `False`) wordt dan weggeschreven naar een bestand met de naam van `$MinLicenties` (hier `2`). Het filter zelf krijgt niets terug, dus niemand komt erdoor. Vergelijken doe je met `-gt`, `-ge`, `-lt`, `-le`, `-eq` en `-ne`. Dit is een klassieke valkuil voor wie uit andere talen komt."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [18],
+      "prompt": "Waarom staat `@( )` rond `$resultaat` in `@($resultaat).Count`?",
+      "options": [
+        "Zo heeft het resultaat altijd een Count, ook bij maar één gebruiker",
+        "Zonder @( ) zou Count een foutmelding geven bij nul gebruikers",
+        "@( ) sorteert het resultaat alvast voor de uitvoer",
+        "@( ) maakt een kopie, zodat de tabel hierboven niet verandert"
+      ],
+      "answer": 0,
+      "explanation": "Geeft een pipeline één object terug, dan is `$resultaat` dat ene object en geen lijst. In Windows PowerShell 5.1 heeft een `pscustomobject` dan geen `Count` en blijft de uitvoer leeg. `@( )` zet het resultaat altijd in een lijst, zodat `Count` klopt bij nul, één en meer gebruikers. Bij nul gebruikers geeft `.Count` op `$null` wel 0."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [17, 18],
+      "prompt": "Welke gegevens wijzigt dit script?",
+      "options": [
+        "Het zet de gebruikers die niet door het filter komen op inactief in de lijst",
+        "Het schrijft het resultaat naar een CSV-bestand in de huidige map",
+        "Het verwijdert de gebruikers die door het filter vallen uit de lijst",
+        "Geen: het toont alleen een tabel en een regel tekst op het scherm"
+      ],
+      "answer": 3,
+      "explanation": "`Format-Table` en `Write-Output` laten alleen iets zien. De objecten in `$gebruikers` blijven zoals ze waren, en er wordt niets weggeschreven. Dat maakt dit een veilig leesscript. Let op: in een script dat wel wijzigt, zoals met `Set-` of `Remove-`, zie je dat aan de cmdlet en niet aan de pipeline zelf."
+    },
+    {
+      "id": "q8",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt alleen de afdeling IT zien en ook het aantal licenties in de tabel tonen. Welke regels pas je aan en hoe?",
+      "explanation": "Een sterk antwoord noemt twee wijzigingen. Voeg in regel 13 een voorwaarde toe, bijvoorbeeld `-and $_.Afdeling -eq 'IT'`, en voeg `Licenties` toe aan de lijst in `Select-Object` op regel 15. Let op de volgorde: het filter moet vóór het weghalen van kolommen blijven, en `Afdeling` mag niet weg zijn voordat je erop filtert. Met de standaardwaarde 2 blijft er dan niemand over (Bram heeft 1 licentie en Chantal is niet actief), dus noem ook `-MinLicenties 1` om iets te zien."
+    }
+  ]
+}
