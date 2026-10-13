@@ -11,7 +11,7 @@
   "check": {
     "status": "gecontroleerd",
     "date": "2026-10-13",
-    "source": "Microsoft Learn: Group-Object, Sort-Object, Measure-Object, Export-Csv, ConvertTo-Json, Set-Content (-Encoding) en about_Calculated_Properties. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1, met een Nederlandse taalinstelling. Datumnotatie in de CSV en het gedrag van -Encoding UTF8 verschillen per versie en instelling."
+    "source": "Microsoft Learn: Group-Object, Sort-Object, Measure-Object, Export-Csv, ConvertTo-Json, Set-Content (-Encoding) en about_Calculated_Properties. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1, met een Nederlandse taalinstelling. De datumnotatie in de CSV (ook met en-US nagelopen), het getal in de 5.1-JSON-datum (tijdzone) en het gedrag van -Encoding UTF8 verschillen per versie en instelling."
   },
   "questions": [
     {
@@ -22,9 +22,9 @@
       "prompt": "Je roept het script aan met `-Top 2`. Wat verandert er?",
       "options": [
         "Het script verwerkt alleen de eerste twee gebeurtenissen uit de lijst met acht",
-        "Het CSV- en JSON-bestand bevatten alleen de twee gebruikers met de meeste gebeurtenissen",
+        "Het CSV- en JSON-bestand bevatten alleen de twee gebruikers met de meeste gebeurtenissen, gesorteerd",
         "De tabel toont twee gebruikers; de bestanden bevatten er nog alle vier",
-        "Het script schrijft maar twee bestanden weg in plaats van drie"
+        "Het script slaat het CSV-bestand over en schrijft alleen de JSON"
       ],
       "answer": 2,
       "explanation": "`$Top` wordt alleen gebruikt in regel 29, voor de tabel op het scherm. De bestanden in regel 32 en 33 komen uit `$perGebruiker`, en die bevat alle vier de gebruikers. Een parameter die op één plek wordt gebruikt, kun je zo snel in de code terugvinden."
@@ -36,7 +36,7 @@
       "lines": [18, 21, 22],
       "prompt": "Wat zijn `$_.Name` en `$_.Count` in het ForEach-Object-blok na `Group-Object -Property Gebruiker`?",
       "options": [
-        "`Name` is de waarde waarop is gegroepeerd en `Count` het aantal objecten in die groep",
+        "`Name` is de groepeerwaarde en `Count` het aantal objecten in die groep",
         "`Name` is de naam van de eigenschap, `Gebruiker`, en `Count` het aantal groepen in totaal",
         "`Name` is de eerste gebeurtenis van de groep en `Count` het aantal eigenschappen van die gebeurtenis",
         "`Name` en `Count` bestaan niet; je moet ze eerst zelf berekenen"
@@ -96,13 +96,13 @@
       "lines": [33],
       "prompt": "Hoe staat `Laatste` in `per-gebruiker.json`?",
       "options": [
-        "In 7 als `2026-10-12T11:00:00`; in 5.1 als `\\/Date(1791795600000)\\/`",
+        "In 7 als `2026-10-12T11:00:00`; in 5.1 als `\\/Date(...)\\/` met een getal",
         "In beide versies als internationale tekst, namelijk `2026-10-12T11:00:00`",
         "In beide versies als `12-10-2026 11:00:00`, net als in de CSV, volgens de taalinstelling",
         "In beide versies als het aantal seconden dat sinds 1970 is verstreken"
       ],
       "answer": 0,
-      "explanation": "`ConvertTo-Json` schrijft een datum in PowerShell 7 als ISO 8601-tekst. In Windows PowerShell 5.1 gebruikt het een oud Microsoft-formaat, `\\/Date(milliseconden)\\/`, dat veel andere programma's niet begrijpen. Zet je de datum zelf om naar tekst met `.ToString('s')`, dan is de JSON in beide versies gelijk."
+      "explanation": "`ConvertTo-Json` schrijft een datum in PowerShell 7 als ISO 8601-tekst. In Windows PowerShell 5.1 gebruikt het een oud Microsoft-formaat, `\\/Date(milliseconden)\\/`, dat veel andere programma's niet begrijpen. Het getal is het aantal milliseconden sinds 1970 en hangt af van je tijdzone. Zet je de datum zelf om naar tekst met `.ToString('s')`, dan is de JSON in beide versies gelijk."
     },
     {
       "id": "q7",
@@ -138,8 +138,8 @@
       "id": "q9",
       "type": "open",
       "step": "uitvoer",
-      "prompt": "Het CSV- en JSON-bestand zijn niet in elke PowerShell-versie en taalinstelling gelijk. Welke twee aanpassingen maken ze voorspelbaar?",
-      "explanation": "Een sterk antwoord noemt de datum en de codering. Zet `Laatste` zelf om naar tekst met een vaste notatie, bijvoorbeeld `Laatste = $max.ToString('s')` in een berekende eigenschap, zodat CSV en JSON overal `2026-10-12T11:00:00` tonen. En kies de codering bewust: wil je zeker zijn van UTF-8 zonder BOM in elke versie, dan schrijf je de tekst met `[System.IO.File]::WriteAllText($pad, $tekst, [System.Text.UTF8Encoding]::new($false))`. Wil je juist een BOM voor Excel, dan gebruik je `-Encoding UTF8` in 5.1 of `utf8BOM` in 7. Noem ook dat een tweede sorteersleutel de volgorde vastzet."
+      "prompt": "Het CSV- en JSON-bestand zijn niet in elke PowerShell-versie en taalinstelling gelijk. Welke aanpassingen maken ze voorspelbaar?",
+      "explanation": "Een sterk antwoord noemt de datum en de codering. Zet `Laatste` zelf om naar tekst met een vaste notatie, bijvoorbeeld `Laatste = ($_.Group | Measure-Object -Property Tijd -Maximum).Maximum.ToString('s')` in regel 24, zodat CSV en JSON overal `2026-10-12T11:00:00` tonen. En kies de codering bewust: wil je zeker zijn van UTF-8 zonder BOM in elke versie, dan schrijf je de tekst met `[System.IO.File]::WriteAllText($pad, $tekst, [System.Text.UTF8Encoding]::new($false))`. Wil je juist een BOM voor Excel, dan gebruik je `-Encoding UTF8` in 5.1 of `utf8BOM` in 7. Een extra punt is het noemen van een tweede sorteersleutel, die de volgorde vastzet."
     }
   ]
 }
