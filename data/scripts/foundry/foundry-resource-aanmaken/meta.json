@@ -1,0 +1,135 @@
+{
+  "id": "foundry-resource-aanmaken",
+  "title": "Resourcegroep en Foundry-resource aanmaken met droge run",
+  "topic": "foundry",
+  "level": "gevorderd",
+  "tag": "New-AzResourceGroup · New-AzCognitiveServicesAccount · ShouldProcess · -WhatIf · splatting",
+  "summary": "Maakt een resourcegroep en een Foundry-resource aan, met tags, een eigen identiteit en aanmelden met sleutels uitgezet. Bestaat iets al, dan blijft het ongewijzigd, en met -WhatIf zie je alleen wat het zou doen.",
+  "risk": "write",
+  "modules": [
+    "Az.Accounts",
+    "Az.Resources",
+    "Az.CognitiveServices"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving; dit script maakt resources aan en kan kosten veroorzaken. Doe eerst altijd een droge run met `-WhatIf`. De documentatie van `New-AzCognitiveServicesAccount` noemt voor `-Type` alleen dat je `Get-AzCognitiveServicesAccountType` kunt gebruiken voor de geldige waarden; dat `AIServices` daar een waarde is, is niet bevestigd (het is wel de soort die de Foundry-documentatie voor een Foundry-resource noemt). De officiële quickstart voor een Foundry-resource gebruikt Bicep, niet dit cmdlet; de cmdletpagina noemt geen specifieke parameter om projectbeheer op de resource aan te zetten (er is wel een algemene `-ApiProperty`, waarmee het niet is uitgesloten). Of een met dit script gemaakte resource daardoor Foundry-projecten kan bevatten, is niet bevestigd: controleer dat in de portal voordat je erop bouwt. De documentatie van `New-AzResourceGroup` zegt dat het bij een bestaande groep om bevestiging vraagt voordat het die vervangt; het script roept het daarom alleen aan als de groep niet bestaat. Wat `Get-AzResourceGroup` en `Get-AzCognitiveServicesAccount` precies doen als de naam niet bestaat, staat niet in de documentatie; het script gaat uit van een fout die door `-ErrorAction SilentlyContinue` wordt onderdrukt, en daardoor verbergt die optie ook andere fouten, zoals een ontbrekend recht. Volgens de Foundry-documentatie moet de naam van een Foundry-resource wereldwijd uniek zijn, 2 tot 64 tekens lang, en mag alleen kleine letters, cijfers en koppeltekens bevatten; het script gebruikt dezelfde naam als eigen subdomein. Een eigen subdomein is volgens de documentatie nodig voor aanmelden met Microsoft Entra ID. Volgens de documentatie krijg je de rol Foundry User automatisch alleen als je de resource via de portal maakt, niet via SDK of CLI; na dit script moet je zelf de juiste rol toewijzen. `Connect-AzAccount` heeft zelf ook `-WhatIf`; het script zet daarom `-WhatIf:$false` bij het inloggen, anders zou een droge run het inloggen kunnen overslaan en zouden de opzoekingen daarna mislukken zonder dat je dat ziet. De tags en de regio zijn voorbeelden: gebruik die van je eigen organisatie.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: New-AzCognitiveServicesAccount (parameters -Type, -SkuName, -Location, -Tag, -CustomSubdomainName, -AssignIdentity, -DisableLocalAuth, -WhatIf), Get-AzCognitiveServicesAccountType, New-AzResourceGroup (bevestiging bij bestaande groep, -Tag, -WhatIf), Get-AzResourceGroup, Quickstart: Deploy a Foundry resource by using Bicep (naamregels, Bicep als aanpak, AccountNameInvalid), Role-based access control for Microsoft Foundry (automatische rol alleen via portal), Authentication and authorization in Microsoft Foundry (eigen subdomein vereist voor Entra ID). Open punten: of `AIServices` een geldige waarde voor `-Type` is, of de resource projecten ondersteunt, en wat de Get-cmdlets doen bij een niet-bestaande naam."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        7
+      ],
+      "prompt": "Het script heeft geen parameter -WhatIf, en toch kun je het ermee starten. Waar komt -WhatIf vandaan?",
+      "options": [
+        "Elk PowerShell-script heeft -WhatIf automatisch, ook zonder extra regel bovenaan het bestand",
+        "Uit het blok op regel 2 tot 7, waar -WhatIf als laatste parameter in de lijst is opgesomd",
+        "Uit regel 1: SupportsShouldProcess geeft het script -WhatIf en -Confirm; regel 13 en 39 gebruiken ze",
+        "Uit New-AzCognitiveServicesAccount, dat -WhatIf automatisch aan het hele script doorgeeft"
+      ],
+      "answer": 2,
+      "explanation": "`[CmdletBinding(SupportsShouldProcess = $true)]` op regel 1 maakt het script een 'geavanceerd script': het krijgt `-WhatIf` en `-Confirm` zonder dat ze in het `param`-blok staan. Alleen scripts en functies met die regel hebben ze. De controles zelf staan op regel 13 en 39: `$PSCmdlet.ShouldProcess(...)` geeft onwaar terug bij `-WhatIf` (en toont dan 'What if: ...') en waar bij een gewone start, zodat de aanmaak alleen in dat laatste geval gebeurt. Let op: de standaardwaarden van de parameters (`contoso`, regio en tags) zijn voorbeelden die je zelf aanpast."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        11,
+        19
+      ],
+      "prompt": "Waarom zoekt het script eerst met Get-AzResourceGroup en roept het New-AzResourceGroup alleen aan als de groep ontbreekt?",
+      "options": [
+        "Get-AzResourceGroup maakt de groep zelf aan; New-AzResourceGroup controleert daarna of dat gelukt is",
+        "Get-AzResourceGroup is sneller dan New-AzResourceGroup, dus het script gebruikt het eerst als versnelling",
+        "Azure weigert het altijd als een groep met dezelfde naam al bestaat, dus het script moet eerst kijken",
+        "New-AzResourceGroup vraagt bij een bestaande groep om bevestiging om hem te vervangen; zo blijft die intact"
+      ],
+      "answer": 3,
+      "explanation": "Volgens de documentatie van `New-AzResourceGroup` vraagt de cmdlet om bevestiging als er al een groep met die naam is, voordat hij die vervangt. Het script voorkomt dat door eerst te kijken: bestaat de groep al, dan staat er alleen een melding (regel 18) en blijft de groep zoals hij is, met zijn tags en resources. `-ErrorAction SilentlyContinue` op regel 11 zorgt dat een niet-gevonden groep geen rode foutmelding geeft; het nadeel is dat ook andere fouten, zoals een ontbrekend recht, daardoor onzichtbaar worden en `$groep` dan ook leeg is."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        27,
+        37
+      ],
+      "prompt": "Wat doet de hashtable op regel 27 tot 37, en wat betekenen AssignIdentity en DisableLocalAuth hierin?",
+      "options": [
+        "Het bundelt de instellingen voor één aanroep; AssignIdentity geeft een identiteit, DisableLocalAuth zet sleutels uit",
+        "Het zijn variabelen voor later; AssignIdentity maakt jou eigenaar en DisableLocalAuth zet je eigen account uit",
+        "Het is een lijst van resources die worden aangemaakt; AssignIdentity en DisableLocalAuth zijn twee resourcenamen",
+        "Het is een filter voor bestaande resources; AssignIdentity en DisableLocalAuth selecteren bestaande accounts"
+      ],
+      "answer": 0,
+      "explanation": "Op regel 27 tot 37 staan de parameters als hashtable; `New-AzCognitiveServicesAccount @parameters` (regel 40) geeft ze in één keer mee ('splatting': het `@` in plaats van `$`). `AssignIdentity` is een schakelaar die de resource een eigen identiteit geeft; de cmdletdocumentatie noemt als doel het gebruik met diensten als Azure Key Vault. `DisableLocalAuth = $true` zet aanmelden met API-sleutels uit, zodat alleen Microsoft Entra ID overblijft; dat past bij het advies uit de Foundry-documentatie, maar alle aanroepers moeten dan al met Entra werken. `CustomSubdomainName` is volgens de documentatie nodig voor aanmelden met Entra ID."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bron",
+      "lines": [
+        12
+      ],
+      "prompt": "Je haalt per ongeluk -not weg op regel 12, zodat er staat if ($groep). Wat gebeurt er als de groep nog niet bestaat?",
+      "options": [
+        "Er verandert niets, want het script controleert het bestaan van de groep ook op een andere plek",
+        "Het script meldt dat de groep al bestaat en loopt later vast bij het aanmaken van de resource",
+        "Het script maakt de groep nu aan, omdat een lege waarde in PowerShell hier als waar telt in de if",
+        "Het script stopt meteen met een syntaxfout, omdat een if zonder -not niet is toegestaan in PowerShell"
+      ],
+      "answer": 1,
+      "explanation": "`$groep` is leeg als de groep niet bestaat, en leeg telt in een `if` als onwaar. Zonder `-not` springt het script dus naar de `else` en meldt `bestaat al`, terwijl er niets is aangemaakt. Regel 21 en verder proberen dan een resource aan te maken in een groep die niet bestaat, wat een fout geeft. Bestaat de groep wel, dan roept het script `New-AzResourceGroup` aan op een bestaande groep, en dat is het geval waar de documentatie voor waarschuwt (bevestiging voor vervangen). Een omgekeerde voorwaarde geeft geen syntaxfout; testen op een bestaande én een nieuwe groep vangt dit op."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        9,
+        42
+      ],
+      "prompt": "Je start het script met -WhatIf. Wat gebeurt er?",
+      "options": [
+        "Alles wordt gewoon aangemaakt, maar het script ruimt het daarna weer netjes voor je op in Azure",
+        "Het script doet niets, dus ook geen aanmelding of opzoeking, en toont ook geen enkele melding",
+        "Er wordt ingelogd en opgezocht, maar de aanmaakstappen worden alleen aangekondigd, niet uitgevoerd",
+        "De resourcegroep wordt wel aangemaakt, alleen de Foundry-resource wordt daarna nog overgeslagen"
+      ],
+      "answer": 2,
+      "explanation": "Met `-WhatIf` geeft `$PSCmdlet.ShouldProcess(...)` op regel 13 en 39 onwaar terug en toont PowerShell een regel als 'What if: Performing the operation ...'. De aanmaak op regel 14 en 40 wordt dus overgeslagen. De rest loopt gewoon: `Connect-AzAccount` krijgt op regel 9 uitdrukkelijk `-WhatIf:$false` mee, omdat ook het inloggen anders in de droge run zou kunnen worden overgeslagen. `Get-AzResourceGroup` en `Get-AzCognitiveServicesAccount` lezen alleen, en hebben dus ook echte rechten en een echte aanmelding nodig. Daardoor zie je met een droge run ook vooraf of de groep of resource al bestaat. Een droge run zegt niets over naamconflicten, quota of beleid dat de aanmaak later toch laat falen."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        39,
+        42
+      ],
+      "prompt": "Na een geslaagde aanmaak toont regel 40 en 41 een regel met naam, soort, regio en ProvisioningState. Wat bewijst dat?",
+      "options": [
+        "Dat de resource bestaat en klaar is voor gebruik, omdat de aanmaker automatisch alle rollen krijgt",
+        "Dat Azure de resource heeft aangemaakt; toegang voor jou of ondersteuning van projecten bewijst het niet",
+        "Dat er ook modeldeployments en projecten zijn aangemaakt, want Foundry maakt die altijd mee",
+        "Dat de resource is gecontroleerd door Azure Policy en voldoet aan het tagbeleid van de organisatie"
+      ],
+      "answer": 1,
+      "explanation": "`ProvisioningState` laat zien dat Azure de resource heeft opgezet (bij succes `Succeeded`). Dat is niet hetzelfde als bruikbaar: volgens de Foundry-documentatie krijg je de rol Foundry User automatisch alleen als je de resource via de portal maakt, niet via SDK of CLI, dus je moet zelf een rol toewijzen. Er zijn ook geen modeldeployments of projecten aangemaakt, en of de resource projecten ondersteunt, is niet bevestigd. Beleid dat de aanmaak had geweigerd, zou een fout geven; het script controleert geen tags of regels."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat doet dit script niet, en wat controleer je na een geslaagde aanmaak voordat je zegt dat de Foundry-omgeving klaar is?",
+      "explanation": "Bijvoorbeeld: (1) er zijn geen projecten, modeldeployments of rollen aangemaakt: de aanmaker krijgt via dit script niet automatisch de rol Foundry User, dus kijk wie welke rol heeft; (2) of de resource Foundry-projecten kan bevatten, is niet bevestigd, omdat het cmdlet geen parameter voor projectbeheer noemt en de officiële quickstart Bicep gebruikt: controleer in de portal of je een project kunt maken; (3) aanmelden met sleutels staat uit en Entra-aanmelding vraagt de eigen subdomeinnaam, dus controleer of de aanroepers (apps, collega's) met Entra werken; (4) het netwerk is niet ingesteld: publieke toegang staat vermoedelijk open, het script legt geen firewall of private endpoint vast; (5) de naam moet wereldwijd uniek zijn en aan de naamregels voldoen: een droge run vangt dat niet af; (6) de tags zijn voorbeelden en beleid (regio, SKU, verplichte tags) kan de aanmaak laten mislukken; (7) kosten en quota: kijk welke prijs bij de SKU hoort voordat je modellen deployt, het script zegt daar niets over; (8) het script slaat een bestaande resource over en past hem niet aan, dus een eerdere, afwijkende instelling blijft staan. Herstellen betekent de resource en de resourcegroep verwijderen, en een verwijderde Foundry-resource kan nog worden hersteld of definitief verwijderd (purge, volgens de RBAC-pagina), en of de naam in die tussentijd bezet blijft, is niet bevestigd. Verwijder alleen wat je zelf hebt aangemaakt, want een resourcegroep verwijderen haalt alles erin weg."
+    }
+  ]
+}
