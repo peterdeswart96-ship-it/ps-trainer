@@ -1,0 +1,143 @@
+{
+  "id": "m365-gebruikers-zonder-licentie",
+  "title": "Gebruikers zonder licentie vinden",
+  "topic": "m365",
+  "level": "basis",
+  "tag": "Get-MgUser · -Filter · splatting · alleen lezen",
+  "summary": "Zoekt met een filter naar gebruikers die geen enkele licentie hebben en splitst het resultaat in leden en gasten.",
+  "risk": "read",
+  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Users"],
+  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets en parameters (`-Filter`, `-ConsistencyLevel`, `-CountVariable`, `-All`, `-Property`) zijn getoetst in de module Microsoft.Graph 2.41; de logica is getest met nagebootste cmdlets. Open punten: dat een filter op `assignedLicenses/$count` volgens de documentatie een geavanceerde query is met `ConsistencyLevel: eventual` en een telling, welke eigenschappen `Get-MgUser` zonder `-Property` teruggeeft, of `User.Read.All` voldoende is, en dat `SignInActivity` (zie de laatste vraag) volgens de documentatie `AuditLog.Read.All` en een Entra ID P1- of P2-licentie vraagt.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 16, 17, 18],
+      "prompt": "Wat doet de schakelaar `-AlleenIngeschakeld`?",
+      "options": [
+        "Hij zet alle gevonden accounts aan, zodat de gebruikers weer kunnen inloggen",
+        "Lokaal blijven alleen ingeschakelde accounts over; de Graph-telling blijft gelijk",
+        "Hij vraagt Graph alleen om ingeschakelde accounts, zodat er minder wordt opgehaald",
+        "Hij verbiedt het script om gasten mee te nemen in de telling en de tabel"
+      ],
+      "answer": 1,
+      "explanation": "Het filter gebeurt lokaal, op regel 17, nadat Graph alle gebruikers zonder licentie heeft teruggegeven. Dat is handig maar niet zuinig: er wordt toch alles opgehaald. De telling die Graph meegeeft (`$aantal`) blijft daardoor gelijk, ook als er lokaal accounts afvallen."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [8, 9, 10],
+      "prompt": "Waarom staan `-ConsistencyLevel eventual` en `-CountVariable` bij dit filter?",
+      "options": [
+        "Omdat dit filter een geavanceerde query is die beide nodig heeft",
+        "Omdat de parameters de zoekopdracht sneller maken zonder dat het resultaat verandert",
+        "Omdat Graph anders alleen de eerste 100 gebruikers teruggeeft, ook met -All",
+        "Omdat PowerShell dan pas begrijpt dat het om een tekstfilter gaat, en niet om code"
+      ],
+      "answer": 0,
+      "explanation": "Volgens de documentatie van Graph vereist een filter op `assignedLicenses/$count` een geavanceerde query: de kop `ConsistencyLevel: eventual` en een telling. `-ConsistencyLevel` zet die kop en `-CountVariable` vraagt de telling. De resultaten kunnen daardoor net achterlopen op de laatste wijzigingen. Dat staat als open punt in de `note`, want het is niet tegen een tenant geprobeerd."
+    },
+    {
+      "id": "q3",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [8],
+      "prompt": "Een collega zet het filter in dubbele aanhalingstekens: `\"assignedLicenses/$count eq 0\"`. Wat gebeurt er?",
+      "options": [
+        "Er is geen verschil: dubbele en enkele aanhalingstekens werken hier precies hetzelfde",
+        "Graph weigert dubbele aanhalingstekens altijd, ook als er geen `$` in staat",
+        "`$count` wordt vervangen door niets: het filter wordt `assignedLicenses/ eq 0`",
+        "PowerShell telt zelf het aantal gebruikers zonder licentie en vult dat in"
+      ],
+      "answer": 2,
+      "explanation": "In dubbele aanhalingstekens vervangt PowerShell elke `$naam` door de waarde van die variabele. Bestaat `$count` niet, dan blijft er niets over, en het filter wordt `assignedLicenses/ eq 0`. Dat is ongeldig. In enkele aanhalingstekens blijft de tekst letterlijk staan, zoals Graph hem nodig heeft. Gebruik enkele aanhalingstekens voor teksten met een `$`."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [10, 28],
+      "prompt": "Waarom staat er `CountVariable = 'aantal'` zonder dollarteken, en waar vind je de waarde terug?",
+      "options": [
+        "De cmdlet heeft de naam nodig als tekst; de waarde staat in `$zonderLicentie.Count`",
+        "De cmdlet maakt een variabele met die naam; de waarde staat in `$aantal`",
+        "Een dollarteken is verboden in een hashtable, dus de waarde blijft voor altijd onbereikbaar",
+        "De waarde verschijnt automatisch op het scherm zodra de cmdlet klaar is met ophalen"
+      ],
+      "answer": 1,
+      "explanation": "`-CountVariable` verwacht de naam van de variabele, zonder dollarteken. De cmdlet maakt die variabele aan en vult hem met de telling die Graph meestuurt. Volgens de beschrijving in de module gebeurt dat standaard in de globale scope van je sessie. Het script leest hem daarom als `$aantal` in regel 28. Dat betekent ook dat de variabele na afloop in je sessie blijft staan: bij een volgende run kan een oude waarde zichtbaar zijn als de telling ontbreekt. Met een dollarteken ervoor zou PowerShell de waarde van een bestaande variabele gebruiken in plaats van de naam."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [20, 21],
+      "prompt": "Waarom staat `@( ... )` om `Where-Object` in de regels 20 en 21?",
+      "options": [
+        "Het sorteert de uitkomst alvast op naam voor de tabel die verderop volgt",
+        "Het voorkomt dat de filter bij elke aanroep opnieuw wordt uitgevoerd op alle gebruikers",
+        "Het resultaat is altijd een lijst, zodat `.Count` ook bij nul of één account klopt",
+        "Het maakt van elke gebruiker een kopie, zodat de oorspronkelijke lijst intact blijft bij het filteren"
+      ],
+      "answer": 2,
+      "explanation": "Eén resultaat is geen lijst maar een los object, en nul resultaten is `$null`. Of `.Count` dan werkt, hangt van de situatie af: sommige objecten (zoals een `pscustomobject` in Windows PowerShell 5.1) hebben geen `Count`, en bij `Set-StrictMode` geeft `$null.Count` een fout. Met `@( )` heb je altijd een lijst, ongeacht het type. Dat heb je nodig voor de samenvatting in regel 28, waar `.Count` wordt gebruikt."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [12],
+      "prompt": "Wat gebeurt er met `UserType` en `CreatedDateTime` als `-Property` ontbreekt?",
+      "options": [
+        "Ze staan niet in de standaardreeks van Graph en blijven leeg",
+        "PowerShell vraagt de eigenschappen vanzelf alsnog op zodra je ze in het script gebruikt",
+        "Het script geeft een foutmelding dat de eigenschappen niet bestaan op het object",
+        "Er verandert niets: Graph geeft altijd alle eigenschappen terug, ook zonder -Property"
+      ],
+      "answer": 0,
+      "explanation": "Graph geeft per object een beperkte standaardset terug. Wil je meer, dan vraag je het met `-Property`. Anders zijn eigenschappen zoals `UserType` en `CreatedDateTime` leeg, en lijkt het script te werken terwijl het filter op `UserType` niets vindt. Welke eigenschappen precies in de standaardset zitten, staat als open punt in de `note`."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [5, 14],
+      "prompt": "Welke gegevens in de tenant wijzigt dit script?",
+      "options": [
+        "Het wijst een licentie toe aan elke gebruiker die er nog geen heeft",
+        "Het blokkeert de gasten zonder licentie in de tenant",
+        "Niets: het leest gebruikers met een leesscope en toont ze",
+        "Het verwijdert de accounts van gebruikers zonder licentie uit de tenant"
+      ],
+      "answer": 2,
+      "explanation": "Alleen `Connect-MgGraph` en `Get-MgUser` praten met de tenant, en met een leesscope. Daarna wordt er in het geheugen gefilterd, gesorteerd en getoond. Dit script vindt de gebruikers zonder licentie; het geven van een licentie is een ander script."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [17, 28],
+      "prompt": "Met `-AlleenIngeschakeld` meldt het script `1 leden en 2 gasten zonder licentie (Graph telde 4)`. Waarom 3 en 4?",
+      "options": [
+        "Omdat het script halverwege opnieuw is gestart en dubbel telde",
+        "Omdat gasten dubbel worden geteld in de Graph-telling van de tenant",
+        "Omdat het script de gasten niet goed splitst van de leden",
+        "Omdat Graph telde vóór het lokale filter op regel 17"
+      ],
+      "answer": 3,
+      "explanation": "Graph telt wat de zoekopdracht oplevert, dus alle gebruikers zonder licentie. Het lokale filter verwijdert daarna uitgeschakelde accounts. De twee getallen meten dus verschillende dingen. Een rapport moet duidelijk maken wat elk getal betekent."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Gasten hebben meestal geen licentie, dus ze vullen de lijst. Hoe zorg je dat je vooral de leden beoordeelt, en welke extra gegevens helpen bij de vraag of een lid een licentie nodig heeft?",
+      "explanation": "Een sterk antwoord laat de gasten weg met een filter op `UserType -eq 'Member'` (het script splitst ze al in regels 20 en 21) of toont ze apart. Voor de beoordeling helpt de laatste aanmelddatum: voeg `SignInActivity` toe aan `-Property`. Volgens de documentatie vraagt dat de scope `AuditLog.Read.All` en een Entra ID P1- of P2-licentie; controleer dat vooraf. Ook handig zijn `Department` en `AccountEnabled`, zodat je ziet of het account bij een team hoort en nog in gebruik is."
+    }
+  ]
+}
