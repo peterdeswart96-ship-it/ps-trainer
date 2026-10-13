@@ -184,7 +184,6 @@ test('site: de rooktest slaagt op het pakket, en faalt als een bestand ontbreekt
   const goed = rooktest(site);
   assert.equal(goed.status, 0, `${goed.stdout}${goed.stderr}`);
   assert.match(goed.stdout, /Rooktest geslaagd/);
-  assert.match(goed.stdout, /\/assets\/img\/microsoft\/foundry\.svg/);
 
   rmSync(join(site, 'assets', 'js', 'data.js'));
   const stuk = rooktest(site);

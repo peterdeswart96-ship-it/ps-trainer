@@ -507,6 +507,7 @@ test('boom: de echte topics.json is een geldige boom met twee niveaus en de best
   // Bestaande id's en dus URL's, paden en voortgang blijven geldig.
   for (const id of ['migraties', 'sharepoint', 'foundry', 'purview', 'entra-id']) assert.ok(perId.has(id), `${id} bestaat nog`);
   assert.equal(perId.get('migraties').parent, 'sharepoint');
+  assert.equal(perId.get('migraties').name, 'SP Migraties', 'weergavenaam; het id blijft migraties');
   assert.equal(perId.get('entra-id').parent, 'security');
   assert.equal(perId.get('purview').parent, 'security');
   assert.equal(perId.get('foundry').parent, 'azure');
