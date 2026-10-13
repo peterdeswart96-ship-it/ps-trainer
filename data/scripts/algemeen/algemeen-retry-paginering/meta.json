@@ -1,0 +1,145 @@
+{
+  "id": "algemeen-retry-paginering",
+  "title": "Opnieuw proberen en pagineren",
+  "topic": "algemeen",
+  "level": "expert",
+  "tag": "retry · backoff · paginering · $script:",
+  "summary": "Haalt een nagebootste API pagina voor pagina op en probeert bij een tijdelijke fout (429) opnieuw, met een wachttijd die steeds verdubbelt.",
+  "risk": "read",
+  "modules": [],
+  "note": "De API is nagebootst met een eigen functie, `Get-DemoPagina`; er is geen netwerk nodig. In een echt script staat daar `Invoke-RestMethod -Uri $url`. De foutcontrole op de tekst `429` of `503` is een vereenvoudiging: een echte fout bevat een statuscode en kopteksten, en die lees je in Windows PowerShell 5.1 anders uit dan in PowerShell 7.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Try_Catch_Finally, about_Scopes, about_Functions, Start-Sleep, Invoke-RestMethod (-MaximumRetryCount en -RetryIntervalSec bestaan alleen in PowerShell 7) en Write-Warning. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1. De echte API-aanroepen zijn niet getest, want die zijn nagebootst."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 3],
+      "prompt": "Hoe werken `$MaxPogingen` en `$BasisWachtSec` samen bij de standaardwaarden 4 en 0,1?",
+      "options": [
+        "Het script probeert maximaal 0,1 seconde, met 4 pogingen binnen die tijd",
+        "Het script wacht 4 keer 0,1 seconde, ongeacht hoe vaak het mislukt, en stopt daarna",
+        "Maximaal 4 pogingen; de wachttijd begint op 0,1 seconde en verdubbelt",
+        "Het script probeert 4 pagina's op te halen, met 0,1 seconde pauze ertussen"
+      ],
+      "answer": 2,
+      "explanation": "`$MaxPogingen` begrenst het aantal pogingen per aanroep. De wachttijd na poging 1 is `$BasisWachtSec` (0,1 s), na poging 2 is dat 0,2 s en na poging 3 is dat 0,4 s: dat heet exponentiële backoff. Na de vierde en laatste poging wordt niet meer gewacht, maar de fout doorgegeven. Een vijfde poging (`-MaxPogingen 5`) zou 0,8 s wachten. Zo geef je een overbelaste server steeds meer ruimte, en blijft de wachttijd bij een korte storing kort."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [8, 9, 10, 11, 12, 13],
+      "prompt": "Waarom mislukt het ophalen van `pagina2` de eerste twee keer?",
+      "options": [
+        "De functie gooit zelf een 429-fout bij de 2e en 3e aanroep",
+        "De server is echt overbelast en geeft de fout terug, dus dit is niet na te bootsen",
+        "De URL `pagina2` bestaat niet en wordt pas bij de derde keer gevonden door het script",
+        "Het script wacht te kort, zodat de pagina nog niet klaar is"
+      ],
+      "answer": 0,
+      "explanation": "`$script:aanroepen` telt elke aanroep. Bij `pagina2` gooit de functie een fout zolang de teller kleiner dan of gelijk aan 3 is: dat is de tweede en derde aanroep, omdat `pagina1` de eerste was. Zo kun je retry-logica oefenen zonder echte server. Met echte API's zie je dit als HTTP-statuscode 429 (te veel aanvragen) of 503 (tijdelijk niet beschikbaar)."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [32, 33],
+      "prompt": "De fout is `404 Not Found` in plaats van `429 Too Many Requests`. Wat doet het script?",
+      "options": [
+        "Het probeert het ook 4 keer, met steeds een langere wachttijd",
+        "Het slaat die pagina over en gaat door met de volgende",
+        "Het wacht eerst een uur en probeert het dan opnieuw",
+        "Het geeft de fout meteen door, zonder opnieuw te proberen"
+      ],
+      "answer": 3,
+      "explanation": "De controle `-match '^(429|503)'` laat alleen tijdelijke fouten opnieuw proberen. Een 404 verandert niet door te wachten, dus `throw` geeft de oorspronkelijke fout direct door en het script stopt. Opnieuw proberen bij elke fout verspilt tijd en kan zelfs schade doen, bijvoorbeeld bij een aanvraag die iets wijzigt."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [36],
+      "prompt": "Een collega vervangt regel 36 door `Start-Sleep -Seconds $wacht`. Wat gebeurt er in Windows PowerShell 5.1 met een wachttijd van 0,1 seconde?",
+      "options": [
+        "Er komt een foutmelding dat `-Seconds` geen kommagetal accepteert",
+        "Er wordt niet gewacht: het kommagetal wordt stil afgerond naar 0",
+        "Het script wacht precies 0,1 seconde, net als in PowerShell 7",
+        "Het script wacht 1 seconde, want het getal wordt naar boven afgerond"
+      ],
+      "answer": 1,
+      "explanation": "In Windows PowerShell 5.1 is `-Seconds` een geheel getal, en 0,1 wordt zonder melding afgerond naar 0: de retry volgt dan direct en de backoff doet niets. PowerShell 7 accepteert kommagetallen wel. Met `-Milliseconds` werkt het in beide versies, daarom rekent regel 36 om naar milliseconden."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [33],
+      "prompt": "Je draait het script met `-MaxPogingen 2`. De tweede aanroep van `pagina2` mislukt ook. Wat gebeurt er?",
+      "options": [
+        "Het script slaat `pagina2` over en haalt `pagina3` op",
+        "Het script herstelt zichzelf en gaat door met een lege lijst voor die pagina",
+        "Het script stopt met de fout `429 Too Many Requests`",
+        "Het script wacht voor altijd, omdat het blijft proberen"
+      ],
+      "answer": 2,
+      "explanation": "Bij de laatste poging (`$poging -eq $MaxPogingen`) wordt de fout niet meer afgevangen maar doorgegeven met `throw`. De aanroeper ziet dan de oorspronkelijke fout. Een retry-functie moet altijd eindigen: oneindig proberen verbergt een echte storing."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [43, 46],
+      "prompt": "Hoe weet de `while`-lus dat alle pagina's zijn opgehaald?",
+      "options": [
+        "De laatste pagina mist `@odata.nextLink`, dus `$url` wordt `$null`",
+        "De lus telt de pagina's en stopt na drie keer, want zoveel zijn er",
+        "De lus stopt zodra een pagina niet precies drie items bevat, want dan is hij niet vol",
+        "De lus stopt als er een fout optreedt"
+      ],
+      "answer": 0,
+      "explanation": "Elke pagina geeft de URL van de volgende mee in `@odata.nextLink`, zoals bij Microsoft Graph. Bij de laatste pagina ontbreekt die sleutel. Een hashtable geeft voor een ontbrekende sleutel `$null`, en `while ($url)` is dan onwaar. Je telt dus nooit zelf pagina's: de server bepaalt het einde."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [6, 10],
+      "prompt": "Waarom staat er `$script:aanroepen++` in de functie en niet `$aanroepen++`?",
+      "options": [
+        "`$script:` maakt de variabele sneller dan een gewone variabele in een functie",
+        "Zonder `$script:` zou PowerShell een foutmelding geven bij het ophogen van de teller",
+        "Zonder `$script:` zou een lokale kopie worden opgehoogd en blijft de teller op 0",
+        "`$script:` zorgt dat de variabele na afloop van het script bewaard blijft"
+      ],
+      "answer": 2,
+      "explanation": "Een functie leest een variabele uit het script, maar bij `++` of `=` maakt hij een nieuwe lokale variabele. De teller van het script verandert dan niet. Met `$script:aanroepen` wijs je expliciet naar de variabele op scriptniveau. Getest: zonder `$script:` blijft de teller steeds op dezelfde waarde staan."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [49],
+      "prompt": "De laatste regel meldt `8 items opgehaald in 5 aanroepen.` Hoe komt het aantal van 5 tot stand?",
+      "options": [
+        "Er zijn 8 items en 3 pagina's, dus 8 min 3",
+        "3 pagina's plus 2 herhaalde aanroepen voor `pagina2`",
+        "Elke pagina wordt twee keer opgehaald, plus een extra aanroep",
+        "Elke retry telt als drie aanroepen"
+      ],
+      "answer": 1,
+      "explanation": "Er zijn drie pagina's, dus drie geslaagde aanroepen. De tweede pagina mislukt twee keer en lukt bij de derde poging: dat zijn twee extra aanroepen. Het aantal aanroepen is dus groter dan het aantal pagina's, en dat is precies wat je bij throttling wilt kunnen zien."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je past dit script aan voor een echte API. Welke twee verbeteringen maken de retry-logica robuuster, en wat doet `Invoke-RestMethod` zelf al in PowerShell 7?",
+      "explanation": "Een sterk antwoord noemt twee dingen. Lees de kopregel `Retry-After` uit het antwoord en wacht zolang de server vraagt, in plaats van een eigen berekende tijd (de server weet het beste hoe lang). Voeg ook willekeurige afwijking (jitter) toe, bijvoorbeeld met `Get-Random`, zodat meerdere scripts niet allemaal tegelijk opnieuw proberen. Eventueel noem je een bovengrens voor de wachttijd. In PowerShell 7 heeft `Invoke-RestMethod` zelf de parameters `-MaximumRetryCount` en `-RetryIntervalSec`; in Windows PowerShell 5.1 bestaan die niet, dus daar heb je een eigen functie zoals deze nodig. Let op dat je alleen opnieuw probeert bij aanvragen die je veilig kunt herhalen."
+    }
+  ]
+}
