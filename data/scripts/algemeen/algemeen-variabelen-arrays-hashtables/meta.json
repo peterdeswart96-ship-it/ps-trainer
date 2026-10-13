@@ -1,0 +1,130 @@
+{
+  "id": "algemeen-variabelen-arrays-hashtables",
+  "title": "Variabelen, arrays en hashtables",
+  "topic": "algemeen",
+  "level": "basis",
+  "tag": "Hashtable · array · foreach",
+  "summary": "Zoekt per afdeling het aantal licenties op in een hashtable, bouwt daarmee een array met rapportregels en telt het totaal.",
+  "risk": "read",
+  "modules": [],
+  "note": "De aantallen staan in het script zelf; er wordt niets opgehaald. Roep het script aan met bijvoorbeeld `.\\script.ps1 -Afdelingen IT,HR` om te zien wat er bij een onbekende afdeling gebeurt.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Hash_Tables, about_Arrays, about_Foreach, about_Comparison_Operators, Measure-Object, Sort-Object en Select-Object. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2],
+      "prompt": "Wat betekent `[string[]]` bij de parameter `$Afdelingen`?",
+      "options": [
+        "Dat de parameter precies drie teksten moet bevatten, net als het standaardlijstje",
+        "Een lijst met teksten, zoals `-Afdelingen IT,HR`",
+        "Dat elke tekst in de parameter minstens twee tekens lang moet zijn",
+        "Dat de parameter een hashtable met teksten als sleutel verwacht"
+      ],
+      "answer": 1,
+      "explanation": "De dubbele haken achter `string` betekenen: een array van teksten. Je geeft meerdere waarden mee met komma's. Zonder de haken (`[string]`) zou `IT,HR` als één tekst worden gelezen. Het standaardlijstje `@('IT', 'Sales', 'Finance')` laat zien hoe zo'n array eruitziet."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [5, 6, 7, 8, 9],
+      "prompt": "Welke schrijfwijze haalt het aantal licenties van Sales uit de hashtable op?",
+      "options": [
+        "`$licentiesPerAfdeling(Sales)`",
+        "`$licentiesPerAfdeling->Sales`",
+        "`$licentiesPerAfdeling[1]`, want Sales is het tweede item",
+        "`$licentiesPerAfdeling['Sales']`"
+      ],
+      "answer": 3,
+      "explanation": "Een hashtable zoek je op via de sleutel tussen rechte haken. Een hashtable heeft geen vaste volgorde, dus `[1]` zoekt naar de sleutel `1` en geeft niets terug. Ook `$licentiesPerAfdeling.Sales` werkt, maar de haken zijn handig als de sleutel in een variabele staat, zoals in regel 13."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [11, 14],
+      "prompt": "Wat doet `$rapport +=` in regel 14 technisch?",
+      "options": [
+        "Het maakt een nieuwe array met het extra object en vervangt `$rapport`",
+        "Het voegt het object direct toe aan de bestaande array, die daardoor stap voor stap vanzelf groter wordt",
+        "Het schrijft het object weg naar het bestand `$rapport`",
+        "Het telt de waarde van het object op bij het vorige object"
+      ],
+      "answer": 0,
+      "explanation": "Een array heeft een vaste grootte. Bij `+=` maakt PowerShell een nieuwe, grotere array, kopieert alle oude items erin en laat de variabele naar de nieuwe array wijzen. Bij een paar items maakt dat niets uit, maar bij tienduizenden items wordt het traag. Dan gebruik je een `[System.Collections.Generic.List[object]]` of laat je de lus de objecten gewoon teruggeven."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [13],
+      "prompt": "Je roept het script aan met `-Afdelingen IT,HR`. HR staat niet in de hashtable. Wat gebeurt er?",
+      "options": [
+        "Het script stopt met de fout dat de sleutel HR niet bestaat in de hashtable",
+        "HR wordt overgeslagen en komt niet in het rapport",
+        "Geen fout: HR staat met een lege waarde in het rapport",
+        "HR krijgt automatisch het aantal 0"
+      ],
+      "answer": 2,
+      "explanation": "Een sleutel opzoeken die niet bestaat, geeft in een hashtable `$null` terug en geen fout. HR staat dus wel in het rapport, met een lege kolom. `$aantal` is `$null`, en daarom telt `Measure-Object` er ook niets bij op. Het script meldt `2 afdelingen`, terwijl er maar voor een afdeling een aantal is. Controleer met `$licentiesPerAfdeling.ContainsKey($afdeling)` als je dit wilt afvangen."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [13],
+      "prompt": "Je geeft `-Afdelingen it` mee, in kleine letters. De sleutel in de hashtable is `IT`. Wat vindt regel 13?",
+      "options": [
+        "Niets: hoofdletters tellen mee, dus `it` is voor PowerShell een andere sleutel dan `IT`",
+        "12: bij tekst als sleutel maakt PowerShell geen verschil in hoofdletters",
+        "Een foutmelding dat de sleutel dubbel is",
+        "De waarde van de eerste sleutel in de hashtable"
+      ],
+      "answer": 1,
+      "explanation": "Een hashtable in PowerShell is standaard niet hoofdlettergevoelig voor tekst als sleutel, net als operatoren zoals `-eq`. `it` vindt dus dezelfde waarde als `IT`. Handig, maar let op: het rapport toont de naam zoals jij hem invoerde (`it`)."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [14],
+      "prompt": "Wat verandert er tijdens de foreach-lus aan de hashtable `$licentiesPerAfdeling`?",
+      "options": [
+        "Elke afdeling die in de lus voorkomt, wordt eraan toegevoegd als nieuwe sleutel",
+        "Het aantal van elke afdeling wordt met 1 verhoogd",
+        "De afdelingen worden alfabetisch gesorteerd opgeslagen",
+        "Niets: de lus leest de hashtable alleen en bouwt `$rapport` op"
+      ],
+      "answer": 3,
+      "explanation": "Alleen `$rapport` groeit. De hashtable wordt alleen gelezen via `$licentiesPerAfdeling[$afdeling]`. Het script wijzigt dus nergens een bron, en dat maakt het veilig om te draaien. Let op: met `.Add()` een sleutel toevoegen die al bestaat, geeft een fout, terwijl `$h['IT'] = 9` de waarde overschrijft."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [17, 19],
+      "prompt": "Bij `-Afdelingen IT,HR` staat er `Totaal: 12 licenties over 2 afdelingen.` Waarom 12 en niet een foutmelding?",
+      "options": [
+        "Measure-Object slaat de lege waarde van HR over; alleen de 12 van IT telt",
+        "Het script rekent HR om naar 0, toont die 0 in het rapport en telt 12 + 0 op",
+        "Measure-Object telt altijd alleen het eerste object",
+        "Format-Table voegt de waarden al samen voordat ze worden geteld"
+      ],
+      "answer": 0,
+      "explanation": "`Measure-Object -Sum` rekent met de waarden die er zijn en slaat objecten zonder waarde in die eigenschap over. Zonder fout lijkt het rapport dus kloppend, terwijl een afdeling ontbreekt. Het getal `2 afdelingen` komt uit `$rapport.Count`, en dat telt ook de afdeling zonder aantal."
+    },
+    {
+      "id": "q8",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Een collega draait het script met `-Afdelingen IT,it`. Wat zie je in het rapport en bij het totaal, en hoe zou je dat voorkomen?",
+      "explanation": "Een sterk antwoord noemt dat beide waarden dezelfde sleutel vinden (12), dat het rapport dus twee regels toont en dat het totaal 24 wordt, terwijl het om dezelfde afdeling gaat. Voorkomen kan door de invoer te ontdubbelen vóór de lus, bijvoorbeeld met `$Afdelingen | Sort-Object -Unique`. Let op: `Select-Object -Unique` is wel hoofdlettergevoelig voor tekst en laat `it` en `IT` dus allebei staan. Welke van de twee `Sort-Object -Unique` overhoudt, verschilt per PowerShell-versie. Zet de invoer daarom eerst op hoofdletters, bijvoorbeeld met `$Afdelingen | ForEach-Object ToUpper | Sort-Object -Unique`."
+    }
+  ]
+}
