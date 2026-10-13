@@ -29,6 +29,29 @@ function mappen(map) {
   return readdirSync(map).filter((naam) => statSync(join(map, naam)).isDirectory()).sort();
 }
 
+// Een onderwerp mag een `parent` hebben (een subcategorie). De boom heeft hoogstens twee niveaus:
+// het bovenliggende onderwerp moet bestaan en zelf geen parent hebben.
+function controleerBoom(topics, topicsBestand, fouten) {
+  const perId = new Map(topics.map((t) => [t.id, t]));
+  if (perId.size !== topics.length) fouten.push(`FOUT  ${pad(topicsBestand)}: een onderwerp-id komt meer dan een keer voor`);
+  for (const t of topics) {
+    if (t.parent === undefined) continue;
+    const ouder = perId.get(t.parent);
+    if (!ouder) fouten.push(`FOUT  ${pad(topicsBestand)}: parent '${t.parent}' van '${t.id}' bestaat niet`);
+    else if (ouder.parent !== undefined) fouten.push(`FOUT  ${pad(topicsBestand)}: '${t.id}' staat onder '${ouder.id}', dat zelf een subcategorie is (maximaal twee niveaus)`);
+  }
+}
+
+// Onderwerpen in boomvolgorde: eerst een hoofdonderwerp, direct daarna zijn subcategorieen; per niveau op `order`.
+function boomVolgorde(topics) {
+  const opOrder = (a, b) => a.order - b.order;
+  const resultaat = [];
+  for (const hoofd of topics.filter((t) => t.parent === undefined).sort(opOrder)) {
+    resultaat.push(hoofd, ...topics.filter((t) => t.parent === hoofd.id).sort(opOrder));
+  }
+  return resultaat;
+}
+
 // Geeft { fouten, index } terug. Bij fouten is index null en wordt er niets geschreven.
 export function bouwIndex({ scriptsMap, topicsBestand }) {
   const fouten = [];
@@ -37,6 +60,7 @@ export function bouwIndex({ scriptsMap, topicsBestand }) {
     fouten.push(`FOUT  ${pad(topicsBestand)}: verwacht een lijst met onderwerpen`);
   }
   const topicIds = new Set(Array.isArray(topics) ? topics.map((t) => t.id) : []);
+  if (Array.isArray(topics)) controleerBoom(topics, topicsBestand, fouten);
 
   const scripts = [];
   if (existsSync(scriptsMap) && statSync(scriptsMap).isDirectory()) {
@@ -71,8 +95,9 @@ export function bouwIndex({ scriptsMap, topicsBestand }) {
   }
   if (fouten.length > 0) return { fouten, index: null };
 
-  // Volgorde: onderwerp (volgens topics.json), dan niveau, dan id.
-  const volgorde = new Map(topics.map((t) => [t.id, t.order]));
+  // Volgorde: onderwerp (boomvolgorde volgens topics.json), dan niveau, dan id.
+  const geordend = boomVolgorde(topics);
+  const volgorde = new Map(geordend.map((t, i) => [t.id, i]));
   scripts.sort((a, b) =>
     volgorde.get(a.topic) - volgorde.get(b.topic) ||
     NIVEAUS.indexOf(a.level) - NIVEAUS.indexOf(b.level) ||
@@ -80,9 +105,11 @@ export function bouwIndex({ scriptsMap, topicsBestand }) {
 
   const index = {
     generated: new Date().toISOString(),
-    topics: [...topics].sort((a, b) => a.order - b.order).map((t) => {
+    topics: geordend.map((t) => {
+      // scriptCount: scripts van het onderwerp zelf; totalCount: inclusief de subcategorieen (bepaalt de status).
       const scriptCount = scripts.filter((s) => s.topic === t.id).length;
-      return { ...t, scriptCount, status: scriptCount > 0 ? 'live' : 'in-opbouw' };
+      const totalCount = scripts.filter((s) => s.topic === t.id || topics.some((k) => k.id === s.topic && k.parent === t.id)).length;
+      return { ...t, scriptCount, totalCount, status: totalCount > 0 ? 'live' : 'in-opbouw' };
     }),
     scripts
   };

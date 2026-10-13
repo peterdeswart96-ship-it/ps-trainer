@@ -188,7 +188,7 @@ test('woordenboek met dubbel groep-id: exitcode 1', () => {
 test('woordenboek met ongeldige risk, onbekend topic of extra veld: exitcode 1', () => {
   for (const [wijzig, verwacht] of [
     [(w) => { w[0].items[0].risk = 'gevaarlijk'; }, /\/0\/items\/0\/risk must be equal to one of the allowed values/],
-    [(w) => { w[0].items[1].topics = ['exchange']; }, /\/0\/items\/1\/topics\/0 must be equal to one of the allowed values/],
+    [(w) => { w[0].items[1].topics = ['onbekend']; }, /\/0\/items\/1\/topics\/0 must be equal to one of the allowed values/],
     [(w) => { w[0].items[0].extra = 1; }, /must NOT have additional properties: 'extra'/]
   ]) {
     const w = geldigWoordenboek();

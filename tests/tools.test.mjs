@@ -49,9 +49,12 @@ test('build-index op fixture "geldig": counts, path en status per onderwerp', ()
   assert.equal('note' in s, false);
 
   const status = Object.fromEntries(r.index.topics.map((t) => [t.id, t.status]));
-  assert.deepEqual(status, { migraties: 'in-opbouw', sharepoint: 'in-opbouw', foundry: 'in-opbouw', purview: 'in-opbouw', 'entra-id': 'live' });
-  assert.deepEqual(r.index.topics.map((t) => t.id), ['migraties', 'sharepoint', 'foundry', 'purview', 'entra-id']);
-  assert.equal(r.index.topics.find((t) => t.id === 'entra-id').scriptCount, 1);
+  // Boomvolgorde: een hoofdonderwerp, direct gevolgd door zijn subcategorieen. security is live via entra-id.
+  assert.deepEqual(status, { algemeen: 'in-opbouw', sharepoint: 'in-opbouw', migraties: 'in-opbouw', exchange: 'in-opbouw', security: 'live', 'entra-id': 'live', purview: 'in-opbouw', azure: 'in-opbouw', foundry: 'in-opbouw', m365: 'in-opbouw' });
+  assert.deepEqual(r.index.topics.map((t) => t.id), ['algemeen', 'sharepoint', 'migraties', 'exchange', 'security', 'entra-id', 'purview', 'azure', 'foundry', 'm365']);
+  const telling = (id) => { const t = r.index.topics.find((k) => k.id === id); return [t.scriptCount, t.totalCount]; };
+  assert.deepEqual(telling('entra-id'), [1, 1]);
+  assert.deepEqual(telling('security'), [0, 1], 'scriptCount is het onderwerp zelf, totalCount telt de subcategorieen mee');
   assert.ok(!Number.isNaN(Date.parse(r.index.generated)));
 }));
 
@@ -197,4 +200,37 @@ test('server: /.well-known/ blijft toegestaan', () => metTmp(async (tmp) => {
     assert.equal(r.status, 200);
     assert.equal(r.body, 'toegestaan');
   });
+}));
+
+// --- Subcategorieen ---
+
+const metTopics = (lijst, uitvoeren) => metTmp((tmp) => {
+  const topics = join(tmp, 'topics.json');
+  writeFileSync(topics, JSON.stringify(lijst));
+  return uitvoeren(bouw(geldig, join(tmp, 'index.json'), topics));
+});
+const topic = (id, order, parent) => ({ id, name: id, summary: 'x', order, ...(parent && { parent }) });
+
+test('build-index: een onbekende parent geeft exitcode 1', () => metTopics([topic('entra-id', 1, 'bestaat-niet')], (r) => {
+  assert.equal(r.code, 1);
+  assert.match(r.uit, /parent 'bestaat-niet' van 'entra-id' bestaat niet/);
+}));
+
+test('build-index: een subcategorie onder een subcategorie (drie niveaus) geeft exitcode 1', () => metTopics([topic('a', 1), topic('b', 1, 'a'), topic('entra-id', 1, 'b')], (r) => {
+  assert.equal(r.code, 1);
+  assert.match(r.uit, /'entra-id' staat onder 'b', dat zelf een subcategorie is/);
+}));
+
+test('build-index: een hoofdonderwerp is live via zijn subcategorie en staat in boomvolgorde', () => metTopics([topic('b-boven', 2), topic('a-boven', 1), topic('entra-id', 2, 'a-boven'), topic('a-eerste', 1, 'a-boven')], (r) => {
+  assert.equal(r.code, 0, r.uit);
+  assert.deepEqual(r.index.topics.map((t) => t.id), ['a-boven', 'a-eerste', 'entra-id', 'b-boven']);
+  const boven = r.index.topics.find((t) => t.id === 'a-boven');
+  assert.deepEqual([boven.scriptCount, boven.totalCount, boven.status], [0, 1, 'live']);
+  assert.equal(r.index.topics.find((t) => t.id === 'b-boven').status, 'in-opbouw');
+  assert.equal(r.index.scripts[0].path, 'data/scripts/entra-id/entra-voorbeeld', 'het pad van het script verandert niet door de boom');
+}));
+
+test('build-index: een dubbel onderwerp-id geeft exitcode 1', () => metTopics([topic('entra-id', 1), topic('entra-id', 2)], (r) => {
+  assert.equal(r.code, 1);
+  assert.match(r.uit, /onderwerp-id komt meer dan een keer voor/);
 }));

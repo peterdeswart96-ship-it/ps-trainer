@@ -298,10 +298,10 @@ test('start: een kapotte indexentry (geen counts) geeft een melding in plaats va
   assert.equal(gemeld.length, 1);
 });
 
-test('start: met de echte index maakt bouwKaarten een kaart per onderwerp zonder fout', () => {
+test('start: met de echte index maakt bouwKaarten een kaart per hoofdonderwerp zonder fout', () => {
   const index = echteIndex();
   const kaarten = kaartenVan(bouwKaarten(index, leegV2(), nepDocument()));
-  assert.equal(kaarten.length, index.topics.length);
+  assert.equal(kaarten.length, index.topics.filter((t) => t.parent === undefined).length, 'subcategorieen hebben geen eigen kaart');
   for (const kaart of kaarten) assert.ok(kaart.tag === 'a' || kaart.className === 'kaart in-opbouw');
 });
 
@@ -427,7 +427,7 @@ test('kleuren: tekst op de tegel (40% pastel over de achtergrond) haalt 4,5:1 en
   };
   const thema = { licht: { kleuren: themaKleuren(css, ':root {'), palet: palet(0) }, donker: { kleuren: themaKleuren(css, ':root[data-theme="dark"] {'), palet: palet(2) } };
   for (const [naam, { kleuren, palet: lijst }] of Object.entries(thema)) {
-    assert.equal(lijst.length, 5);
+    assert.equal(lijst.length, JSON.parse(readFileSync(join(root, 'data', 'topics.json'), 'utf8')).length, 'een kleur per onderwerp, ook per subcategorie');
     for (const { naam: onderwerp, tint, pastel } of lijst) {
       const tegel = menging(hexNaarRgb(pastel), kleuren.bg, 0.4);
       const wie = `${naam} ${onderwerp}`;
@@ -579,4 +579,24 @@ test('microsoft-iconen: de CSS verandert het icoon zelf niet (geen transform, fi
   }
   // De lichte achtergrond staat op de wrapper
   assert.match(css, /\.msplaat\s*\{[^}]*background:\s*var\(--ms-achter\)/);
+});
+
+test('start: een hoofdonderwerp telt de scripts van zijn subcategorieen mee; subcategorieen hebben geen eigen kaart', () => {
+  const index = {
+    topics: [
+      { id: 'boven', name: 'Boven', summary: 'S', order: 1, status: 'live' },
+      { id: 'onder', name: 'Onder', summary: 'S', order: 1, status: 'live', parent: 'boven' },
+      { id: 'leeg', name: 'Leeg', summary: 'S', order: 2, status: 'in-opbouw' }
+    ],
+    scripts: [
+      { id: 'a-eigen', topic: 'boven', level: 'gevorderd', counts: { mc: 1, bug: 0, open: 0 }, check: { status: 'gecontroleerd' } },
+      { id: 'b-sub', topic: 'onder', level: 'basis', counts: { mc: 1, bug: 0, open: 0 }, check: { status: 'gecontroleerd' } }
+    ]
+  };
+  const kaarten = kaartenVan(bouwKaarten(index, leegV2(), nepDocument()));
+  assert.deepEqual(kaarten.map(kaartNaam), ['Boven', 'Leeg']);
+  assert.equal(kaarten[0].attributen.href, '/oefenen/?script=b-sub&topic=boven', 'het basisscript uit de hele boom, met het hoofdonderwerp als filter');
+  const meta = kaarten[0].kinderen.find((k) => k.className === 'kaartmeta');
+  assert.equal(meta.textContent, '2 scripts · 1 basis, 1 gevorderd');
+  assert.equal(kaarten[1].className, 'kaart in-opbouw');
 });

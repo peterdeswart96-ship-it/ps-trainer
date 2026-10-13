@@ -1,32 +1,66 @@
 [
   {
-    "id": "migraties",
-    "name": "Migraties",
-    "summary": "Fileshares en SharePoint on-premises migreren naar SharePoint Online, met een eigen pre-scan, SPMT of ShareGate.",
+    "id": "algemeen",
+    "name": "PowerShell-basis",
+    "summary": "De taal zelf, los van een product: pipeline, filteren, foutafhandeling, -WhatIf en splatting lezen.",
     "order": 1
   },
   {
     "id": "sharepoint",
     "name": "SharePoint",
-    "summary": "Sites, deelinstellingen, sitebeheerders en opslag in SharePoint Online beheren met de SharePoint- en PnP-modules.",
+    "summary": "Sites, deelinstellingen, sitebeheerders en opslag in SharePoint Online beheren, en migreren naar SharePoint Online.",
     "order": 2
   },
   {
-    "id": "foundry",
-    "name": "Foundry",
-    "summary": "De Azure-laag rond Microsoft Foundry: resources, rollen, deployments, kosten en governance.",
+    "id": "migraties",
+    "name": "Migraties",
+    "summary": "Fileshares en SharePoint on-premises migreren naar SharePoint Online, met een eigen pre-scan, SPMT of ShareGate.",
+    "order": 1,
+    "parent": "sharepoint"
+  },
+  {
+    "id": "exchange",
+    "name": "Exchange",
+    "summary": "Postvakken, mailflow en beveiligingsinstellingen in Exchange Online beheren met ExchangeOnlineManagement.",
     "order": 3
   },
   {
-    "id": "purview",
-    "name": "Purview",
-    "summary": "Gevoeligheidslabels, DLP-beleid en retentiebeleid lezen met ExchangeOnlineManagement.",
+    "id": "security",
+    "name": "Security",
+    "summary": "Identiteiten, apparaten en gegevensbescherming: Entra ID en Purview.",
     "order": 4
   },
   {
     "id": "entra-id",
     "name": "Entra ID",
     "summary": "Gebruikers en apparaten in Entra ID beheren met Microsoft Graph.",
+    "order": 1,
+    "parent": "security"
+  },
+  {
+    "id": "purview",
+    "name": "Purview",
+    "summary": "Gevoeligheidslabels, DLP-beleid en retentiebeleid lezen met ExchangeOnlineManagement.",
+    "order": 2,
+    "parent": "security"
+  },
+  {
+    "id": "azure",
+    "name": "Azure",
+    "summary": "Resources, rollen, netwerk en governance in Azure beheren met de Az-modules, waaronder Foundry.",
     "order": 5
+  },
+  {
+    "id": "foundry",
+    "name": "Foundry",
+    "summary": "De Azure-laag rond Microsoft Foundry: resources, rollen, deployments, kosten en governance.",
+    "order": 1,
+    "parent": "azure"
+  },
+  {
+    "id": "m365",
+    "name": "Microsoft 365",
+    "summary": "Tenantbrede instellingen, licenties en Teams beheren in Microsoft 365.",
+    "order": 6
   }
 ]

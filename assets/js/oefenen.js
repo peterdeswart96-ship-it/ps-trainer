@@ -6,7 +6,7 @@
 // nodig heeft (document, venster, opslag, ophaalfuncties) mee, zodat het zonder browser te testen is.
 import {
   NIVEAU_LABELS, SCRIPT_RISICO_LABELS, STAP_LABELS, TYPE_LABELS, VRAAGTYPES,
-  filterScripts, kiesScript, laadIndex, laadMeta, laadScript, leesParams, regelLabel, scriptRegels, werkbankUrl
+  filterScripts, hoofdOnderwerp, kiesScript, laadIndex, laadMeta, laadScript, leesParams, regelLabel, scriptRegels, werkbankUrl
 } from './data.js';
 import { renderLine } from './highlight.js';
 import { renderMarkdownLite } from './markdown-lite.js';
@@ -232,7 +232,8 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
   let state = await laadVoortgang(opslag, index, haalMeta, meld);
 
   const params = leesParams(win.location.search, { topics: index.topics.map((t) => t.id) });
-  const filters = { topic: params.topic, type: params.type };
+  // topics (de lijst uit de index) laat filterScripts een hoofdonderwerp inclusief zijn subcategorieen nemen.
+  const filters = { topic: params.topic, type: params.type, topics: index.topics };
   let huidig = kiesScript(index.scripts, params.script, filters);
   let geladen = null; // { entry, meta, code }
   let rijen = [];
@@ -263,9 +264,20 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
   };
 
   const renderFilters = () => {
-    const onderwerpenMetScripts = index.topics.filter((t) => index.scripts.some((s) => s.topic === t.id));
+    // Onderwerp: de hoofdonderwerpen met scripts (ook via een subcategorie). Subcategorie: alleen als het gekozen
+    // hoofdonderwerp subcategorieen met scripts heeft; 'Alles' kiest het hele hoofdonderwerp.
+    const metScripts = (t) => filterScripts(index.scripts, { topic: t.id, topics: index.topics }).length > 0;
+    const hoofdonderwerpen = index.topics.filter((t) => t.parent === undefined && metScripts(t));
+    const actiefHoofd = filters.topic ? hoofdOnderwerp(index.topics, filters.topic) : null;
+    const subcategorieen = actiefHoofd ? index.topics.filter((t) => t.parent === actiefHoofd && metScripts(t)) : [];
+    const groepen = [
+      filterGroep('Onderwerp', [[null, 'Alle onderwerpen'], ...hoofdonderwerpen.map((t) => [t.id, t.name, t.id])], actiefHoofd, (w) => zetFilter('topic', w))
+    ];
+    if (subcategorieen.length > 0) {
+      groepen.push(filterGroep('Subcategorie', [[actiefHoofd, 'Alles'], ...subcategorieen.map((t) => [t.id, t.name, t.id])], filters.topic, (w) => zetFilter('topic', w)));
+    }
     onderdeel('filters').replaceChildren(
-      filterGroep('Onderwerp', [[null, 'Alle onderwerpen'], ...onderwerpenMetScripts.map((t) => [t.id, t.name, t.id])], filters.topic, (w) => zetFilter('topic', w)),
+      ...groepen,
       filterGroep('Soort vraag', [[null, 'Alle vragen'], ...VRAAGTYPES.map((t) => [t, TYPE_LABELS[t], undefined, t])], filters.type, (w) => zetFilter('type', w), 'chips rechts')
     );
   };

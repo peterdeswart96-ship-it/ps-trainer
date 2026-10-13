@@ -453,3 +453,61 @@ test('data: met de echte index is het standaardscript een gecontroleerd basisscr
   assert.equal(gekozen.level, 'basis');
   assert.equal(gekozen.check.status, 'gecontroleerd');
 });
+
+// --- Subcategorieen (topics met een parent) ---
+
+import { filterScripts as filterMetBoom, hoofdOnderwerp, onderwerpIds } from '../assets/js/data.js';
+import { voortgangOnderwerp as voortgangMetBoom } from '../assets/js/progress.js';
+
+const boomTopics = [
+  { id: 'boven', name: 'Boven' },
+  { id: 'onder', name: 'Onder', parent: 'boven' },
+  { id: 'los', name: 'Los' }
+];
+const boomScripts = [
+  { id: 'a', topic: 'boven', counts: { mc: 1, bug: 0, open: 0 } },
+  { id: 'b', topic: 'onder', counts: { mc: 2, bug: 0, open: 0 } },
+  { id: 'c', topic: 'los', counts: { mc: 4, bug: 0, open: 0 } }
+];
+
+test('boom: onderwerpIds en hoofdOnderwerp', () => {
+  assert.deepEqual(onderwerpIds(boomTopics, 'boven'), ['boven', 'onder']);
+  assert.deepEqual(onderwerpIds(boomTopics, 'onder'), ['onder']);
+  assert.deepEqual(onderwerpIds([], 'boven'), ['boven'], 'zonder topics telt alleen het onderwerp zelf');
+  assert.equal(hoofdOnderwerp(boomTopics, 'onder'), 'boven');
+  assert.equal(hoofdOnderwerp(boomTopics, 'boven'), 'boven');
+  assert.equal(hoofdOnderwerp(boomTopics, 'bestaat-niet'), 'bestaat-niet');
+});
+
+test('boom: een hoofdonderwerp omvat zijn subcategorieen; een subcategorie alleen zichzelf', () => {
+  const ids = (topic, topics = boomTopics) => filterMetBoom(boomScripts, { topic, topics }).map((s) => s.id);
+  assert.deepEqual(ids('boven'), ['a', 'b']);
+  assert.deepEqual(ids('onder'), ['b']);
+  assert.deepEqual(ids('los'), ['c']);
+  assert.deepEqual(ids(null), ['a', 'b', 'c']);
+  assert.deepEqual(ids('boven', []), ['a'], 'zonder topics: exacte overeenkomst');
+});
+
+test('boom: de voortgang van een hoofdonderwerp telt zijn subcategorieen mee', () => {
+  const state = { answers: {}, open: {} };
+  assert.equal(voortgangMetBoom(state, boomScripts, 'boven', boomTopics).totaal, 3);
+  assert.equal(voortgangMetBoom(state, boomScripts, 'onder', boomTopics).totaal, 2);
+  assert.equal(voortgangMetBoom(state, boomScripts, 'boven').totaal, 1, 'zonder topics: alleen het onderwerp zelf');
+});
+
+test('boom: de echte topics.json is een geldige boom met twee niveaus en de bestaande id\'s blijven bestaan', () => {
+  const topics = JSON.parse(readFileSync(join(root, 'data', 'topics.json'), 'utf8'));
+  const perId = new Map(topics.map((t) => [t.id, t]));
+  assert.equal(perId.size, topics.length, 'unieke id\'s');
+  for (const t of topics) {
+    if (t.parent === undefined) continue;
+    assert.ok(perId.has(t.parent), `${t.id}: parent bestaat`);
+    assert.equal(perId.get(t.parent).parent, undefined, `${t.id}: maximaal twee niveaus`);
+  }
+  // Bestaande id's en dus URL's, paden en voortgang blijven geldig.
+  for (const id of ['migraties', 'sharepoint', 'foundry', 'purview', 'entra-id']) assert.ok(perId.has(id), `${id} bestaat nog`);
+  assert.equal(perId.get('migraties').parent, 'sharepoint');
+  assert.equal(perId.get('entra-id').parent, 'security');
+  assert.equal(perId.get('purview').parent, 'security');
+  assert.equal(perId.get('foundry').parent, 'azure');
+});

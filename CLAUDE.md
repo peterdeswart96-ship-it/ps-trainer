@@ -6,8 +6,8 @@ Een leertool om PowerShell-scripts voor Microsoft 365 en Azure te leren **lezen*
 Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in PowerShell). Projectmethode: 4D (Define, Design, Develop, Deploy). Define en Design zijn klaar; we zitten in **Develop**.
 
 ## Lees eerst
-- `DEFINE.md`: wat en waarom (versie 0.7, akkoord).
-- `DESIGN.md`: hoe (versie 1.11, definitief). **Leidend voor alle technische keuzes.**
+- `DEFINE.md`: wat en waarom (versie 0.9, akkoord).
+- `DESIGN.md`: hoe (versie 1.18, definitief). **Leidend voor alle technische keuzes.**
 - Twijfel je of mist er iets? Vraag Peter. Verzin niets en maak geen aannames over scope.
 - `docs/sessies/`: een overdracht per sessie. Begin een nieuwe sessie met het nieuwste bestand: de stand van zaken, besluiten en wat er openstaat.
 
@@ -79,4 +79,5 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - [x] Inhoud SharePoint: 9 scripts, 3 per niveau (alle `nog_te_controleren`: niets is tegen een echte tenant of module gedraaid)
 - [x] Inhoud Purview: 3 scripts, 1 per niveau (alle `nog_te_controleren`: de uitvoereigenschappen van de `Get-`cmdlets zijn niet allemaal gedocumenteerd en niets is tegen een echte tenant gedraaid)
 - [x] Inhoud Foundry: 9 scripts, 3 per niveau (PR 52 t/m 60). Alle `nog_te_controleren`: niets is tegen een echte omgeving gedraaid; open punten staan per script in `note` en `check.source`. De drie scripts die iets wijzigen (`foundry-resource-aanmaken`, `foundry-deployment-aanmaken`, `foundry-rbac-toewijzen-managed-identity`) en het opruimscript hebben `-WhatIf`; `foundry-resources-inventaris` geeft de validatiewaarschuwing over `Set-AzContext` (bewust: `risk` blijft `read`, het wijzigt alleen de sessie)
-- [ ] Issue #35 (meer onderwerpen en subcategorieën) en #36 (zoekfunctie, later): wachten op besluiten van Peter; zie `docs/sessies/2026-10-11-overdracht-inhoud-en-werkbank.md`
+- [x] Issue #35: onderwerpen als boom met twee niveaus (`parent` in `topics.json`): PowerShell-basis, SharePoint (Migraties), Exchange, Security (Entra ID, Purview), Azure (Foundry) en Microsoft 365; de nieuwe onderwerpen hebben nog geen scripts. Besluiten van Peter: een script op precies één plek, tegels per hoofdonderwerp met subcategorie als tweede filter. DESIGN.md 1.18, DEFINE.md 0.9
+- [ ] Issue #36 (zoekfunctie, later): wacht op een besluit van Peter
