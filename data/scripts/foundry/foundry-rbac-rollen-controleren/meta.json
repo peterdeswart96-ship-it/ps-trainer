@@ -1,0 +1,135 @@
+{
+  "id": "foundry-rbac-rollen-controleren",
+  "title": "Wie heeft welke rol op een Foundry-resource",
+  "topic": "foundry",
+  "level": "basis",
+  "tag": "Get-AzCognitiveServicesAccount · Get-AzRoleAssignment · Group-Object · Export-Csv",
+  "summary": "Haalt alle roltoewijzingen op die gelden voor één Foundry-resource, zegt per regel of de rol direct op de resource staat, en telt de rollen. Zo zie je wie er toegang heeft.",
+  "risk": "read",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices",
+    "Az.Resources"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving. De documentatie van `Get-AzRoleAssignment` zegt dat `-Scope` de toewijzingen geeft die gelden op dat scope, dus op het scope zelf en daarboven (resourcegroep, abonnement). De uitvoereigenschappen `DisplayName`, `SignInName`, `ObjectType`, `RoleDefinitionName` en `Scope` staan niet op de cmdletpagina zelf (die noemt alleen het type `PSRoleAssignment`); dat ze bestaan, is niet bevestigd tegen een echte uitvoer. Is een eigenschap er niet, dan geeft `Select-Object` geen fout maar een lege kolom. Niet bevestigd is of toewijzingen op lagere scopes (een Foundry-project of een agent onder de resource) in deze lijst staan: de documentatie zegt dat `-AtScope` de toewijzingen op subscopes weglaat, wat suggereert dat ze zonder die schakelaar wel meekomen, maar dat staat er niet. Komen ze mee, dan krijgen ze in de kolom `Herkomst` het label `niet direct`, net als de toewijzingen van een hoger niveau. Toewijzingen aan groepen staan als groep in de lijst; de leden worden niet uitgevouwen (`-ExpandPrincipalGroups` werkt alleen voor één gebruiker). `ObjectType` staat op `Unknown` als de identiteit niet gevonden wordt of je onvoldoende rechten hebt om die op te zoeken. De Foundry-rollen zijn hernoemd (Foundry User heette Azure AI User); de rol-ID's zijn gelijk gebleven, dus filter in eigen scripts liever op ID. Sleutels (API keys) omzeilen RBAC volledig en staan niet in dit overzicht. Je hebt rechten nodig om roltoewijzingen te lezen; welke rol daarvoor minimaal nodig is, is niet bevestigd. Het script werkt in het abonnement van je huidige Az-context: staat de resource in een ander abonnement, kies dat dan eerst met `Set-AzContext`, anders geeft `Get-AzCognitiveServicesAccount` een fout.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-AzRoleAssignment (parametersets, -Scope, -AtScope, -ExpandPrincipalGroups, ObjectType Unknown, Microsoft Graph-aanroepen), Get-AzCognitiveServicesAccount (eigenschap Id), Role-based access control for Microsoft Foundry (rollen Foundry User, Foundry Project Manager, Foundry Account Owner, Foundry Owner en de hernoeming, rol-ID's). Open punten: de namen van de uitvoereigenschappen van PSRoleAssignment, het gedrag voor toewijzingen op subscopes (project, agent) en voor toewijzingen op een managementgroep."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        2,
+        4
+      ],
+      "prompt": "Waarvoor dienen -ResourceGroup en -Account, en wat doe je met de standaardwaarden met contoso?",
+      "options": [
+        "Ze bepalen onder welk abonnement je inlogt; de standaardwaarden zijn voorbeelden die je mag laten staan",
+        "Ze bepalen welke rollen worden getoond; de standaardwaarden zijn namen van rollen die je mag laten staan",
+        "Ze wijzen de Foundry-resource aan die je onderzoekt; vervang de voorbeeldnamen door je eigen namen",
+        "Ze bepalen waar het CSV-bestand komt; de standaardwaarden zijn mappen die het script zelf aanmaakt"
+      ],
+      "answer": 2,
+      "explanation": "Samen wijzen `-ResourceGroup` en `-Account` één Foundry-resource aan: `Get-AzCognitiveServicesAccount` op regel 9 zoekt die op naam in die resourcegroep. De standaardwaarden met `contoso` zijn voorbeelden; bestaat er geen resource met die naam, dan krijg je een foutmelding. Vervang ze door je eigen namen of geef ze mee bij het starten. `-Uitvoer` (regel 4) is het pad van de CSV, dat is iets anders. De resource moet in het abonnement van je huidige Az-context staan."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        9,
+        10
+      ],
+      "prompt": "Welke roltoewijzingen geeft Get-AzRoleAssignment -Scope $resource.Id op regel 10?",
+      "options": [
+        "Alle toewijzingen die gelden op de resource, dus ook die van de resourcegroep en het abonnement erboven",
+        "Alleen de toewijzingen die precies op de resource zijn gemaakt, nooit die van een hoger niveau erboven",
+        "Alle toewijzingen in het hele abonnement, ongeacht welk scope je opgeeft; het filter doet hier niets",
+        "Alleen de toewijzingen van de gebruiker die nu is ingelogd, op de resource en op de niveaus erboven"
+      ],
+      "answer": 0,
+      "explanation": "Volgens de documentatie filtert `-Scope` op de toewijzingen die gelden op dat scope: dus op de resource zelf én op de niveaus erboven. Een Owner op het abonnement staat dus ook in de lijst. `$resource.Id` is het volledige resource-ID (`/subscriptions/.../accounts/foundry-contoso`), dat uit regel 9 komt. Of ook toewijzingen op een project of agent onder de resource worden meegenomen, is niet bevestigd (zie de opmerking bij het script)."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        12,
+        15
+      ],
+      "prompt": "Wat doet de berekende kolom Herkomst, en hoe wordt het resultaat geordend?",
+      "options": [
+        "Herkomst telt de gebruikers per rol, en Sort-Object zet de toewijzingen op alfabet van de gebruikersnaam",
+        "Herkomst controleert of de gebruiker nog bestaat, en Sort-Object haalt toewijzingen van verwijderde gebruikers weg",
+        "Herkomst kopieert het Scope-veld, en Sort-Object zet de toewijzingen op het laatste wijzigingsmoment",
+        "Herkomst is direct of niet direct, afhankelijk van het Scope; daarna wordt op Herkomst, rol en naam geordend"
+      ],
+      "answer": 3,
+      "explanation": "In de berekende kolom vergelijkt `-eq` het `Scope` van de toewijzing met `$resource.Id`: zijn ze gelijk, dan is de toewijzing direct op de resource gemaakt; anders staat er `niet direct`. Dat kan een toewijzing van een hoger niveau zijn (resourcegroep of abonnement), maar ook van een lager niveau als zulke toewijzingen in de lijst staan; de kolom zegt dus niet welk van de twee het is, dat lees je in de kolom `Scope`. `-eq` maakt in PowerShell geen verschil tussen hoofd- en kleine letters, wat bij Azure-ID's handig is. `Sort-Object` ordent daarna op `Herkomst`, dan `RoleDefinitionName`, dan `DisplayName`. Alleen de volgorde en een extra kolom veranderen; er wordt niets gewijzigd."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bron",
+      "lines": [
+        10
+      ],
+      "prompt": "Je laat per ongeluk -Scope $resource.Id weg op regel 10. Wat is het gevolg?",
+      "options": [
+        "Het script stopt met een foutmelding dat het scope ontbreekt, omdat -Scope een verplichte parameter is",
+        "Je krijgt de toewijzingen van het hele abonnement, en wat niet op de resource staat heet ten onrechte niet direct",
+        "Het script toont nu alleen de toewijzingen op de resourcegroep, omdat dat het dichtstbijzijnde scope is",
+        "Get-AzRoleAssignment kiest zelf de Foundry-resource uit de variabele $resource en toont dezelfde lijst"
+      ],
+      "answer": 1,
+      "explanation": "Zonder parameters geeft `Get-AzRoleAssignment` alle toewijzingen onder het gekozen abonnement. Het script ziet er dan nog steeds goed uit, maar de lijst is veel groter en bevat ook rollen op andere resources. Omdat de kolom `Herkomst` alleen kijkt of `Scope` gelijk is aan het ID van de resource, krijgen al die andere toewijzingen het label `niet direct`, ook al gelden ze helemaal niet voor deze resource. Controleer daarom na het eerste gebruik of de kolom `Scope` bij elke regel een niveau boven of gelijk aan je resource is."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        7,
+        18
+      ],
+      "prompt": "Wijzigt dit script rollen of instellingen in Azure, en wat doet het wel?",
+      "options": [
+        "Ja, Get-AzRoleAssignment verwijdert verlopen toewijzingen terwijl het ze ophaalt uit de omgeving",
+        "Ja, Connect-AzAccount geeft jouw account Reader-rechten op de resource, zodat het script kan lezen",
+        "Nee, het leest alleen roltoewijzingen en schrijft een CSV op je eigen schijf; Azure blijft ongewijzigd",
+        "Nee, het leest geen toewijzingen; het script maakt alleen een leeg bestand met een kopregel aan"
+      ],
+      "answer": 2,
+      "explanation": "Beide cmdlets die iets uit Azure halen, `Get-AzCognitiveServicesAccount` en `Get-AzRoleAssignment`, lezen alleen. Het enige wat het script schrijft is de CSV op regel 18, op je eigen schijf. Er is geen `New-AzRoleAssignment` of `Remove-AzRoleAssignment`: rollen toevoegen of weghalen gebeurt hier niet. Volgens de documentatie roept `Get-AzRoleAssignment` onderwater wel Microsoft Graph aan om namen van gebruikers, groepen en service principals op te zoeken; dat is ook alleen lezen."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        20,
+        21
+      ],
+      "prompt": "Wat laat de tabel van regel 20 en 21 zien?",
+      "options": [
+        "Per rol hoeveel toewijzingen er zijn, met de meest voorkomende rol bovenaan in de tabel",
+        "Per gebruiker hoeveel rollen die heeft, met de gebruiker met de meeste rollen bovenaan in de tabel",
+        "Per rol de namen van de gebruikers die hem hebben, met de zwaarste rol bovenaan in de tabel",
+        "Het aantal toewijzingen per scope, met het hoogste niveau van de hiërarchie bovenaan in de tabel"
+      ],
+      "answer": 0,
+      "explanation": "`Group-Object RoleDefinitionName` maakt per rolnaam een groep; de eigenschap `Name` van elke groep is de rolnaam en `Count` het aantal toewijzingen. `Sort-Object Count -Descending` zet de rol met de meeste toewijzingen bovenaan. `Format-Table Name, Count` toont alleen die twee kolommen. Let op: het zijn aantallen toewijzingen, niet aantallen mensen; een groep telt als één toewijzing, ook als er tientallen leden in zitten."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat laat dit overzicht niet zien, en wat controleer je voordat je er iets over toegang tot de Foundry-resource mee zegt?",
+      "explanation": "Bijvoorbeeld: (1) toewijzingen aan een groep staan als één regel; de leden zie je niet, dus wie er echt toegang heeft, weet je pas als je de groepsleden erbij pakt; (2) of toewijzingen op een project of agent onder de resource in de lijst staan, is niet bevestigd: controleer dat in de portal; (3) sleutels (API keys) omzeilen RBAC volledig: wie een sleutel heeft, heeft toegang zonder dat hij in dit overzicht staat; (4) `ObjectType` is `Unknown` als de identiteit niet gevonden wordt of je te weinig rechten hebt om hem op te zoeken: zo'n regel zegt dan niet wie het is; (5) de rollen zijn hernoemd (Foundry User heette Azure AI User): kijk dus naar wat een rol mag, niet alleen naar de naam; (6) of de kolommen echt gevuld zijn en `Herkomst` klopt (die kolom zegt alleen direct of niet direct), controleer je door een paar regels met de portal te vergelijken. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
