@@ -1,0 +1,143 @@
+{
+  "id": "m365-gastgebruikers-groepen",
+  "title": "Gastgebruikers en hun groepslidmaatschappen",
+  "topic": "m365",
+  "level": "gevorderd",
+  "tag": "userType · Get-MgUserMemberOf · Export-Csv · alleen lezen",
+  "summary": "Haalt alle gastgebruikers op, zoekt per gast de groepen waar hij lid van is en schrijft het rapport naar scherm en CSV.",
+  "risk": "read",
+  "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Users"],
+  "note": "Niet uitgevoerd tegen een echte tenant. De cmdlets en parameters zijn getoetst in de module Microsoft.Graph 2.41; de logica is getest met nagebootste cmdlets. Het script schrijft alleen een lokaal CSV-bestand. Open punten: of een filter op `userType` zonder `-ConsistencyLevel` werkt, of `AdditionalProperties['@odata.type']` en `AdditionalProperties['displayName']` bij `Get-MgUserMemberOf` de juiste manier zijn om groepen te herkennen en te benoemen (de modulemetadata toont alleen `Id` en `DeletedDateTime`), of `GroupMember.Read.All` samen met `User.Read.All` voldoende is, en welke waarden `ExternalUserState` kan hebben.",
+  "check": {
+    "status": "nog_te_controleren"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 23],
+      "prompt": "Waar komt het CSV-bestand terecht als je het script zonder parameters aanroept?",
+      "options": [
+        "In de map waarin het script staat, onder de naam van het script",
+        "In de tijdelijke map van de gebruiker, in een map met de naam van de tenant",
+        "In de huidige map van je sessie, als `gasten-en-groepen.csv`",
+        "In een SharePoint-bibliotheek van de tenant waarmee het script verbindt"
+      ],
+      "answer": 2,
+      "explanation": "Het relatieve pad `.\\gasten-en-groepen.csv` wordt opgelost vanaf de huidige locatie van je sessie, niet vanaf de map van het script. Een bestaand bestand met dezelfde naam wordt zonder waarschuwing overschreven. Wil je ergens anders schrijven, dan geef je `-Uitvoer` mee."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [7],
+      "prompt": "Waarom staat `'Guest'` in enkele aanhalingstekens binnen het filter dat zelf tussen dubbele aanhalingstekens staat?",
+      "options": [
+        "Graph wil tekst tussen enkele aanhalingstekens; de dubbele zijn voor PowerShell",
+        "Omdat PowerShell enkele aanhalingstekens binnen dubbele automatisch verwijdert voor Graph",
+        "Omdat het filter anders als een variabele wordt gelezen en daardoor leeg blijft",
+        "Omdat dubbele aanhalingstekens binnen dubbele aanhalingstekens in Graph niet mogen"
+      ],
+      "answer": 0,
+      "explanation": "Een Graph-filter schrijft tekstwaarden tussen enkele aanhalingstekens, zoals `userType eq 'Guest'`. De buitenste dubbele aanhalingstekens zijn alleen voor PowerShell. Er staat geen `$` in het filter, dus PowerShell vervangt er niets in. Zou er wel een `$` in staan (zoals bij `$count`), dan gebruik je buitenste enkele aanhalingstekens."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bron",
+      "lines": [10],
+      "prompt": "Wat geeft `Get-MgUserMemberOf` voor één gast terug?",
+      "options": [
+        "Alleen de groepen waar de gast eigenaar van is, niet waar hij lid van is",
+        "De directory-objecten waar de gast lid van is, zoals groepen en rollen",
+        "Alle andere leden van de groepen waar de gast lid van is, per groep",
+        "Alleen de Microsoft 365-groepen, niet de beveiligingsgroepen of de rollen"
+      ],
+      "answer": 1,
+      "explanation": "`memberOf` geeft alle directory-objecten waar de gebruiker direct lid van is. Dat zijn groepen en directoryrollen, en volgens de Graph-documentatie ook bijvoorbeeld beheereenheden (dat laatste is niet in de module getoetst). Daarom filtert regel 11 op het type `#microsoft.graph.group`. Er is één aanroep per gast, dus het script wordt traag bij veel gasten."
+    },
+    {
+      "id": "q4",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [10, 11, 17],
+      "prompt": "Een gast is lid van twee groepen en heeft ook een directoryrol. Wat toont de kolom `Groepen`?",
+      "options": [
+        "3, want het script telt alle directory-objecten waar de gast lid van is",
+        "1, want alleen de eerste groep telt mee in de kolom Groepen",
+        "0, want de rol overschrijft de groepen waar de gast lid van is",
+        "2, want het filter op het type laat alleen groepen over"
+      ],
+      "answer": 3,
+      "explanation": "Regel 11 houdt alleen objecten over waarvan `@odata.type` gelijk is aan `#microsoft.graph.group`. De rol valt af. De `@( )` om het geheel zorgt dat het resultaat altijd een lijst is, zodat `.Count` bij nul, één en meer groepen op dezelfde manier werkt. Dat de sleutel zo heet, staat als open punt in de `note`."
+    },
+    {
+      "id": "q5",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [7, 15],
+      "prompt": "Een collega haalt `CreatedDateTime` uit de `-Property` van regel 7. Wat meldt het script?",
+      "options": [
+        "Een foutmelding dat de eigenschap niet bestaat, en het script stopt",
+        "Gewoon alle gasten, met een lege kolom `Aangemaakt`",
+        "Per gast de fout `You cannot call a method on a null-valued expression` en daarna `0 gasten`",
+        "Alle gasten, met de datum van vandaag in de kolom `Aangemaakt`"
+      ],
+      "answer": 2,
+      "explanation": "Zonder `-Property` komt `CreatedDateTime` niet mee en is het `$null`. `.ToString('yyyy-MM-dd')` op niets geeft bij elke gast een fout, en het object van die gast wordt niet gemaakt. De lus gaat wel door, dus aan het eind staat er `0 gasten`: een rapport dat zegt dat er niets is, terwijl er honderden gasten zijn. Lees dus altijd de foutmeldingen, en vergelijk het aantal met wat je verwacht."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [18],
+      "prompt": "Wat zet regel 18 in de kolom `Namen` voor een gast zonder groepen?",
+      "options": [
+        "Een lege tekst, zonder fout",
+        "De tekst `null`",
+        "Een foutmelding, omdat `Sort-Object` niets heeft om te sorteren",
+        "De naam van de eerste directoryrol van de gast"
+      ],
+      "answer": 0,
+      "explanation": "`ForEach-Object` en `Sort-Object` op een lege lijst geven niets terug, en `-join` van niets is een lege tekst. In de CSV staat dan `\"\"`. Dat is geen fout, maar een leeg veld dat je in Excel als leeg ziet."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [5, 7, 23],
+      "prompt": "Wat schrijft of wijzigt dit script?",
+      "options": [
+        "Het verwijdert gasten die nergens lid van zijn uit de tenant",
+        "Alleen het lokale CSV-bestand; in de tenant verandert niets",
+        "Het verwijdert de gasten uit alle groepen waar ze lid van zijn",
+        "Het stuurt het rapport per e-mail naar de beheerder"
+      ],
+      "answer": 1,
+      "explanation": "Met leesscopes kan het script niets in de tenant wijzigen. Het enige wat het schrijft, is het CSV-bestand op jouw computer (regel 23), dat bij elke run wordt overschreven. Daarom staat `risk` op `read`: het gaat om wijzigingen in de tenant."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [16],
+      "prompt": "De kolom `Status` toont voor een gast `PendingAcceptance`. Wat betekent dat?",
+      "options": [
+        "De gast is geblokkeerd door een beheerder",
+        "De gast heeft geen groepen en wacht op toewijzing",
+        "De gast is verwijderd en wacht op definitieve verwijdering",
+        "De uitnodiging is verstuurd maar nog niet geaccepteerd"
+      ],
+      "answer": 3,
+      "explanation": "`ExternalUserState` laat zien of de gast de uitnodiging heeft geaccepteerd (`Accepted`) of nog niet (`PendingAcceptance`). Een gast die lang in `PendingAcceptance` staat, is een kandidaat om op te ruimen. Welke waarden de eigenschap precies kan hebben, staat als open punt in de `note`."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Je wilt gasten vinden die je mogelijk kunt opruimen. Welke gegevens uit dit rapport gebruik je, en wat voeg je toe voordat je iets verwijdert?",
+      "explanation": "Een sterk antwoord combineert drie signalen uit het rapport: een uitnodiging die al lang in `PendingAcceptance` staat (met `Aangemaakt` als datum), gasten zonder groepslidmaatschap, en eventueel gasten van een organisatie die je niet meer kent (het mailadres). Toevoegen: de laatste aanmelddatum met `SignInActivity` (volgens de documentatie vraagt dat `AuditLog.Read.All` en een Entra ID P1- of P2-licentie), en overleg met de eigenaren van de groepen of teams. Verwijderen doe je niet in dit script: schrijf een apart script met `-WhatIf` en een goedgekeurde lijst."
+    }
+  ]
+}
