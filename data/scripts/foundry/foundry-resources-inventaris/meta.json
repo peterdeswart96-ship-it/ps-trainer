@@ -1,0 +1,134 @@
+{
+  "id": "foundry-resources-inventaris",
+  "title": "Foundry- en AI-resources inventariseren",
+  "topic": "foundry",
+  "level": "basis",
+  "tag": "Connect-AzAccount · Get-AzSubscription · Get-AzCognitiveServicesAccount · Export-Csv",
+  "summary": "Loopt langs alle ingeschakelde abonnementen, zoekt de Foundry- en Azure OpenAI-resources en toont ze als tabel en als CSV, zodat je ziet welke AI-resources er zijn en waar ze staan.",
+  "risk": "read",
+  "modules": [
+    "Az.Accounts",
+    "Az.CognitiveServices"
+  ],
+  "note": "Niet uitgevoerd tegen een echte omgeving. Een Foundry-resource is in Azure een `Microsoft.CognitiveServices/accounts`-resource met de soort (kind) `AIServices`; een losse Azure OpenAI-resource heeft de soort `OpenAI`. Dat de `AccountType` van `Get-AzCognitiveServicesAccount` precies die twee waarden teruggeeft, is niet bevestigd: de documentatie toont als voorbeeld alleen `LUIS`, en de pagina van `Get-AzCognitiveServicesAccountType` toont `CognitiveServices`, `ComputerVision`, `Face`, `FormRecognizer` en `LUIS`. Ook niet bevestigd is dat `Sku` een object met een eigenschap `Name` is (de documentatie toont alleen de typenaam van het object). Past een waarde niet, dan geeft het script geen fout maar een lege kolom of een kortere lijst. Oudere, hub-gebaseerde Foundry-projecten (Azure Machine Learning-hubs) zijn andere resources en staan niet in deze lijst. Je hebt minimaal leesrechten (bijvoorbeeld de rol Reader) op de abonnementen nodig. `Get-AzSubscription` zonder `-TenantId` toont alleen abonnementen van de huidige tenant; bij meerdere tenants moet je per tenant inloggen. Of een gewijzigde Az-context ook op schijf wordt bewaard, hangt af van de instelling voor automatisch opslaan van de context.",
+  "check": {
+    "status": "nog_te_controleren",
+    "source": "Microsoft Learn: Get-AzCognitiveServicesAccount (syntax, uitvoer met onder meer AccountName, AccountType, Location, Sku, PublicNetworkAccess en Endpoint), Get-AzSubscription (State, voorbeeld met Set-AzContext), New-AzCognitiveServicesAccount (-Type heeft de aliassen AccountType en Kind), Get-AzCognitiveServicesAccountType, Foundry-architectuur (resource `Microsoft.CognitiveServices/accounts`, kind `AIServices`). Open punten: de exacte waarden van `AccountType` voor Foundry en Azure OpenAI, de vorm van `Sku`, en of verwijderde (soft-deleted) accounts ontbreken zonder `-InRemovedState`."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [
+        1,
+        3
+      ],
+      "prompt": "Wat is de parameter -Uitvoer, en wat gebeurt er als je het script zonder parameters start?",
+      "options": [
+        "Het is de naam van het abonnement; zonder waarde scant het script alleen het eerste abonnement",
+        "Het is het pad van het CSV-bestand; zonder waarde komt foundry-resources.csv in de huidige map",
+        "Het is de soort resource; zonder waarde toont het script alle soorten resources in Azure",
+        "Het is het account waarmee je inlogt; zonder waarde vraagt het script om een wachtwoord"
+      ],
+      "answer": 1,
+      "explanation": "`$Uitvoer` is alleen het pad van de CSV die op regel 22 wordt geschreven. De standaardwaarde `.\\foundry-resources.csv` betekent: in de map waar je PowerShell op dat moment staat. Met `-Uitvoer C:\\Rapporten\\ai.csv` kies je zelf een plek. Er is geen parameter voor abonnementen of soorten: die staan vast in het script (regel 7 en 8)."
+    },
+    {
+      "id": "q2",
+      "type": "mc",
+      "step": "bron",
+      "lines": [
+        5,
+        8
+      ],
+      "prompt": "Welke abonnementen worden doorzocht, en waarom staat Where-Object State -eq 'Enabled' op regel 8?",
+      "options": [
+        "Alleen het abonnement waar je het laatst in werkte; het filter controleert of je daar nog bent ingelogd",
+        "Alle abonnementen in de hele organisatie; het filter laat alleen abonnementen met een Foundry-resource over",
+        "Alle abonnementen die je account kan zien; het filter laat uitgeschakelde abonnementen buiten het onderzoek",
+        "Alleen abonnementen met een betaald contract; het filter controleert de facturatiestatus per abonnement"
+      ],
+      "answer": 2,
+      "explanation": "`Connect-AzAccount` logt je in; `Get-AzSubscription` geeft daarna alle abonnementen die dit account mag zien, ook uitgeschakelde of verlopen. Die hebben `State` gelijk aan iets anders dan `Enabled`. Het filter houdt ze buiten de lus, zodat `Set-AzContext` op regel 11 er niet op stukloopt. Alleen abonnementen waar je geen rechten op hebt, zie je niet: die ontbreken stilzwijgend in het overzicht."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [
+        12,
+        17
+      ],
+      "prompt": "Wat gebeurt er met de resources in de pijplijn van regel 12 tot 17?",
+      "options": [
+        "Get-AzCognitiveServicesAccount haalt alleen de Foundry-resources op, Where-Object telt ze en Select-Object geeft het aantal",
+        "Get-AzCognitiveServicesAccount haalt de resources op, Where-Object zet ze op alfabet en Select-Object slaat ze op in Azure",
+        "Get-AzCognitiveServicesAccount haalt de keys op, Where-Object verwijdert ongebruikte keys en Select-Object vernieuwt ze",
+        "Get-AzCognitiveServicesAccount haalt alle AI-accounts op, Where-Object houdt twee soorten over en Select-Object kiest kolommen"
+      ],
+      "answer": 3,
+      "explanation": "Zonder `-ResourceGroupName` geeft `Get-AzCognitiveServicesAccount` alle Cognitive Services-accounts van het huidige abonnement. `Where-Object` houdt alleen de accounts over waarvan `AccountType` `AIServices` of `OpenAI` is; spraak-, visie- en andere accounts vallen naar verwachting af (de exacte waarden van `AccountType` zijn niet bevestigd). `Select-Object` bouwt per account een nieuw object met acht kolommen, waarvan er twee berekend zijn: `Abonnement` (de naam uit de lus) en `Sku` (de naam binnen het `Sku`-object). Alles gaat in `$resources`; er wordt niets in Azure aangepast."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [
+        11
+      ],
+      "prompt": "Je haalt regel 11 (Set-AzContext) per ongeluk weg. Wat is het gevolg?",
+      "options": [
+        "Elke ronde leest hetzelfde abonnement; je krijgt dezelfde resources opnieuw, onder een andere abonnementsnaam",
+        "Het script stopt direct met een foutmelding dat er nog geen abonnement is gekozen voor de volgende ronde",
+        "Get-AzCognitiveServicesAccount doorzoekt nu automatisch alle abonnementen tegelijk, waardoor het sneller wordt",
+        "Het script geeft een lege lijst, omdat zonder gekozen context geen enkele resource kan worden opgehaald"
+      ],
+      "answer": 0,
+      "explanation": "`Get-AzCognitiveServicesAccount` werkt altijd op het abonnement van de huidige context. Zonder `Set-AzContext` verandert die context niet, dus elke ronde geeft de resources van hetzelfde abonnement, terwijl `$abonnement.Name` wel doorschuift. Het rapport ziet er netjes uit maar klopt niet: resources lijken in meerdere abonnementen te staan en de andere abonnementen ontbreken. Controleer daarom bij het eerste gebruik of de resource-ID's (en regio's) per abonnement verschillen."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [
+        5,
+        22
+      ],
+      "prompt": "Wijzigt dit script iets in Azure, en wat verandert er wel?",
+      "options": [
+        "Ja, Set-AzContext past het gekozen abonnement aan in Azure, zodat andere beheerders het ook zien",
+        "Ja, Connect-AzAccount maakt in elk abonnement een nieuwe gebruiker voor je aan met leesrechten",
+        "Nee, het leest alleen; wel wisselt je sessie van abonnement en komt er een CSV op je eigen schijf",
+        "Nee, het leest niets uit Azure; Export-Csv maakt alleen een leeg bestand met de kopregel aan"
+      ],
+      "answer": 2,
+      "explanation": "Alle cmdlets die iets uit Azure halen (`Get-`) lezen alleen. `Set-AzContext` verandert niet Azure zelf, maar de context van je eigen PowerShell-sessie (bij automatisch opslaan van de Az-context kan die keuze ook in het contextbestand op je schijf terechtkomen): na afloop staat die op het laatste abonnement uit de lus. Heb je daarna een ander script in dezelfde sessie, dan werkt dat in dat abonnement. Het enige wat het script schrijft is de CSV op regel 22. Geen resource, rol of instelling verandert."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [
+        20,
+        22
+      ],
+      "prompt": "Regel 20 sorteert de resources, regel 21 toont ze en regel 22 schrijft ze weg. Waarom staat de CSV ook op volgorde?",
+      "options": [
+        "Export-Csv sorteert zelf op de eerste kolom voordat het de regels naar het bestand schrijft weg",
+        "Regel 20 zet het gesorteerde resultaat terug in $resources, dus tabel en CSV hebben dezelfde volgorde",
+        "Format-Table sorteert de objecten ook voor de volgende opdracht in het script, dus ook voor de CSV zelf",
+        "De CSV staat niet op volgorde; alleen de tabel op het scherm is gesorteerd door Format-Table"
+      ],
+      "answer": 1,
+      "explanation": "Op regel 20 staat `$resources = $resources | Sort-Object ...`: het gesorteerde resultaat vervangt de oude inhoud van de variabele. Regel 21 en 22 lezen daarna dezelfde, gesorteerde `$resources`. Had er alleen `$resources | Sort-Object ...` gestaan zonder toewijzing, dan was `$resources` ongesorteerd gebleven en was de volgorde alleen op het scherm veranderd."
+    },
+    {
+      "id": "q7",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Wat laat dit overzicht niet zien, en wat controleer je voordat je het gebruikt om iets te zeggen over de AI-resources in je organisatie?",
+      "explanation": "Bijvoorbeeld: (1) alleen de abonnementen die je account mag zien, en zonder `-TenantId` alleen die van de huidige tenant; ontbreekt een abonnement, dan ontbreken de resources zonder foutmelding; (2) het zegt niets over wat er in de resource draait: geen modeldeployments, projecten, agents of verbruik, dat zijn andere onderdelen; (3) verwijderde (soft-deleted) resources staan er niet in en oudere, hub-gebaseerde Foundry-projecten zijn andere resources; (4) of `AccountType` en `Sku` echt gevuld worden, is niet bevestigd: kijk of die kolommen gevuld zijn en vergelijk een paar regels met de portal; (5) `PublicNetworkAccess` leeg kan betekenen dat de instelling niet is gezet, niet dat de toegang dicht is. Het script wijzigt niets, dus herstellen is niet nodig."
+    }
+  ]
+}
