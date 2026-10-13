@@ -362,3 +362,19 @@ a.kaart:hover { border-color: var(--tint); box-shadow: 0 0 0 1px var(--tint); }
 @media (forced-colors: active) {
   .icoon[class*="ico-"] { background-color: CanvasText; forced-color-adjust: none; }
 }
+
+/* Compacte kop op de werkbank (class "compact" op .wrap): logo, titel en menu op een rij, de uitleg als smalle regel
+   eronder, en een scorerij die minder hoogte kost. Zo blijft er meer ruimte voor script en vragen. */
+.compact { gap: 12px; padding-block-start: 14px; }
+.compact header { align-items: center; gap: 2px 24px; }
+.compact header > div:first-child { display: contents; }
+.compact .merk { order: 1; margin-bottom: 0; }
+.compact h1 { order: 2; font-size: clamp(1.25rem, 2.2vw, 1.6rem); }
+.compact .kopacties { order: 3; margin-left: auto; }
+.compact .sub { order: 4; flex-basis: 100%; max-width: none; margin: 0; font-size: .9rem; }
+.compact .werkbank { gap: 10px; }
+.compact #score { margin-block: -2px -4px; }
+.compact .scorerij { min-height: 0; }
+.compact .score { font-size: .8rem; }
+/* Onder de 900px past logo plus titel plus menu niet op een rij: daar blijft de gewone indeling. */
+@media (max-width: 900px) { .compact header > div:first-child { display: block; } }
