@@ -1,0 +1,145 @@
+{
+  "id": "algemeen-regex-logregels",
+  "title": "Logregels uitlezen met regex",
+  "topic": "algemeen",
+  "level": "expert",
+  "tag": "-match · benoemde groepen · $Matches",
+  "summary": "Leest voorbeeldlogregels van aanmeldingen uit met een reguliere expressie en zoekt IP-adressen met veel mislukte pogingen.",
+  "risk": "read",
+  "modules": [],
+  "note": "De logregels staan in het script zelf; er wordt niets opgehaald. Regels die niet bij het patroon passen, geven een waarschuwing en worden overgeslagen. In een echt script lees je de regels met `Get-Content`.",
+  "check": {
+    "status": "gecontroleerd",
+    "date": "2026-10-13",
+    "source": "Microsoft Learn: about_Regular_Expressions, about_Comparison_Operators (-match, -cmatch en $Matches), Where-Object, Group-Object en Sort-Object. Het script en elk gedrag uit de vragen zijn uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1."
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mc",
+      "step": "parameters",
+      "lines": [2, 35],
+      "prompt": "Je roept het script aan met `-MinPogingen 5`. Wat zie je?",
+      "options": [
+        "Een foutmelding, omdat er geen IP-adres met vijf pogingen bestaat",
+        "Het adres 203.0.113.10 met 4 pogingen, met een markering dat het onder de grens zit",
+        "Alle IP-adressen met mislukte pogingen, ongeacht het aantal",
+        "Geen verdachte adressen: alleen de waarschuwing over de onbekende regel"
+      ],
+      "answer": 3,
+      "explanation": "Regel 35 houdt alleen groepen over met minstens `$MinPogingen` mislukte pogingen. Het drukste adres heeft er 4, dus de lijst is leeg en de `foreach` in regel 37 draait niet. Dat geeft geen fout, alleen geen uitvoer. Wees voorzichtig met zo'n stille afloop: een lege uitvoer betekent hier `niets gevonden` en niet `niet gecontroleerd`."
+    },
+    {
+      "id": "q2",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [16],
+      "prompt": "Een collega haalt in het patroon de backslashes voor de punten weg, zodat het `(?:.\\d{1,3}){3}` wordt. Wat is het gevolg?",
+      "options": [
+        "Het patroon werkt hetzelfde, want een punt in een patroon is altijd een gewone punt voor de tekst",
+        "Het patroon herkent ook `203x0y113z10` als IP-adres, want een punt is elk teken",
+        "Het patroon geeft een fout bij het inlezen van het script",
+        "Het patroon herkent alleen nog IP-adressen met drie cijfers per deel"
+      ],
+      "answer": 1,
+      "explanation": "In een reguliere expressie betekent `.` elk willekeurig teken, behalve een regeleinde. Voor een echte punt schrijf je `\\.`. Zonder de backslash voldoet `203x0y113z10` ook als IP-adres. Het patroon zou dus meer accepteren dan je bedoelt, zonder dat je een foutmelding krijgt."
+    },
+    {
+      "id": "q3",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [19],
+      "prompt": "Wat doet `$regel -match $patroon` in regel 19?",
+      "options": [
+        "Het geeft de gevonden tekst terug en zet die in de variabele `$regel` zelf",
+        "Het vergelijkt de twee teksten letterlijk met elkaar",
+        "`$true` of `$false`; bij `$true` staan de benoemde groepen in `$Matches`",
+        "Het geeft een lijst met alle plekken in de regel waar het patroon past, met posities"
+      ],
+      "answer": 2,
+      "explanation": "`-match` geeft een boolean terug. Bij een treffer staan de delen van het patroon in de hashtable `$Matches`, onder de namen van de groepen (`$Matches.ip`, `$Matches.gebruiker`). Het is standaard niet hoofdlettergevoelig; voor hoofdletters gebruik je `-cmatch`. Alle treffers in een tekst krijg je met `[regex]::Matches()`."
+    },
+    {
+      "id": "q4",
+      "type": "bug",
+      "step": "bewerking",
+      "lines": [27, 28, 29],
+      "prompt": "Een collega zet in het else-blok `$($Matches.gebruiker)` in de waarschuwing. Wat staat er bij de onbekende regel 10?",
+      "options": [
+        "De gebruiker van de vorige gelukte regel: chantal@contoso.com",
+        "Niets: het is leeg, omdat deze regel niet bij het patroon past",
+        "Een foutmelding dat `$Matches` op dat moment niet bestaat",
+        "De tekst `onbekend`, afgeleid van de inhoud van de regel zelf"
+      ],
+      "answer": 0,
+      "explanation": "`$Matches` wordt alleen bijgewerkt bij een geslaagde `-match`. Na een mislukte match blijft de oude inhoud staan. De waarschuwing laat dus een gebruiker zien die niets met de onbekende regel te maken heeft. Gebruik `$Matches` daarom alleen binnen het `if`-blok, zoals het script nu doet."
+    },
+    {
+      "id": "q5",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [21],
+      "prompt": "Wat doet `[datetime]$Matches.tijd` in regel 21?",
+      "options": [
+        "Niets: de tekst blijft een tekst en wordt alleen anders weergegeven",
+        "Het zoekt de datum op in een lijst met bekende datums in het geheugen",
+        "Het geeft een fout, want een tekst kan nooit een datum worden in PowerShell",
+        "Het zet de tekst om in een echte datum, zodat je kunt rekenen"
+      ],
+      "answer": 3,
+      "explanation": "Alles wat een regex teruggeeft is tekst. Met `[datetime]` zet PowerShell de tekst om naar een datum. Dat werkt voor een leesbare notatie als `2026-10-12 09:15:02`. Past de tekst niet, dan volgt een fout. Zet daarom getallen en datums direct om, voordat je ermee rekent of sorteert."
+    },
+    {
+      "id": "q6",
+      "type": "mc",
+      "step": "bewerking",
+      "lines": [32, 33, 34, 35],
+      "prompt": "Wat selecteert de pipeline in regel 32 tot en met 35 in de `$verdacht`?",
+      "options": [
+        "Alle gebeurtenissen met resultaat `failure`, zonder te groeperen",
+        "De IP-adressen met minstens `$MinPogingen` mislukte pogingen",
+        "De gebruikers met de meeste mislukte pogingen, gesorteerd op naam",
+        "De eerste `$MinPogingen` gebeurtenissen uit de lijst met regels"
+      ],
+      "answer": 1,
+      "explanation": "Eerst blijven alleen de mislukte pogingen over, dan worden ze gegroepeerd per IP-adres, en dan blijven de groepen met een `Count` van minstens `$MinPogingen` over. `Where-Object -Property Count -GE -Value ...` is de korte schrijfwijze van `Where-Object { $_.Count -ge ... }`."
+    },
+    {
+      "id": "q7",
+      "type": "mc",
+      "step": "uitvoer",
+      "lines": [38, 39],
+      "prompt": "De uitvoer meldt 4 mislukte pogingen maar noemt drie gebruikers. Hoe komt dat?",
+      "options": [
+        "Eén gebruiker is bij het groeperen weggevallen uit de telling",
+        "Er is een fout in de telling, want het aantal moet gelijk zijn aan de namen",
+        "Anna deed twee pogingen; `Sort-Object -Unique` toont elke naam één keer",
+        "Het IP-adres komt vier keer voor, maar één poging was geen gebruiker"
+      ],
+      "answer": 2,
+      "explanation": "`$groep.Count` telt de regels (4), en `$groep.Group.Gebruiker` bevat vier namen waarvan Anna er twee keer in heeft. `Sort-Object -Unique` haalt dubbele namen weg. Eén adres met mislukte pogingen voor meerdere gebruikers kan wijzen op een password spray: een aanvaller probeert hetzelfde wachtwoord bij veel accounts."
+    },
+    {
+      "id": "q8",
+      "type": "mc",
+      "step": "wijziging",
+      "lines": [18, 28, 39],
+      "prompt": "Wat wijzigt het script aan de logregels of aan de gebruikers?",
+      "options": [
+        "Niets: het leest alleen en toont tekst en waarschuwingen",
+        "Het blokkeert de verdachte IP-adressen in de firewall",
+        "Het zet de gebruikers met mislukte pogingen op inactief in Entra ID",
+        "Het schrijft de herkende regels naar een nieuw logbestand in de map"
+      ],
+      "answer": 0,
+      "explanation": "Het script bouwt objecten in het geheugen en toont tekst. Er wordt niets geblokkeerd, aangepast of weggeschreven. Het is dus veilig om op een kopie van een log te draaien, maar het lost niets op: voor blokkeren zou je een ander script of een beleid nodig hebben."
+    },
+    {
+      "id": "q9",
+      "type": "open",
+      "step": "uitvoer",
+      "prompt": "Een logregel eindigt voortaan op ` reason=BadPassword`. Wat gebeurt er met zulke regels, en hoe pas je het patroon aan zodat ze blijven werken én de reden wordt vastgelegd?",
+      "explanation": "Een sterk antwoord noemt dat het patroon eindigt op `$` en dus geen extra tekst accepteert: zulke regels vallen in het else-blok en krijgen een waarschuwing, ook al zijn ze goed. De oplossing is een optionele groep voor het eind van het patroon: `(?: reason=(?<reden>\\w+))?$`. Het vraagteken maakt de groep optioneel, zodat oude en nieuwe regels allebei passen, en `$Matches.reden` bevat dan de reden (bij een oude regel is die `$null`). Het weglaten van `$` werkt ook, maar dan accepteer je ook rommel achter het resultaat."
+    }
+  ]
+}
