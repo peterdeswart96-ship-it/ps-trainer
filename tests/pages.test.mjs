@@ -3,13 +3,11 @@
 // van tools/smoke.mjs staan (CLAUDE.md). Zonder browser: de HTML wordt als tekst gecontroleerd.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { aantalTekst, bouwWoordenboek, telItems } from '../assets/js/woordenboek.js';
-import { OFFICIELE_ICONEN, bouwKaarten, bouwStartInhoud, metaTekst, voortgangTekst } from '../assets/js/start.js';
+import { bouwKaarten, bouwStartInhoud, metaTekst, voortgangTekst } from '../assets/js/start.js';
 import { laadMeta } from '../assets/js/data.js';
 import { leegV2, registreerAntwoord } from '../assets/js/progress.js';
 import { bouwIndex } from '../tools/build-index.mjs';
@@ -478,107 +476,29 @@ test('iconen: alleen een ico-klasse met een eigen regel krijgt een kleur (een on
   for (const regel of eigenRegels) assert.match(regel, /background-color:\s*currentColor/);
 });
 
-// --- Officiële Microsoft-iconen ---
+// --- Iconen per onderwerp ---
 
-const MSMAP = join(root, 'assets', 'img', 'microsoft');
-const bron = () => JSON.parse(readFileSync(join(MSMAP, 'bron.json'), 'utf8'));
-
-test('microsoft-iconen: de bestanden zijn ongewijzigd (SHA-256 uit bron.json) en bron en voorwaarden staan erbij', () => {
-  const { iconen, voorwaarden, datum } = bron();
-  assert.match(voorwaarden, /training materials/);
-  assert.match(datum, /^\d{4}-\d{2}-\d{2}$/);
-  assert.ok(iconen.length >= 2);
-  for (const icoon of iconen) {
-    const bytes = readFileSync(join(MSMAP, icoon.bestand));
-    assert.equal(createHash('sha256').update(bytes).digest('hex'), icoon.sha256, `${icoon.bestand} is gewijzigd (het officiële icoon mag niet worden aangepast)`);
-    assert.match(icoon.bronUrl, /^https:\/\/learn\.microsoft\.com\//);
-    assert.ok(icoon.productnaam.startsWith('Microsoft '), 'de volledige productnaam');
-  }
-  // Elk bestand in de map hoort in bron.json, en BRON.md noemt de voorwaarden
-  const bestanden = readdirSync(MSMAP).filter((n) => n.endsWith('.svg')).sort();
-  assert.deepEqual(bestanden, iconen.map((i) => i.bestand).sort());
-  assert.match(readFileSync(join(MSMAP, 'BRON.md'), 'utf8'), /Microsoft reserves all other rights/);
-});
-
-test('microsoft-iconen: de SVG-bestanden bevatten geen scripts, handlers, externe verwijzingen of ingebedde afbeeldingen', () => {
-  for (const icoon of bron().iconen) {
-    const svg = readFileSync(join(MSMAP, icoon.bestand), 'utf8');
-    assert.match(svg, /<svg\b[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
-    assert.doesNotMatch(svg, /<script|<foreignObject|<image|<use\b|\son[a-z]+=|\bhref=|xlink|javascript:|<style|data:/i, icoon.bestand);
-    assert.deepEqual([...svg.matchAll(/https?:\/\/[^"'\s)]+/g)].map((m) => m[0]).filter((u) => u !== 'http://www.w3.org/2000/svg'), [], icoon.bestand);
-  }
-});
-
-test('microsoft-iconen: Git laat ze ongemoeid (geen regeleinde-omzetting)', () => {
-  assert.match(readFileSync(join(root, '.gitattributes'), 'utf8'), /^assets\/img\/microsoft\/\*\.svg -text$/m);
-});
-
-test('microsoft-iconen: OFFICIELE_ICONEN in start.js komt overeen met bron.json (bestand, productnaam, onderwerp)', () => {
-  const uitBron = Object.fromEntries(bron().iconen.map((i) => [i.onderwerp, { bestand: i.bestand, naam: i.productnaam }]));
-  assert.deepEqual(OFFICIELE_ICONEN, uitBron);
-  const onderwerpen = JSON.parse(readFileSync(join(root, 'data', 'topics.json'), 'utf8')).map((t) => t.id);
-  for (const id of Object.keys(OFFICIELE_ICONEN)) assert.ok(onderwerpen.includes(id), `${id} is geen onderwerp`);
-});
-
-test('microsoft-iconen: de tegel toont het icoon ongewijzigd als afbeelding met de volledige productnaam ernaast', () => {
-  const index = {
-    topics: [
-      { id: 'foundry', name: 'Foundry', summary: 'S', order: 1, status: 'in-opbouw' },
-      { id: 'entra-id', name: 'Entra ID', summary: 'S', order: 2, status: 'live' },
-      { id: 'purview', name: 'Purview', summary: 'S', order: 3, status: 'in-opbouw' }
-    ],
-    scripts: [{ id: 'e', topic: 'entra-id', level: 'basis', counts: { mc: 1, bug: 0, open: 0 }, check: { status: 'gecontroleerd' } }]
-  };
-  const [foundry, entra, purview] = kaartenVan(bouwKaarten(index, leegV2(), nepDocument()));
-  for (const [kaart, bestand, naam] of [[foundry, 'foundry.svg', 'Microsoft Foundry'], [entra, 'entra-id.svg', 'Microsoft Entra ID']]) {
-    const rij = kaart.kinderen[0];
-    assert.equal(rij.className, 'merkrij');
-    const [plaat, productnaam] = rij.kinderen;
-    assert.equal(plaat.className, 'msplaat');
-    assert.equal(plaat.kinderen.length, 1, 'de wrapper bevat alleen het icoon');
-    const afbeelding = plaat.kinderen[0];
-    assert.equal(afbeelding.tag, 'img');
-    assert.equal(afbeelding.attributen.src, `/assets/img/microsoft/${bestand}`);
-    assert.equal(afbeelding.attributen.alt, '', 'decoratief: de productnaam staat ernaast');
-    assert.equal(afbeelding.attributen.width, afbeelding.attributen.height, 'verhouding blijft gelijk (geen vervorming)');
-    assert.equal(productnaam.textContent, naam);
-    assert.ok(existsSync(join(root, 'assets', 'img', 'microsoft', bestand)));
-  }
-  assert.equal(purview.kinderen[0].className, 'icoon ico-purview', 'zonder officieel icoon: het eigen icoon');
-});
-
-test('microsoft-iconen: een id als "constructor" of "__proto__" geeft geen officieel icoon', () => {
-  const index = { topics: [{ id: 'constructor', name: 'N', summary: 'S', order: 1, status: 'in-opbouw' }, { id: '__proto__', name: 'N', summary: 'S', order: 2, status: 'in-opbouw' }], scripts: [] };
-  const kaarten = kaartenVan(bouwKaarten(index, leegV2(), nepDocument()));
-  assert.equal(kaarten.length, 2);
-  assert.ok(!kaarten.some((k) => k.kinderen[0].className === 'merkrij'));
-});
-
-test('microsoft-iconen: elk onderwerp heeft een eigen of een officieel icoon, en de officiële tegels hebben geen eigen masker meer', () => {
+test('iconen: elk onderwerp heeft een eigen icoon (CSS-regel en SVG-bestand), ook een subcategorie', () => {
   const css = cssTekst();
   for (const id of JSON.parse(readFileSync(join(root, 'data', 'topics.json'), 'utf8')).map((t) => t.id)) {
-    if (Object.hasOwn(OFFICIELE_ICONEN, id)) assert.doesNotMatch(css, new RegExp(`\\.ico-${id}\\s*\\{`), `.ico-${id} is overbodig naast het officiële icoon`);
-    else assert.match(css, new RegExp(`\\.ico-${id}\\s*\\{`), `${id} heeft geen icoon`);
+    assert.match(css, new RegExp(`\\.ico-${id}\\s*\\{`), `${id} heeft geen icoon in de CSS`);
+    assert.ok(existsSync(join(root, 'assets', 'img', 'icons', `${id}.svg`)), `${id}.svg ontbreekt`);
   }
 });
 
-test('microsoft-iconen: Git past het attribuut -text echt toe op de bestanden', () => {
-  for (const icoon of bron().iconen) {
-    const uit = spawnSync('git', ['check-attr', 'text', '--', `assets/img/microsoft/${icoon.bestand}`], { cwd: root, encoding: 'utf8' });
-    assert.equal(uit.status, 0, uit.stderr);
-    assert.match(uit.stdout, /: text: unset$/m, `${icoon.bestand}: Git mag er geen regeleinden in omzetten`);
+test('iconen: een tegel toont het eigen icoon, ook voor Foundry en Entra ID (geen officieel icoon meer)', () => {
+  const index = {
+    topics: [{ id: 'foundry', name: 'Foundry', summary: 'S', order: 1, status: 'in-opbouw' }, { id: 'entra-id', name: 'Entra ID', summary: 'S', order: 2, status: 'in-opbouw' }],
+    scripts: []
+  };
+  for (const kaart of kaartenVan(bouwKaarten(index, leegV2(), nepDocument()))) {
+    assert.match(kaart.kinderen[0].className, /^icoon ico-(foundry|entra-id)$/);
+    assert.ok(!alle(kaart).some((k) => k.tag === 'img'), 'geen afbeelding op de tegel');
   }
 });
 
-test('microsoft-iconen: de CSS verandert het icoon zelf niet (geen transform, filter, opacity, object-fit, rand of achtergrond op .msicoon)', () => {
-  const css = cssTekst();
-  const regels = [...css.matchAll(/(?:^|\})\s*([^{}]*\.msicoon[^{}]*)\{([^}]*)\}/g)];
-  assert.ok(regels.length >= 1);
-  for (const [, selector, inhoud] of regels) {
-    assert.doesNotMatch(inhoud, /transform|filter|opacity|object-fit|border|background|mask|clip|rotate|scale/i, `${selector.trim()}: past het icoon aan`);
-  }
-  // De lichte achtergrond staat op de wrapper
-  assert.match(css, /\.msplaat\s*\{[^}]*background:\s*var\(--ms-achter\)/);
+test('iconen: de map assets/img/microsoft bestaat niet meer', () => {
+  assert.ok(!existsSync(join(root, 'assets', 'img', 'microsoft')));
 });
 
 test('start: een hoofdonderwerp telt de scripts van zijn subcategorieen mee; subcategorieen hebben geen eigen kaart', () => {

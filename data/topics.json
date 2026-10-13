@@ -13,7 +13,7 @@
   },
   {
     "id": "migraties",
-    "name": "Migraties",
+    "name": "SP Migraties",
     "summary": "Fileshares en SharePoint on-premises migreren naar SharePoint Online, met een eigen pre-scan, SPMT of ShareGate.",
     "order": 1,
     "parent": "sharepoint"
