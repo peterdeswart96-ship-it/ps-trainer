@@ -245,42 +245,105 @@ export async function startWerkbank({ doc, win, opslag, haalIndex, haalScript, h
     try { win.history.replaceState(null, '', werkbankUrl(huidig.id, filters)); } catch { /* geen history: de pagina werkt gewoon door */ }
   };
 
-  // Chips voor een filter: "Alle" plus de opties; aria-pressed laat de keuze zien.
-  const filterGroep = (label, opties, gekozen, kies, klasse = 'chips') => {
+  // Elke filterknop krijgt een vaste sleutel (fid). Na het opnieuw opbouwen van de filters (renderFilters vervangt alle
+  // knoppen) krijgt de knop met de sleutel in volgFocus weer de toetsenbordfocus, zodat je met het toetsenbord kunt doorgaan.
+  let volgFocus = null;
+  let knoppenPerFid = new Map();
+
+  // Een filterknop; aria-pressed laat de keuze zien. Een onderwerp- of soortknop krijgt zijn waarde mee,
+  // zodat de opmaak er een eigen pastelkleur aan kan geven.
+  const filterKnop = (tekst, waarde, gekozen, kies, fid, onderwerp, soort) => {
+    const knop = el(doc, 'button', 'chip filter', tekst);
+    knop.type = 'button';
+    if (onderwerp) knop.setAttribute('data-onderwerp', onderwerp);
+    if (soort) knop.setAttribute('data-soort', soort);
+    knop.setAttribute('aria-pressed', String(gekozen === waarde));
+    knop.addEventListener('click', () => { volgFocus = fid; kies(waarde); });
+    knoppenPerFid.set(fid, knop);
+    return knop;
+  };
+
+  // Chips voor een filter: "Alle" plus de opties.
+  const filterGroep = (label, opties, gekozen, kies, voorvoegsel, klasse = 'chips', id = null) => {
     const groep = el(doc, 'div', klasse);
     groep.setAttribute('role', 'group');
     groep.setAttribute('aria-label', label);
-    for (const [waarde, tekst, onderwerp, soort] of opties) {
-      const knop = el(doc, 'button', 'chip filter', tekst);
-      knop.type = 'button';
-      // Een onderwerp- of soortknop krijgt zijn waarde mee, zodat de opmaak er een eigen pastelkleur aan kan geven
-      if (onderwerp) knop.setAttribute('data-onderwerp', onderwerp);
-      if (soort) knop.setAttribute('data-soort', soort);
-      knop.setAttribute('aria-pressed', String(gekozen === waarde));
-      knop.addEventListener('click', () => kies(waarde));
-      groep.append(knop);
-    }
+    if (id) groep.id = id;
+    for (const [waarde, tekst, onderwerp, soort] of opties) groep.append(filterKnop(tekst, waarde, gekozen, kies, `${voorvoegsel}:${waarde}`, onderwerp, soort));
     return groep;
   };
 
+  // Het uitklapmenu met de subcategorieen van het gekozen hoofdonderwerp is open of dicht.
+  let menuOpen = false;
+  // Een klik op een onderwerpknop of in het menu bubbelt daarna naar de pagina (die het menu bij een klik elders sluit).
+  // Omdat renderFilters de knoppen vervangt, is de aangeklikte knop dan al uit de pagina verdwenen en kan de pagina niet
+  // meer zien waar de klik was. Het omhulsel zet daarom deze vlag; de pagina leest en wist hem. Bewuste keuze.
+  let klikInMenu = false;
+  let menuFid = null; // de sleutel van de knop van het geopende menu
+
   const renderFilters = () => {
-    // Onderwerp: de hoofdonderwerpen met scripts (ook via een subcategorie). Subcategorie: alleen als het gekozen
-    // hoofdonderwerp subcategorieen met scripts heeft; 'Alles' kiest het hele hoofdonderwerp.
+    // Onderwerp: de hoofdonderwerpen met scripts (ook via een subcategorie). Een hoofdonderwerp met subcategorieen
+    // die scripts hebben, opent bij een klik een uitklapmenu met 'Alles' en die subcategorieen.
     const metScripts = (t) => filterScripts(index.scripts, { topic: t.id, topics: index.topics }).length > 0;
     const hoofdonderwerpen = index.topics.filter((t) => t.parent === undefined && metScripts(t));
     const actiefHoofd = filters.topic ? hoofdOnderwerp(index.topics, filters.topic) : null;
-    const subcategorieen = actiefHoofd ? index.topics.filter((t) => t.parent === actiefHoofd && metScripts(t)) : [];
-    const groepen = [
-      filterGroep('Onderwerp', [[null, 'Alle onderwerpen'], ...hoofdonderwerpen.map((t) => [t.id, t.name, t.id])], actiefHoofd, (w) => zetFilter('topic', w))
-    ];
-    if (subcategorieen.length > 0) {
-      groepen.push(filterGroep('Subcategorie', [[actiefHoofd, 'Alles'], ...subcategorieen.map((t) => [t.id, t.name, t.id])], filters.topic, (w) => zetFilter('topic', w)));
+    knoppenPerFid = new Map();
+    menuFid = null;
+    let geopendMenu = null;
+
+    const onderwerpGroep = el(doc, 'div', 'chips');
+    onderwerpGroep.setAttribute('role', 'group');
+    onderwerpGroep.setAttribute('aria-label', 'Onderwerp');
+    onderwerpGroep.append(filterKnop('Alle onderwerpen', null, actiefHoofd, (w) => { menuOpen = false; zetFilter('topic', w); }, 'o:alle'));
+    for (const t of hoofdonderwerpen) {
+      const subs = index.topics.filter((k) => k.parent === t.id && metScripts(k));
+      const actief = actiefHoofd === t.id;
+      const fid = `o:${t.id}`;
+      if (subs.length === 0) {
+        onderwerpGroep.append(filterKnop(t.name, t.id, actiefHoofd, (w) => { menuOpen = false; zetFilter('topic', w); }, fid, t.id));
+        continue;
+      }
+      const gekozenSub = actief ? subs.find((k) => k.id === filters.topic) : null;
+      const open = menuOpen && actief;
+      const wrap = el(doc, 'span', 'menuwrap');
+      wrap.addEventListener('click', () => { klikInMenu = true; });
+      const knop = filterKnop(gekozenSub ? `${t.name} \u203a ${gekozenSub.name}` : t.name, t.id, actiefHoofd, () => {
+        if (actief) { menuOpen = !menuOpen; renderFilters(); } else { menuOpen = true; zetFilter('topic', t.id); }
+      }, fid, t.id);
+      knop.setAttribute('aria-haspopup', 'true');
+      knop.setAttribute('aria-expanded', String(open));
+      knop.setAttribute('aria-controls', `submenu-${t.id}`);
+      wrap.append(knop);
+      if (open) {
+        menuFid = fid;
+        // Na een keuze sluit het menu en gaat de focus terug naar de knop van het hoofdonderwerp.
+        geopendMenu = filterGroep('Subcategorie', [[t.id, 'Alles'], ...subs.map((k) => [k.id, k.name, k.id])], filters.topic,
+          (w) => { menuOpen = false; volgFocus = fid; zetFilter('topic', w); }, `s`, 'submenu', `submenu-${t.id}`);
+        wrap.append(geopendMenu);
+      }
+      onderwerpGroep.append(wrap);
     }
     onderdeel('filters').replaceChildren(
-      ...groepen,
-      filterGroep('Soort vraag', [[null, 'Alle vragen'], ...VRAAGTYPES.map((t) => [t, TYPE_LABELS[t], undefined, t])], filters.type, (w) => zetFilter('type', w), 'chips rechts')
+      onderwerpGroep,
+      filterGroep('Soort vraag', [[null, 'Alle vragen'], ...VRAAGTYPES.map((t) => [t, TYPE_LABELS[t], undefined, t])], filters.type, (w) => { menuOpen = false; zetFilter('type', w); }, 'q', 'chips rechts')
     );
+    // Op een smal scherm staat het menu in een zijwaarts schuifbare rij: zorg dat het in beeld komt.
+    geopendMenu?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+    if (volgFocus) { knoppenPerFid.get(volgFocus)?.focus?.(); volgFocus = null; }
   };
+
+  // Het menu sluit met Escape (de focus gaat terug naar de knop) en met een klik buiten het menu.
+  const sluitMenu = (focusTerug) => {
+    if (!menuOpen) return;
+    menuOpen = false;
+    if (focusTerug) volgFocus = menuFid;
+    renderFilters();
+  };
+  doc.addEventListener?.('keydown', (e) => { if (e.key === 'Escape') sluitMenu(true); });
+  doc.addEventListener?.('click', () => {
+    if (klikInMenu) { klikInMenu = false; return; }
+    sluitMenu(false);
+  });
 
   // De scriptkeuze: de scripts binnen de filters, plus het huidige script als dat buiten de filters valt.
   const renderChips = () => {
