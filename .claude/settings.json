@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File .claude/hooks/verifieer.ps1",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
