@@ -28,10 +28,7 @@ De repo is de bron van waarheid; `DEFINE.md` en `DESIGN.md` zijn leidend. Verand
 - **Stoppunten (Peters akkoord):** Azure-resources, kosten, DNS, nieuw domein of nieuwe omgeving, en alles wat scope, scriptlijst of ontwerpbesluit bepaalt.
 
 ## Node-versie (hier is het vijf keer misgegaan)
-- Begin elke sessie met `node -v` en `git branch --show-current`. Stop en meld het als de Node-hoofdversie afwijkt van `.nvmrc`.
-- Tooling (repo-root): Node 24 (`.nvmrc`); elk npm-script begint met `tools/check-node.mjs`. Function (`api/`, vanaf 2.2): Node 22 (`api/.nvmrc`), nooit 24 aannemen voor Azure Functions. Windows Consumption is uitgesloten.
-- GitHub Actions: `actions/setup-node` met `node-version-file`, nooit een los getal, `latest` of `lts/*`.
-- Les uit `mokum-competitie`: Node 24 op Linux Consumption gaf permanent 503 terwijl `az functionapp show` `Running` meldde. Alleen een echte HTTP-aanroep bewijst dat een Function werkt; in 2.2 eerst een runtime-test (`process.version`, HTTP 200).
+Begin elke sessie met `node -v` en `git branch --show-current`; stop en meld het bij afwijking van `.nvmrc`. Details en lessen: `docs/node-versies.md`.
 
 ## Afwijkingen van Peters standaardstack (bewust, niet "corrigeren")
 - Geen React, Vite of Tailwind: platte HTML, CSS en JavaScript-modules. Eén klein Node-script bouwt `data/index.json` in CI.
@@ -40,22 +37,13 @@ De repo is de bron van waarheid; `DEFINE.md` en `DESIGN.md` zijn leidend. Verand
 - `api/` blijft leeg tot release 2.2. Bouw niets voor de backend eerder.
 
 ## Inhoudsregels voor scripts en vragen
-- Elk oefenscript is een map `data/scripts/<onderwerp>/<id>/` met `script.ps1` en `meta.json` (zie DESIGN.md paragraaf 4).
-- **Correctheid:** gebruik alleen cmdlets en parameters waarvan je zeker bent dat ze bestaan. Twijfel je, zeg het en zet `check.status` op `nog_te_controleren`. Peter heeft **geen toegang tot ShareGate Migrate**: ShareGate-scripts staan altijd op `nog_te_controleren`.
-- Voorbeelden gebruiken `contoso`; nooit echte tenant-ID's, sleutels, sitenamen of klantgegevens.
-- Elke vraag hoort bij één van de vijf leesstappen: `parameters`, `bron`, `bewerking`, `wijziging`, `uitvoer`.
-- Houd `.ps1`-bestanden bij voorkeur ASCII (Windows PowerShell 5.1 leest UTF-8 zonder BOM als ANSI).
-- Uitlegtekst in JSON gebruikt alleen `` `code` `` en `**vet**`.
+Gebruik alleen cmdlets en parameters waarvan je zeker bent (anders `check.status` = `nog_te_controleren`; ShareGate altijd) en alleen `contoso`-voorbeelden. Alle regels: `docs/inhoudsregels.md`.
 
 ## Beveiliging
 - Geen sleutels, tokens of wachtwoorden in code, JSON, workflows of commits.
-- Tekst uit JSON altijd escapen voor weergave. Geen `innerHTML` met ongecontroleerde data.
-- Scripts worden nooit uitgevoerd in de app.
-- Vaste URL's (`/oefenen/?script=`, `/examen/`, `/flashcards/`, `/woordenboek/`) mogen niet veranderen zonder de agentinstructies aan te passen.
-- Elke nieuwe pagina wordt toegevoegd aan `PAGINAS` in `tools/smoke.mjs`, anders test de rooktest haar niet.
-- De lokale server (`tools/server.mjs`) geeft 404 voor dotfiles (`.env`, `.git/`) en `node_modules`; alleen `/.well-known/` is toegestaan.
-- Geen officiële Microsoft-iconen of -logo's: alle iconen zijn eigen SVG's in `assets/img/icons` (besluit van Peter, 13 oktober 2026). Elk onderwerp, ook een subcategorie, heeft een eigen `ico-<id>` in `app.css` en een bijbehorend SVG-bestand; een test dwingt dat af.
-- Bij `feature/deploy` wordt alleen een allowlist van sitebestanden gepubliceerd (`index.html`, pagina-mappen, `assets/`, `data/`, `schema/`, `CNAME`). Nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/` of andere repo-bestanden publiceren.
+- Tekst uit JSON altijd escapen; geen `innerHTML` met ongecontroleerde data. Scripts worden nooit uitgevoerd in de app.
+- Bij `feature/deploy` alleen een allowlist van sitebestanden publiceren; nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/`.
+- Overige regels (vaste URL's, `PAGINAS` in smoke.mjs, lokale server, iconen): `docs/beveiliging.md`.
 
 ## Voortgang
 De checklist van Develop (release 2.0) staat in `docs/voortgang.md`. Houd hem bij: vink af wat klaar is en voeg nieuwe punten toe.
