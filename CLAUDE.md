@@ -23,19 +23,15 @@ Eigenaar: Peter de Swart (IT-engineer, geen developer, wil beter worden in Power
 9. Werkomgeving is Windows met PowerShell. Geef PowerShell-commando's, geen bash. Zips voor handmatige deploys met Windows-`tar` (volledig pad met `C:/`), niet met `Compress-Archive`.
 
 ## Werkwijze in VS Code
-Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van waarheid; het Claude Project en de skill `project-intelligence-pipeline` worden niet gebruikt.
-- **Documenten:** `DEFINE.md` en `DESIGN.md` in de repo zijn leidend. Verandert een ontwerpbesluit, werk het document dan zelf bij (versie verhogen en een korte statusregel bovenaan) en meld dat expliciet aan Peter.
-- **Onafhankelijke review:** voordat je een stap als klaar meldt, laat je een aparte subagent met schone context de wijziging beoordelen op correctheid, regressies en tegenstrijdigheden met `DESIGN.md` en `CLAUDE.md`. Neem de bevindingen eerlijk op in je melding, ook als de review iets afkeurt. Voor scripts met cmdlets en parameters: markeer alles wat je niet zeker weet als `nog_te_controleren`.
-- **Stoppunten (Peter geeft akkoord):** alles met Azure-resources, kosten, DNS of het in gebruik nemen van een nieuw domein of een nieuwe omgeving, en een volgende stap die de scope, de scriptlijst of een ontwerpbesluit bepaalt (werkwijzepunt 3). Commit, push, pull request en merge naar `main` via een pull request zijn **geen** stoppunt meer (werkwijzepunt 6). Rechtstreeks pushen naar `main` doet Claude Code nooit.
-- **Pull requests:** die maak je zelf met de GitHub CLI (`gh pr create`) en merge je zelf na de groene check (werkwijzepunt 6), nooit met auto-merge.
+De repo is de bron van waarheid; `DEFINE.md` en `DESIGN.md` zijn leidend. Verandert een ontwerpbesluit, werk het document dan zelf bij (versie verhogen, statusregel bovenaan) en meld het.
+- **Onafhankelijke review:** laat voor je een stap als klaar meldt een aparte subagent met schone context de wijziging beoordelen (correctheid, regressies, tegenstrijdigheid met `DESIGN.md`/`CLAUDE.md`). Meld de bevindingen eerlijk. Markeer onzekere cmdlets/parameters als `nog_te_controleren`.
+- **Stoppunten (Peters akkoord):** Azure-resources, kosten, DNS, nieuw domein of nieuwe omgeving, en alles wat scope, scriptlijst of ontwerpbesluit bepaalt.
 
-## Node-versie (op deze plek is het vijf keer misgegaan, wees precies)
-- Begin elke sessie met `node -v` en `git branch --show-current`. Stop en meld het als de Node-hoofdversie niet gelijk is aan `.nvmrc`.
-- **Tooling (repo-root):** Node 24, vastgelegd in `.nvmrc`. Elk npm-script begint met `tools/check-node.mjs`, want npm controleert `engines` alleen bij installeren.
-- **Function (`api/`, vanaf release 2.2):** de versie die in Azure aantoonbaar draait, verwacht Node 22. Eigen `api/.nvmrc`. Nooit Node 24 aannemen voor Azure Functions.
-- GitHub Actions: `actions/setup-node` met `node-version-file`. Nooit een los getal, `latest` of `lts/*`.
-- Les uit `mokum-competitie`: Node 24 op Linux Consumption gaf permanent 503, terwijl `az functionapp show` `Running` meldde en `az functionapp list-runtimes` 24 toonde. Alleen een echte HTTP-aanroep bewijst dat een Function werkt. In 2.2 komt eerst een runtime-test (eindpunt dat `process.version` teruggeeft, HTTP 200) voordat er functiecode wordt geschreven.
-- Windows Consumption is uitgesloten (standaard Node v0.10).
+## Node-versie (hier is het vijf keer misgegaan)
+- Begin elke sessie met `node -v` en `git branch --show-current`. Stop en meld het als de Node-hoofdversie afwijkt van `.nvmrc`.
+- Tooling (repo-root): Node 24 (`.nvmrc`); elk npm-script begint met `tools/check-node.mjs`. Function (`api/`, vanaf 2.2): Node 22 (`api/.nvmrc`), nooit 24 aannemen voor Azure Functions. Windows Consumption is uitgesloten.
+- GitHub Actions: `actions/setup-node` met `node-version-file`, nooit een los getal, `latest` of `lts/*`.
+- Les uit `mokum-competitie`: Node 24 op Linux Consumption gaf permanent 503 terwijl `az functionapp show` `Running` meldde. Alleen een echte HTTP-aanroep bewijst dat een Function werkt; in 2.2 eerst een runtime-test (`process.version`, HTTP 200).
 
 ## Afwijkingen van Peters standaardstack (bewust, niet "corrigeren")
 - Geen React, Vite of Tailwind: platte HTML, CSS en JavaScript-modules. Eén klein Node-script bouwt `data/index.json` in CI.
@@ -61,27 +57,5 @@ Peter werkt voortaan volledig in VS Code met Claude Code. De repo is de bron van
 - Geen officiële Microsoft-iconen of -logo's: alle iconen zijn eigen SVG's in `assets/img/icons` (besluit van Peter, 13 oktober 2026). Elk onderwerp, ook een subcategorie, heeft een eigen `ico-<id>` in `app.css` en een bijbehorend SVG-bestand; een test dwingt dat af.
 - Bij `feature/deploy` wordt alleen een allowlist van sitebestanden gepubliceerd (`index.html`, pagina-mappen, `assets/`, `data/`, `schema/`, `CNAME`). Nooit `tests/`, `tools/`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.github/` of andere repo-bestanden publiceren.
 
-## Voortgang Develop (release 2.0) – houd dit bij
-- [x] Repo `peterdeswart96-ship-it/ps-trainer` met `main` (`develop` vervalt)
-- [x] Feature-branch `feature/repo-en-validatie` aangemaakt
-- [x] `.gitattributes`, `.gitignore`, `.npmrc`, `.nvmrc`, `package.json`, `tools/check-node.mjs`
-- [x] Stap 3: `schema/script.schema.json`, `tools/validate.mjs`, testfixtures en tests
-- [x] Stap 4a: `tools/Test-Syntax.ps1` en uitgebreide validatietests
-- [x] Stap 4b: `data/topics.json`, `tools/build-index.mjs`, `tools/server.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs` en `tests/tools.test.mjs`
-- [x] Stap 5: server blokkeert dotfiles, workflow `.github/workflows/validate.yml`, branchstrategie zonder `develop`
-- [x] Pull request feature/repo-en-validatie naar main (Peter)
-- [x] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
-- [x] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7)
-- [x] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten
-- [x] `feature/startpagina-en-werkbank`: gedeelde basis, woordenboekpagina, startpagina en werkbank (visueel gecontroleerd op de livesite: desktop en telefoon, licht en donker)
-- [x] `feature/deploy`: `deploy.yml`, `tools/build-site.mjs`, `DEPLOY.md` en tests; DNS, Pages en eigen domein ingesteld; PR 12 gemerged op 11 oktober 2026, site live op https://ps-trainer.pdscloud.nl/
-- [x] Inhoud Migraties: 9 scripts, 3 per niveau (PR 16 t/m 24). De drie pre-scans zijn `gecontroleerd` (PR 27); de overige zes staan op `nog_te_controleren`: SPMT en ShareGate kunnen niet worden getoetst aan een geïnstalleerde module, en bij de twee PnP-scripts zijn veldnamen niet tegen een echte tenant gecontroleerd
-- [x] Inhoud SharePoint: 9 scripts, 3 per niveau (alle `nog_te_controleren`: niets is tegen een echte tenant of module gedraaid)
-- [x] Inhoud Purview: 3 scripts, 1 per niveau (alle `nog_te_controleren`: de uitvoereigenschappen van de `Get-`cmdlets zijn niet allemaal gedocumenteerd en niets is tegen een echte tenant gedraaid)
-- [x] Inhoud Foundry: 9 scripts, 3 per niveau (PR 52 t/m 60). Alle `nog_te_controleren`: niets is tegen een echte omgeving gedraaid; open punten staan per script in `note` en `check.source`. De drie scripts die iets wijzigen (`foundry-resource-aanmaken`, `foundry-deployment-aanmaken`, `foundry-rbac-toewijzen-managed-identity`) en het opruimscript hebben `-WhatIf`; `foundry-resources-inventaris` geeft de validatiewaarschuwing over `Set-AzContext` (bewust: `risk` blijft `read`, het wijzigt alleen de sessie)
-- [x] Issue #35: onderwerpen als boom met twee niveaus (`parent` in `topics.json`): PowerShell-basis, SharePoint (Migraties), Exchange, Security (Entra ID, Purview), Azure (Foundry) en Microsoft 365; de nieuwe onderwerpen hebben nog geen scripts. Besluiten van Peter: een script op precies één plek, tegels per hoofdonderwerp met subcategorie als tweede filter. DESIGN.md 1.18, DEFINE.md 0.9
-- [x] Inhoud PowerShell-basis (`algemeen`): 9 scripts, 3 per niveau (PR 64 t/m 70, 73 en de laatste; PR 71 bevat een reviewcorrectie). Alle 9 zijn `gecontroleerd`: ze hebben geen module nodig en elk gedrag uit de vragen is uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1. Nieuwe onderwerpen Exchange, Security (alleen Entra ID en Purview), Azure (alleen Foundry) en Microsoft 365 hebben nog geen eigen scripts (alleen via de subcategorieën): een nieuwe scriptlijst per onderwerp kiest Peter
-- [x] Inhoud Microsoft 365 (`m365`): 9 scripts, 3 per niveau (PR 81 t/m 89; PR 82 bevat een herstelcommit). Alle `nog_te_controleren`: niets is tegen een echte tenant gedraaid. Cmdlets, parameters en modeltypes zijn getoetst met opgeslagen modules (`Save-Module` in een tijdelijke map); open punten staan per script in `note`. De twee scripts die iets wijzigen (`m365-licenties-terughalen`, `m365-licentie-wisselen-bulk`) hebben `-WhatIf`. Zie `docs/sessies/2026-10-13-overdracht-m365-scripts.md`
-- [x] Uitklapmenu voor subcategorieën (PR 74) en compactere kop en scorerij op de werkbank (PR 75)
-- [x] Issue #72: knop "Kopieer Copilot-prompt" bij elke vraag (tussen Vorige en Volgende; alleen kopiëren, nooit het antwoord; DESIGN.md 1.22)
-- [ ] Issue #36 (zoekfunctie, later): wacht op een besluit van Peter
+## Voortgang
+De checklist van Develop (release 2.0) staat in `docs/voortgang.md`. Houd hem bij: vink af wat klaar is en voeg nieuwe punten toe.

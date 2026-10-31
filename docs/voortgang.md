@@ -1,0 +1,24 @@
+# Voortgang Develop (release 2.0) – houd dit bij
+
+- [x] Feature-branch `feature/repo-en-validatie` aangemaakt
+- [x] `.gitattributes`, `.gitignore`, `.npmrc`, `.nvmrc`, `package.json`, `tools/check-node.mjs`
+- [x] Stap 3: `schema/script.schema.json`, `tools/validate.mjs`, testfixtures en tests
+- [x] Stap 4a: `tools/Test-Syntax.ps1` en uitgebreide validatietests
+- [x] Stap 4b: `data/topics.json`, `tools/build-index.mjs`, `tools/server.mjs`, `tools/dev-server.mjs`, `tools/smoke.mjs` en `tests/tools.test.mjs`
+- [x] Stap 5: server blokkeert dotfiles, workflow `.github/workflows/validate.yml`, branchstrategie zonder `develop`
+- [x] Pull request feature/repo-en-validatie naar main (Peter)
+- [x] Branch `develop` verwijderen en branch-protectie op `main` instellen: verplichte pull request en verplichte check "Validatie" (Peter, pas nadat de workflow minstens één keer gedraaid heeft)
+- [x] Stap 5c: GitHub Actions bijwerken (ubuntu-24.04, actions v7)
+- [x] `feature/omzetten-v1`: 4 scripts, 27 vragen en woordenboek uit v1 omzetten
+- [x] `feature/startpagina-en-werkbank`: gedeelde basis, woordenboekpagina, startpagina en werkbank (visueel gecontroleerd op de livesite: desktop en telefoon, licht en donker)
+- [x] `feature/deploy`: `deploy.yml`, `tools/build-site.mjs`, `DEPLOY.md` en tests; DNS, Pages en eigen domein ingesteld; PR 12 gemerged op 11 oktober 2026, site live op https://ps-trainer.pdscloud.nl/
+- [x] Inhoud Migraties: 9 scripts, 3 per niveau (PR 16 t/m 24). De drie pre-scans zijn `gecontroleerd` (PR 27); de overige zes staan op `nog_te_controleren`: SPMT en ShareGate kunnen niet worden getoetst aan een geïnstalleerde module, en bij de twee PnP-scripts zijn veldnamen niet tegen een echte tenant gecontroleerd
+- [x] Inhoud SharePoint: 9 scripts, 3 per niveau (alle `nog_te_controleren`: niets is tegen een echte tenant of module gedraaid)
+- [x] Inhoud Purview: 3 scripts, 1 per niveau (alle `nog_te_controleren`: de uitvoereigenschappen van de `Get-`cmdlets zijn niet allemaal gedocumenteerd en niets is tegen een echte tenant gedraaid)
+- [x] Inhoud Foundry: 9 scripts, 3 per niveau (PR 52 t/m 60). Alle `nog_te_controleren`: niets is tegen een echte omgeving gedraaid; open punten staan per script in `note` en `check.source`. De drie scripts die iets wijzigen (`foundry-resource-aanmaken`, `foundry-deployment-aanmaken`, `foundry-rbac-toewijzen-managed-identity`) en het opruimscript hebben `-WhatIf`; `foundry-resources-inventaris` geeft de validatiewaarschuwing over `Set-AzContext` (bewust: `risk` blijft `read`, het wijzigt alleen de sessie)
+- [x] Issue #35: onderwerpen als boom met twee niveaus (`parent` in `topics.json`): PowerShell-basis, SharePoint (Migraties), Exchange, Security (Entra ID, Purview), Azure (Foundry) en Microsoft 365; de nieuwe onderwerpen hebben nog geen scripts. Besluiten van Peter: een script op precies één plek, tegels per hoofdonderwerp met subcategorie als tweede filter. DESIGN.md 1.18, DEFINE.md 0.9
+- [x] Inhoud PowerShell-basis (`algemeen`): 9 scripts, 3 per niveau (PR 64 t/m 70, 73 en de laatste; PR 71 bevat een reviewcorrectie). Alle 9 zijn `gecontroleerd`: ze hebben geen module nodig en elk gedrag uit de vragen is uitgevoerd in PowerShell 7.6.6 en Windows PowerShell 5.1. Nieuwe onderwerpen Exchange, Security (alleen Entra ID en Purview), Azure (alleen Foundry) en Microsoft 365 hebben nog geen eigen scripts (alleen via de subcategorieën): een nieuwe scriptlijst per onderwerp kiest Peter
+- [x] Inhoud Microsoft 365 (`m365`): 9 scripts, 3 per niveau (PR 81 t/m 89; PR 82 bevat een herstelcommit). Alle `nog_te_controleren`: niets is tegen een echte tenant gedraaid. Cmdlets, parameters en modeltypes zijn getoetst met opgeslagen modules (`Save-Module` in een tijdelijke map); open punten staan per script in `note`. De twee scripts die iets wijzigen (`m365-licenties-terughalen`, `m365-licentie-wisselen-bulk`) hebben `-WhatIf`. Zie `docs/sessies/2026-10-13-overdracht-m365-scripts.md`
+- [x] Uitklapmenu voor subcategorieën (PR 74) en compactere kop en scorerij op de werkbank (PR 75)
+- [x] Issue #72: knop "Kopieer Copilot-prompt" bij elke vraag (tussen Vorige en Volgende; alleen kopiëren, nooit het antwoord; DESIGN.md 1.22)
+- [ ] Issue #36 (zoekfunctie, later): wacht op een besluit van Peter
