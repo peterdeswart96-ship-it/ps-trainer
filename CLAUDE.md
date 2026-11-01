@@ -45,3 +45,5 @@ Gebruik alleen cmdlets en parameters waarvan je zeker bent (anders `check.status
 
 ## Voortgang
 De checklist van Develop (release 2.0) staat in `docs/voortgang.md`. Houd hem bij: vink af wat klaar is en voeg nieuwe punten toe.
+
+- Kennis-index: `docs/index.md`.
