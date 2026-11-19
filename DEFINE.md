@@ -6,7 +6,7 @@ Status: versie 0.9 (13 oktober 2026). Wijziging t.o.v. 0.8, op verzoek van Peter
 
 | Onderwerp | Besluit |
 | --- | --- |
-| Naam en adres | `ps-trainer`, live op `ps-trainer.pdscloud.nl`; repo `peterdeswart96-ship-it/ps-trainer` |
+| Naam en adres | `ps-trainer`, live op `ps-trainer.pdscloud.nl`; repo `peterdeswart96-ship-it/leren-ps-trainer` |
 | Doelgroep | In eerste instantie alleen ik zelf; collega's mogelijk later |
 | AI | Via Microsoft Foundry (gpt-5-mini), niet via de Claude API |
 | Stack | Eerst de huidige HTML-pagina uitbreiden en de inhoud naar JSON-bestanden verplaatsen; geen herbouw in React |

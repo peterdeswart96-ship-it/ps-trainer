@@ -26,12 +26,12 @@ De volgorde is belangrijk: zonder eigen domein staat de site op `https://peterde
 
    Opslaan en controleren op https://dnschecker.org/#CNAME/ps-trainer.pdscloud.nl. Zet de TTL na propagatie terug naar 1 uur.
 2. **GitHub Pages inschakelen met GitHub Actions als bron:** repo → Settings → Pages → *Build and deployment* → **Source: GitHub Actions**. (Dus niet "Deploy from a branch", anders dan de skill `github-pages-subdomain` beschrijft: de gebouwde index zit niet in git.)
-   Met de GitHub CLI: `gh api -X POST repos/peterdeswart96-ship-it/ps-trainer/pages -f build_type=workflow` (geeft *409* als Pages al bestaat: gebruik dan `gh api -X PUT repos/peterdeswart96-ship-it/ps-trainer/pages -f build_type=workflow`)
+   Met de GitHub CLI: `gh api -X POST repos/peterdeswart96-ship-it/leren-ps-trainer/pages -f build_type=workflow` (geeft *409* als Pages al bestaat: gebruik dan `gh api -X PUT repos/peterdeswart96-ship-it/leren-ps-trainer/pages -f build_type=workflow`)
 3. **Eigen domein instellen:** Settings → Pages → *Custom domain* → `ps-trainer.pdscloud.nl` → Save. Wacht op "DNS check successful" (5 tot 15 minuten).
-   Met de GitHub CLI: `gh api -X PUT repos/peterdeswart96-ship-it/ps-trainer/pages -f cname=ps-trainer.pdscloud.nl`
+   Met de GitHub CLI: `gh api -X PUT repos/peterdeswart96-ship-it/leren-ps-trainer/pages -f cname=ps-trainer.pdscloud.nl`
 4. **HTTPS afdwingen:** zodra het certificaat er is (5 tot 15 minuten na de DNS-check), vink *Enforce HTTPS* aan.
-   Met de GitHub CLI: `gh api -X PUT repos/peterdeswart96-ship-it/ps-trainer/pages -F https_enforced=true`
-5. **Omgeving controleren (verplicht):** alleen `main` mag naar Pages deployen, ook als iemand de workflow op een andere branch start. Settings → Environments → `github-pages` → *Deployment branches and tags* → alleen `main`. Controleren met `gh api repos/peterdeswart96-ship-it/ps-trainer/environments/github-pages --jq '{regel: .deployment_branch_policy}'`: er moet een regel staan (`custom_branch_policies: true`), niet `null`. Staat het niet goed, stel het dan in via de instellingen; de omgeving bestaat zodra Pages met GitHub Actions is ingeschakeld (stap 2).
+   Met de GitHub CLI: `gh api -X PUT repos/peterdeswart96-ship-it/leren-ps-trainer/pages -F https_enforced=true`
+5. **Omgeving controleren (verplicht):** alleen `main` mag naar Pages deployen, ook als iemand de workflow op een andere branch start. Settings → Environments → `github-pages` → *Deployment branches and tags* → alleen `main`. Controleren met `gh api repos/peterdeswart96-ship-it/leren-ps-trainer/environments/github-pages --jq '{regel: .deployment_branch_policy}'`: er moet een regel staan (`custom_branch_policies: true`), niet `null`. Staat het niet goed, stel het dan in via de instellingen; de omgeving bestaat zodra Pages met GitHub Actions is ingeschakeld (stap 2).
 6. **Eerste deploy:** merge de pull request met `deploy.yml`. **Die merge is zelf de livegang** (push naar `main`), dus stap 0 tot en met 5 moeten dan klaar zijn; anders wordt de deploy rood (er wordt dan niets gepubliceerd). Daarna kan Deploy ook handmatig via Actions. Wacht op het **groene vinkje** voordat je test.
 
 > Het bestand `CNAME` staat in het pakket (allowlist), maar bij een deploy via Actions bepaalt de instelling bij stap 3 het domein; het bestand wordt genegeerd.
